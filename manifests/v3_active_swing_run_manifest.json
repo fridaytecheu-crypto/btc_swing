@@ -1,0 +1,224 @@
+{
+ "config_hash": "d2bd8e97f1b9382ecf41e2699181913ae631b02f3a21574f650231a2c5c3d3d3",
+ "config_yaml": "context:\n  align_tf: 1h\n  trend_tf: 4h\n  vol_percentile_window: 100\ncosts:\n  apply_funding: true\n  default_funding_interval_hours: 8\n  entry_slippage_bps: 2.0\n  maker_fee_bps: 2.0\n  stop_slippage_bps: 5.0\n  taker_fee_bps: 5.0\n  use_maker_for_targets: false\ndata:\n  base_timeframe: 5m\n  ingest_funding: true\n  ingest_mark_price: true\n  ingest_metrics: true\n  ingest_native_timeframes:\n  - 1h\n  - 4h\n  - 1d\n  ingest_premium_index: true\n  ingest_spot: false\n  latency_minutes: 0\n  provider: binance_vision\nepisode:\n  anchor_tolerance_atr: 0.25\n  cooldown_bars_after_close: 12\n  cooldown_bars_after_invalidation: 6\n  dedupe_same_anchor: true\n  entry_ready_timeout_bars: 6\n  family_priority:\n  - TREND_PULLBACK_CONTINUATION\n  - BREAKOUT_RETEST\n  - LIQUIDITY_SWEEP_REVERSAL\n  - VOLATILITY_EXPANSION_CONTINUATION\n  max_concurrent_positions: 1\n  watch_timeout_bars: 288\nexits:\n  breakeven_after_tp1: true\n  evaluate_r_levels:\n  - 1.0\n  - 1.5\n  - 2.0\n  - 3.0\n  max_hold_hours: 48\n  tp1_frac: 0.4\n  tp1_r: 1.0\n  tp2_frac: 0.3\n  trail_atr_buffer: 0.5\n  trail_tf: 15m\nindicators:\n  atr_period: 14\n  donchian_period: 20\n  ema_fast: 21\n  ema_slow: 50\n  ema_trend: 200\n  min_bars:\n    15m: 220\n    1d: 60\n    1h: 220\n    4h: 220\n    5m: 220\n  swing_k: 2\ninstrument:\n  market: binance_um_perp\n  quote: USDT\n  spot_symbol: BTCUSDT\n  symbol: BTCUSDT\nregime:\n  d1_slope_bars: 5\n  vol_compression_percentile: 0.2\n  vol_expansion_4h_atr_ratio: 1.3\n  vol_expansion_percentile: 0.8\nresearch:\n  criteria:\n    b_min_positive_years: 3\n    b_min_profit_factor: 1.05\n    b_min_trades_per_day: 0.3\n    max_cost_drag_share: 0.5\n    max_drawdown: 0.12\n    max_family_pnl_share: 0.6\n    max_quarter_pnl_share: 0.5\n    max_trades_per_day: 3.0\n    median_hold_hours:\n    - 2.0\n    - 12.0\n    min_expectancy_r: 0.1\n    min_expectancy_without_best5_r: 0.05\n    min_positive_quarter_share: 0.6\n    min_positive_years: 4\n    min_profit_factor: 1.2\n    min_quarter_trades: 10\n    min_trades_per_day: 0.5\n  end_exclusive: '2026-10-01'\n  leverage_caps:\n  - 1.0\n  - 2.0\n  - 3.0\n  - 5.0\n  - 10.0\n  min_cell_n: 20\n  null_k: 10\n  seed: 7\n  start: '2022-01-01'\nrisk:\n  allowed_leverage:\n  - 1.0\n  - 2.0\n  - 3.0\n  - 5.0\n  - 10.0\n  compounding: false\n  initial_equity: 10000.0\n  liquidation_atr_tf: 4h\n  maintenance_margin_rate: 0.005\n  margin_cap_frac: 0.25\n  max_leverage: 10.0\n  min_liquidation_distance_atr: 3.0\n  min_stop_to_liquidation_ratio: 3.0\n  report_risk_per_trade: 0.005\n  risk_per_trade: 0.0025\nsafety_overlay:\n  full_risk_loss_r: -0.9\n  max_daily_loss_frac: 0.0075\n  max_full_risk_losses_per_day: 3\nsetups:\n  breakout_retest:\n    break_buffer_atr: 0.1\n    invalidation_atr: 0.25\n    level_lookback_bars: 48\n    retest_touch_atr: 0.25\n    retest_window_bars: 12\n    stop_buffer_atr: 0.5\n    zone_inner_atr: 0.25\n    zone_outer_atr: 0.5\n  liquidity_sweep:\n    reclaim_window_bars: 4\n    stop_buffer_atr: 0.25\n    sweep_min_atr: 0.15\n    zone_inner_atr: 0.1\n    zone_outer_atr: 0.5\n  max_stop_atr: 3.0\n  min_rr: 1.5\n  min_stop_atr: 0.4\n  tp2_cap_r: 4.0\n  trend_pullback:\n    impulse_min_atr: 1.5\n    retrace_max: 0.786\n    retrace_min: 0.382\n    stop_buffer_atr: 0.3\n    zone_pad_atr: 0.25\n  volatility_expansion:\n    breakout_lookback_bars: 12\n    close_location: 0.7\n    compression_lookback_bars: 12\n    compression_percentile: 0.25\n    confirm_max_above_atr: 0.5\n    confirm_window_bars: 4\n    expansion_range_atr: 1.8\n    max_chase_atr: 1.5\n    stop_buffer_atr: 0.3\n    volume_lookback_bars: 20\n    volume_mult: 1.5\nstrategy_name: btc_swing_v3_active_swing\n",
+ "coverage": {
+  "funding": {
+   "coverage_pct": 100.0,
+   "expected_in_study_window": 5202,
+   "first": "2021-10-01T00:00:00.012000+00:00",
+   "last": "2026-09-30T16:00:00.002000+00:00",
+   "rows": 5478,
+   "rows_in_study_window": 5202
+  },
+  "mark_price_5m": {
+   "coverage_pct": 99.76831827502242,
+   "expected_in_study_window": 499392,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T23:55:00+00:00",
+   "rows": 524731,
+   "rows_in_study_window": 498235
+  },
+  "metrics_5min": {
+   "coverage_pct": 99.97336761501987,
+   "expected_in_study_window": 499392,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T23:55:00+00:00",
+   "rows": 525688,
+   "rows_in_study_window": 499259
+  },
+  "native_1d": {
+   "coverage_pct": 100.0,
+   "expected_in_study_window": 1734,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T00:00:00+00:00",
+   "rows": 1826,
+   "rows_in_study_window": 1734
+  },
+  "native_1h": {
+   "coverage_pct": 100.0,
+   "expected_in_study_window": 41616,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T23:00:00+00:00",
+   "rows": 43824,
+   "rows_in_study_window": 41616
+  },
+  "native_4h": {
+   "coverage_pct": 100.0,
+   "expected_in_study_window": 10404,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T20:00:00+00:00",
+   "rows": 10956,
+   "rows_in_study_window": 10404
+  },
+  "perp_klines_5m": {
+   "coverage_pct": 100.0,
+   "expected_in_study_window": 499392,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T23:55:00+00:00",
+   "rows": 525888,
+   "rows_in_study_window": 499392
+  },
+  "premium_index_5m": {
+   "coverage_pct": 99.82518742791234,
+   "expected_in_study_window": 499392,
+   "first": "2021-10-01T00:00:00+00:00",
+   "last": "2026-09-30T23:55:00+00:00",
+   "rows": 525015,
+   "rows_in_study_window": 498519
+  }
+ },
+ "determinism_identical": true,
+ "generated_at": "2026-10-05T16:17:01.980679+00:00",
+ "half_pct_manifest": {
+  "blocked": {
+   "BLOCKED_POSITION_OPEN": 779,
+   "BLOCKED_SAFETY": 0,
+   "RISK_REJECTED": 0
+  },
+  "code_version": "c185103c1570",
+  "config_hash": "34df2a6c74450a37e6ddb99ab58b3d6e8fc2f37c632d72b8007f4b86d79b5d16",
+  "data_hashes": {
+   "funding": "6e651f5f4815c18c6a8a2af1e5874dacd31a8031898e3499ce37dfff82a61fc1",
+   "mark_price_5m": "13b5ed0518b19dca584066c1f0228fe57ecf7b1bd025b804611bb6f5ca275f88",
+   "metrics": "069b2df5ae27b973b717ceae2a3badc4c98a868aca037836dcb239ddf0ff5390",
+   "perp_klines_5m": "5e5242ac3ef160d306c4a6acacd98163ec8ad54bbbea34b743e1b0dbe3371be7",
+   "premium_index_5m": "456dbe868f1659c1de6efa945207ffcfb424a1d3a6b710276894cac40939dd31"
+  },
+  "final_equity": -37092.41688886787,
+  "finished_at": "2026-10-05T16:11:52.445471+00:00",
+  "initial_equity": 10000.0,
+  "liquidation_basis": "mark",
+  "max_leverage": 10.0,
+  "n_5m_evaluations": 499393,
+  "n_days": 1734.0034722222222,
+  "n_episodes": 7020,
+  "n_trades": 2659,
+  "notes": {
+   "stream": "report_risk_0_5pct"
+  },
+  "period_end_ms": 1790812800000,
+  "period_start_ms": 1640995200000,
+  "regime_bar_counts": {
+   "RANGE": 39864,
+   "TRANSITION": 52836,
+   "TREND_DOWN": 65340,
+   "TREND_UP": 70272,
+   "UNCLEAR": 0,
+   "VOLATILITY_COMPRESSION": 142524,
+   "VOLATILITY_EXPANSION": 128557
+  },
+  "result_hash": "e9ca615ef6ce2cfbb7d1c17c47a048f590891c57ac55458c8f155663d6dc2c3b",
+  "risk_per_trade": 0.005,
+  "rule_versions": {
+   "exits": "v3-exit-1",
+   "regime": "v3-regime-1",
+   "setups": "v3-setup-1"
+  },
+  "safety_overlay": false,
+  "started_at": "2026-10-05T16:11:06.761364+00:00",
+  "strategy_name": "btc_swing_v3_active_swing",
+  "strategy_version": "3.0.0-research"
+ },
+ "overlay_manifest": {
+  "blocked": {
+   "BLOCKED_POSITION_OPEN": 764,
+   "BLOCKED_SAFETY": 78,
+   "RISK_REJECTED": 0
+  },
+  "code_version": "c185103c1570",
+  "config_hash": "d2bd8e97f1b9382ecf41e2699181913ae631b02f3a21574f650231a2c5c3d3d3",
+  "data_hashes": {
+   "funding": "6e651f5f4815c18c6a8a2af1e5874dacd31a8031898e3499ce37dfff82a61fc1",
+   "mark_price_5m": "13b5ed0518b19dca584066c1f0228fe57ecf7b1bd025b804611bb6f5ca275f88",
+   "metrics": "069b2df5ae27b973b717ceae2a3badc4c98a868aca037836dcb239ddf0ff5390",
+   "perp_klines_5m": "5e5242ac3ef160d306c4a6acacd98163ec8ad54bbbea34b743e1b0dbe3371be7",
+   "premium_index_5m": "456dbe868f1659c1de6efa945207ffcfb424a1d3a6b710276894cac40939dd31"
+  },
+  "final_equity": -13901.671321903734,
+  "finished_at": "2026-10-05T16:11:06.688204+00:00",
+  "initial_equity": 10000.0,
+  "liquidation_basis": "mark",
+  "max_leverage": 10.0,
+  "n_5m_evaluations": 499393,
+  "n_days": 1734.0034722222222,
+  "n_episodes": 7035,
+  "n_trades": 2605,
+  "notes": {
+   "stream": "safety_overlay"
+  },
+  "period_end_ms": 1790812800000,
+  "period_start_ms": 1640995200000,
+  "regime_bar_counts": {
+   "RANGE": 39864,
+   "TRANSITION": 52836,
+   "TREND_DOWN": 65340,
+   "TREND_UP": 70272,
+   "UNCLEAR": 0,
+   "VOLATILITY_COMPRESSION": 142524,
+   "VOLATILITY_EXPANSION": 128557
+  },
+  "result_hash": "566561ff14443c349c4c065c1556d601b2482eb19ce93fb5982836030036ba5f",
+  "risk_per_trade": 0.0025,
+  "rule_versions": {
+   "exits": "v3-exit-1",
+   "regime": "v3-regime-1",
+   "setups": "v3-setup-1"
+  },
+  "safety_overlay": true,
+  "started_at": "2026-10-05T16:10:18.892983+00:00",
+  "strategy_name": "btc_swing_v3_active_swing",
+  "strategy_version": "3.0.0-research"
+ },
+ "project": "btc_swing_v3",
+ "raw_manifest": {
+  "blocked": {
+   "BLOCKED_POSITION_OPEN": 779,
+   "BLOCKED_SAFETY": 0,
+   "RISK_REJECTED": 0
+  },
+  "code_version": "c185103c1570",
+  "config_hash": "d2bd8e97f1b9382ecf41e2699181913ae631b02f3a21574f650231a2c5c3d3d3",
+  "data_hashes": {
+   "funding": "6e651f5f4815c18c6a8a2af1e5874dacd31a8031898e3499ce37dfff82a61fc1",
+   "mark_price_5m": "13b5ed0518b19dca584066c1f0228fe57ecf7b1bd025b804611bb6f5ca275f88",
+   "metrics": "069b2df5ae27b973b717ceae2a3badc4c98a868aca037836dcb239ddf0ff5390",
+   "perp_klines_5m": "5e5242ac3ef160d306c4a6acacd98163ec8ad54bbbea34b743e1b0dbe3371be7",
+   "premium_index_5m": "456dbe868f1659c1de6efa945207ffcfb424a1d3a6b710276894cac40939dd31"
+  },
+  "final_equity": -14543.10914691351,
+  "finished_at": "2026-10-05T16:09:30.844275+00:00",
+  "initial_equity": 10000.0,
+  "liquidation_basis": "mark",
+  "max_leverage": 10.0,
+  "n_5m_evaluations": 499393,
+  "n_days": 1734.0034722222222,
+  "n_episodes": 7020,
+  "n_trades": 2659,
+  "notes": {
+   "stream": "raw_default_risk"
+  },
+  "period_end_ms": 1790812800000,
+  "period_start_ms": 1640995200000,
+  "regime_bar_counts": {
+   "RANGE": 39864,
+   "TRANSITION": 52836,
+   "TREND_DOWN": 65340,
+   "TREND_UP": 70272,
+   "UNCLEAR": 0,
+   "VOLATILITY_COMPRESSION": 142524,
+   "VOLATILITY_EXPANSION": 128557
+  },
+  "result_hash": "b1d7385e8834d3a36464e8b10c9592b2bc6f72ea697446d0b26eb03118b5b179",
+  "risk_per_trade": 0.0025,
+  "rule_versions": {
+   "exits": "v3-exit-1",
+   "regime": "v3-regime-1",
+   "setups": "v3-setup-1"
+  },
+  "safety_overlay": false,
+  "started_at": "2026-10-05T16:08:42.806346+00:00",
+  "strategy_name": "btc_swing_v3_active_swing",
+  "strategy_version": "3.0.0-research"
+ },
+ "validation_note": "2022-01..2026-09 is development data (inspected in V1/V2); no V3 result on it is untouched out-of-sample."
+}
