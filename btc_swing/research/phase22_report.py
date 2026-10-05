@@ -787,6 +787,14 @@ def render_phase22(res: Phase22Result) -> str:
     return "\n".join(lines)
 
 
+def _row_check_text(rc: dict[str, Any]) -> str:
+    if not rc.get("available"):
+        return "Phase 2 trades file not available"
+    if rc.get("identical"):
+        return f"identical: {rc['n_rows']} trades, {rc['n_columns_compared']} columns compared"
+    return f"NOT identical: {rc}"
+
+
 def _inval_group_cell(res: Phase22Result) -> str:
     d = next(
         (

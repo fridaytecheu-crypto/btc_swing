@@ -221,4 +221,5 @@ def test_zone_entry_confirm_exit_mechanics(synthetic_data: dict[str, object]) ->
     assert (unconfirmed["holding_hours"] <= (window + 1) * 5 / 60 + 1e-9).all()
     # the control arm is untouched by the new fields
     res_c = BacktestEngine(cfg, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
-    assert res_c.trades["early_exit_reason"].null_count() == res_c.trades.height
+    assert "early_exit_reason" not in res_c.trades.columns
+    assert "confirmed_after_entry" not in res_c.trades.columns

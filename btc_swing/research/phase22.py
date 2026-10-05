@@ -32,6 +32,7 @@ from btc_swing.research.phase21 import (
     Arm,
     _episode_keyed,
     _pop_table,
+    baseline_row_check,
     matched_analysis,
     run_arm,
 )
@@ -74,7 +75,7 @@ def _stats(t: pl.DataFrame) -> dict[str, Any]:
 
 def confirmation_timing(variant: Arm) -> dict[str, Any]:
     t = variant.trades
-    if t.is_empty():
+    if t.is_empty() or "confirmed_after_entry" not in t.columns:
         return {"n": 0}
     conf = t.filter(pl.col("confirmed_after_entry"))
     at_entry = t.filter(pl.col("confirmed_at_entry"))
@@ -297,6 +298,9 @@ def run_phase22(
         and expected_control_hash == control.result.result_hash,
         "control_config_hash": cfg_c.config_hash,
         "variant_config_hash": cfg_v.config_hash,
+        "row_check_vs_phase2_trades": baseline_row_check(
+            control.result.trades, Path("data/btc/runs/phase2_validation/trades.parquet")
+        ),
     }
     log.info("analysis")
     matched = matched_analysis(control, variant)

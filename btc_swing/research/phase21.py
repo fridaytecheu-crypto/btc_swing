@@ -188,6 +188,50 @@ def run_arm(
     )
 
 
+# --------------------------------------------------------------------------- baseline row check
+def baseline_row_check(control_trades: pl.DataFrame, phase2_trades_path: Path) -> dict[str, Any]:
+    """Row-level identity of CONTROL trades against the persisted Phase 2 trades on the columns that
+    existed in Phase 2 (schema additions in later phases cannot hide a behavioural change)."""
+    if not phase2_trades_path.exists():
+        return {"available": False}
+    ref = pl.read_parquet(phase2_trades_path)
+    common = [c for c in ref.columns if c in control_trades.columns]
+    if ref.height != control_trades.height:
+        return {
+            "available": True,
+            "identical": False,
+            "n_phase2": ref.height,
+            "n_control": control_trades.height,
+        }
+    a = ref.select(common).sort("trade_id")
+    b = control_trades.select(common).sort("trade_id")
+    mismatches: list[str] = []
+    for c in common:
+        x, y = a[c], b[c]
+        if x.dtype.is_numeric() and y.dtype.is_numeric():
+            xa, ya = x.cast(pl.Float64).to_numpy(), y.cast(pl.Float64).to_numpy()
+            same = bool(
+                np.all(
+                    np.isclose(xa, ya, rtol=1e-9, atol=1e-9, equal_nan=True)
+                    | (np.isnan(xa) & np.isnan(ya))
+                )
+            )
+        else:
+            same = (
+                x.fill_null("__null__").cast(pl.Utf8).to_list()
+                == y.fill_null("__null__").cast(pl.Utf8).to_list()
+            )
+        if not same:
+            mismatches.append(c)
+    return {
+        "available": True,
+        "identical": not mismatches,
+        "n_rows": ref.height,
+        "n_columns_compared": len(common),
+        "mismatching_columns": mismatches,
+    }
+
+
 # --------------------------------------------------------------------------- matched episodes
 def _episode_keyed(arm: Arm) -> pl.DataFrame:
     ep = arm.episodes.select(

@@ -17,7 +17,15 @@
   effect on the 198 shared episodes is positive (+0.09R paired) and 73 never-triggered plans were
   recovered at +0.78R, but 70 plans that CONTROL filtered out as INVALIDATED were entered at
   -1.11R each. The confirmation trigger acts mainly as a filter, not a timing delay.
-- Phase 3 has NOT started. The next step is the owner's decision (report §17). No tuning.
+- Phase 2.2 (EARLY ZONE ENTRY + CONFIRMATION-BASED EARLY EXIT, one pre-registered hypothesis) done:
+  variant `ZONE_ENTRY_CONFIRM_EXIT` (zone entry, then the frozen 15m confirmation as an early-exit
+  filter within the existing 24-bar timeout). Report:
+  `reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`. Verdict: NOT SUPPORTED (net
+  -0.06R vs CONTROL +0.08R, max DD 23%): the invalidation-level exit saves little because the level
+  sits 0.5 ATR above the stop, and the deadline exit truncates the recovered never-triggered winners
+  (80 of 82 never "confirm" because the predicate needs price near the zone). Entry mechanics are
+  exhausted as a hypothesis family.
+- Phase 3 has NOT started. The next step is the owner's decision (report §19). No tuning.
   The `experiment.entry_mode` switch stays at `CONFIRMED_TRIGGER` (frozen baseline).
 
 ## Commands
@@ -28,6 +36,7 @@ uv run btc-swing data ingest --from 2021-10 --to 2024-12   # ~1.5k archive files
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing phase2 --out data/btc/runs/phase2_validation
 uv run btc-swing phase21 --out data/btc/runs/phase21_entry_mechanics   # CONTROL vs ZONE_ENTRY (~8 min)
+uv run btc-swing phase22 --out data/btc/runs/phase22_confirmation_exit  # CONTROL vs ZONE_ENTRY_CONFIRM_EXIT (~10 min)
 bash scripts/check.sh
 ```
 
