@@ -310,5 +310,173 @@
   "provider": "binance_vision",
   "rows": 31,
   "source_sha256": "9374dc7b5f2790965f6b87223746e8537e59e7f9403eb24241615b6745ec1be2"
+ },
+ "2025-01": {
+  "content_sha256": "53c13f37d8d93a31c7352a4f24c3904f8712b9e8eca7ecf1912f0664508ee3fc",
+  "ingested_at": "2026-10-05T13:35:36.588718+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "d0e4cddb95124cd770325a418e170692b6325ad57d04980c9f0a56f91aeb8abe"
+ },
+ "2025-02": {
+  "content_sha256": "ba4837556ac3527d06b216e6ae32167e976f6911e6f24380a2d1cfc2b17ce59a",
+  "ingested_at": "2026-10-05T13:35:38.847944+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 28,
+  "source_sha256": "9d7f03443771d9a88f72179995bfa490cbddb291e6570da5303aa3dd1318773d"
+ },
+ "2025-03": {
+  "content_sha256": "e359a9205a9a449673a6bcb5b6758ec5e87b7eead07c950f0579f29ca9b81cc8",
+  "ingested_at": "2026-10-05T13:35:40.402177+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "630d36287b1e90438c4bda4d5966c97c129bdadfc5c20dd666e21d7c72e1ec54"
+ },
+ "2025-04": {
+  "content_sha256": "1598bcdef67054bb17f2c82990d2e824e061e2d14601a724f27d13870862b430",
+  "ingested_at": "2026-10-05T13:35:42.199220+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "7ecc8db32272da5151d96da48014ab657c492b49468fcd2e13186efc54d54815"
+ },
+ "2025-05": {
+  "content_sha256": "41bce9098aaf633a0c40ec9c89ede20717f7c8b7b117f2854522975cdd5c8254",
+  "ingested_at": "2026-10-05T13:35:44.178036+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "4881cc91121ea7faabeaf1d46807044dfa0af6fdef5c8d512bebbe047456b4f6"
+ },
+ "2025-06": {
+  "content_sha256": "5ce460866fcbfb848eb8d75f8bc5591c86759464754bc2f75b43cf225e8d2eed",
+  "ingested_at": "2026-10-05T13:35:46.062212+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "c11054f2eaacd83b4327c7eef2001221e33beb3caf6dab2b44d2cef0da6ab98b"
+ },
+ "2025-07": {
+  "content_sha256": "a4b327483073c0386f2521720b46d62d9a3e6d4cb8d53672416677ff8f8f5ea1",
+  "ingested_at": "2026-10-05T13:35:48.253697+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "bce326227436ff4ebf119379859c1ac1c8df5fcb8a4bfe9f07c7f8ade18f9d7d"
+ },
+ "2025-08": {
+  "content_sha256": "3d925b2f96de00e126127f26e17d5ae5beb20db70f6a56ba8ce82819001d0912",
+  "ingested_at": "2026-10-05T13:35:50.456715+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "cb26a985295a658b1c69a253bf617e35e2cfa3b9ad694dfc2b20977baf918f21"
+ },
+ "2025-09": {
+  "content_sha256": "992c9d1789ebce65357526a1850113da63b7f339d4f4b881c3282401ba90a6ce",
+  "ingested_at": "2026-10-05T13:35:52.820641+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "a4f711e5efb64e87c66d945db3440d2161a6d68eeaee026732c085bf77c9784b"
+ },
+ "2025-10": {
+  "content_sha256": "a3af50266d2dc5c7f97789d0deef5a2ee6c0c11d6547444dbede344e01f291d6",
+  "ingested_at": "2026-10-05T13:35:54.876883+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "f3db8b3c74aa33a09f5a7af1521652039e031cdd52e2d9dae542911cb6ce8e68"
+ },
+ "2025-11": {
+  "content_sha256": "1643c072e614c38c4efbb6cb2b993bfabdd0d877e0c2d18949b0f6ed5ce96f70",
+  "ingested_at": "2026-10-05T13:35:57.112044+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "606b497e9d4ad7b67d2c44482c4a8c136f528a82b4585b1f1a0ecc79a4989165"
+ },
+ "2025-12": {
+  "content_sha256": "e00c928848b19deeed45c928156d8f16dabfc8f1a840e8866f04cad0c2104c0c",
+  "ingested_at": "2026-10-05T13:35:58.724027+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "40484d66317a3c7c73e438f8243faf23e041863debdb9e4f523b00156f9dd8d2"
+ },
+ "2026-01": {
+  "content_sha256": "f1c30ae16b1aa7f1b5d40a6c7f9436c8ac499ebaacffa7329c4678471efd37d2",
+  "ingested_at": "2026-10-05T13:36:01.047143+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "6ea7e8767031806d4ecc17581af562e49f4f223b7db45cbb4e44c078f4f39635"
+ },
+ "2026-02": {
+  "content_sha256": "237dcfe7bf0c1df7abe20f71e27bec1b226ebdf13b2568d12bdf0d9939aaf9fe",
+  "ingested_at": "2026-10-05T13:36:03.092922+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 28,
+  "source_sha256": "dc4ac6372ec3684e39887b4fd9f9b005da82b285badf56b28ebcc5455590fe37"
+ },
+ "2026-03": {
+  "content_sha256": "7f6a862480b2f5e9a23d3c339f034d590a5849c3213a970425b5b98ddb506d59",
+  "ingested_at": "2026-10-05T13:36:05.265646+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "6e6f14c60e723f9c9d1e87d00df0553e6f2e8813c67154101884e1d93e017e48"
+ },
+ "2026-04": {
+  "content_sha256": "243fd05f00f504ab0489d289c70b047d2b429e3155b188de11fef1e4bf505321",
+  "ingested_at": "2026-10-05T13:36:07.265515+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "3860febfca089675b86fd50df54a2da0a7980de1331e5b42e1df0210240ae12d"
+ },
+ "2026-05": {
+  "content_sha256": "7fa790fcf3f6bf521cbbc1d9edbba7deef085537653b9525a0085efd0bff2b22",
+  "ingested_at": "2026-10-05T13:36:09.437288+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "91d2e45e3bb4994c849ac56a089da18575b4d01ba1a9f4cff5d3fbbc27b7e9cc"
+ },
+ "2026-06": {
+  "content_sha256": "ca82c4dcd4a556167987ee871031363cc178db6f8148ddac6ace046d1fa27d38",
+  "ingested_at": "2026-10-05T13:36:11.826354+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "916bc1d543aceb81184584da93d202cccaab5e21eb4e789996af35e6846de668"
+ },
+ "2026-07": {
+  "content_sha256": "fcb0c6b7ea4aff460ebf1a6dc1cc1bd30931cc2e4d0a4a200fbe5b032f2669ab",
+  "ingested_at": "2026-10-05T13:36:13.797046+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "c8aa635aee3c6fdc48347adc975b60c2342ef4253f4269494f9e08e85be61480"
+ },
+ "2026-08": {
+  "content_sha256": "e3eab82f479f3fbf9f29354087c7e36eb86ed8f41a1b7f097f44dead83489aab",
+  "ingested_at": "2026-10-05T13:36:15.842863+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 31,
+  "source_sha256": "0c7a739c1eae50cb60a31cedb4cb59b14b3a806523f044e9e8abbdf5e2a4512b"
+ },
+ "2026-09": {
+  "content_sha256": "adbd658e91e9a93e8f7c532eb31b88f01fec0676c2679e8a29e83f958c659518",
+  "ingested_at": "2026-10-05T13:36:17.990037+00:00",
+  "latency_minutes": 0,
+  "provider": "binance_vision",
+  "rows": 30,
+  "source_sha256": "34ec2bc722aea637ded6df5b2f9a71c17396ca8e010019f4711defb81c14a589"
  }
 }
