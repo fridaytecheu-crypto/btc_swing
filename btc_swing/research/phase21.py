@@ -133,10 +133,11 @@ def run_arm(
     segments: list[Segment],
     null_k: int,
     seed: int,
+    phase: str = "2.1",
 ) -> Arm:
     start_ms, end_ms = segments[0].start_ms, segments[-1].end_ms
     eng = BacktestEngine(cfg, inp.bars, inp.funding, inp.hashes, aux, series)
-    res = eng.run(start_ms, end_ms, notes={"phase": "2.1", "arm": name})
+    res = eng.run(start_ms, end_ms, notes={"phase": phase, "arm": name})
     rerun = BacktestEngine(cfg, inp.bars, inp.funding, inp.hashes, aux, series).run(
         start_ms, end_ms
     )

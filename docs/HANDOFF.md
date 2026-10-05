@@ -59,6 +59,9 @@ uv run btc-swing phase21 --out data/btc/runs/phase21_entry_mechanics   # CONTROL
 uv run btc-swing phase22 --out data/btc/runs/phase22_confirmation_exit  # CONTROL vs ZONE_ENTRY_CONFIRM_EXIT (~10 min)
 uv run btc-swing phase23 --out data/btc/runs/phase23_post_tp1_exit      # CONTROL vs STRUCTURAL_TRAIL_AFTER_TP1 (~10 min)
 uv run btc-swing phase24 --out data/btc/runs/phase24_short_regime       # CONTROL vs NO_NEW_SHORT_IN_TREND_DOWN (~10 min)
+uv run btc-swing data ingest --from 2025-01 --to 2026-09                 # holdout archive (Phase 3 only)
+uv run btc-swing phase3-freeze --ingest-stats manifests/phase3_ingest_stats.json   # freeze BEFORE the run; commit it
+uv run btc-swing phase3 --out data/btc/runs/phase3_untouched_validation  # ONE confirmatory run per arm (~15 min)
 bash scripts/check.sh
 ```
 

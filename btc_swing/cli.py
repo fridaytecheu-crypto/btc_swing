@@ -463,5 +463,85 @@ def phase24(
     )
 
 
+@app.command("phase3-freeze")
+def phase3_freeze(
+    config: ConfigOpt = None,
+    raw_manifest: Path = Path("manifests/raw_archive_manifest.jsonl"),
+    phase24_summary: Path = Path("data/btc/runs/phase24_short_regime/summary.json"),
+    ingest_stats: Path | None = None,
+    out: Path = Path("manifests/phase3_freeze_manifest.json"),
+) -> None:
+    """Phase 3 step 1: freeze configs, hashes, code commit, dataset hashes, holdout dates and the
+    pre-declared criteria BEFORE any holdout evaluation. Commit the output before `phase3`."""
+    from btc_swing.research.phase2 import load_inputs
+    from btc_swing.research.phase3 import HOLDOUT_END, HOLDOUT_START, build_freeze
+
+    cfg = _cfg(config, None)
+    d = _data_dir()
+    inp = load_inputs(cfg, d, _ms(HOLDOUT_START), _ms(HOLDOUT_END))
+    stats = json.loads(ingest_stats.read_text()) if ingest_stats and ingest_stats.exists() else None
+    fz = build_freeze(cfg, inp, raw_manifest, d / "btc" / "runs", phase24_summary, stats)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(fz, indent=1, sort_keys=True, default=str))
+    console.print_json(
+        json.dumps(
+            {
+                "freeze": str(out),
+                "code_commit": fz["code_commit"],
+                "control_config_hash": fz["arms"]["CONTROL"]["config_hash"],
+                "variant_config_hash": fz["arms"]["APPROVED_VARIANT"]["config_hash"],
+                "holdout": fz["holdout"],
+                "raw_archive_before_phase3": fz["raw_archive_before_phase3"],
+            }
+        )
+    )
+
+
+@app.command("phase3")
+def phase3(
+    config: ConfigOpt = None,
+    null_k: int = 20,
+    seed: int = 7,
+    freeze: Path = Path("manifests/phase3_freeze_manifest.json"),
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md"),
+) -> None:
+    """Phase 3 step 2: ONE confirmatory run per arm (CONTROL vs APPROVED_VARIANT) on the untouched
+    2025+ holdout frozen in the freeze manifest; 19-section report with one classification."""
+    from btc_swing.research.phase2 import load_inputs
+    from btc_swing.research.phase3 import HOLDOUT_END, HOLDOUT_START, run_phase3
+    from btc_swing.research.phase3_report import render_phase3
+
+    if not freeze.exists():
+        raise typer.BadParameter(f"freeze manifest {freeze} missing; run `phase3-freeze` first")
+    fz = json.loads(freeze.read_text())
+    cfg = _cfg(config, None)
+    d = _data_dir()
+    inp = load_inputs(cfg, d, _ms(HOLDOUT_START), _ms(HOLDOUT_END))
+    run_dir = out or (d / "btc" / "runs" / f"phase3_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}")
+    res = run_phase3(cfg, inp, fz, null_k, seed, run_dir)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_phase3(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "classification": res.classification,
+                "criteria_met": [c["id"] for c in res.criteria if c["met"]],
+                "control": {
+                    "trades": res.control.result.manifest["n_trades"],
+                    "expectancy_R": res.control.metrics["overall"].get("expectancy_R"),
+                },
+                "variant": {
+                    "trades": res.variant.result.manifest["n_trades"],
+                    "expectancy_R": res.variant.metrics["overall"].get("expectancy_R"),
+                },
+                "blocked": res.removed.get("removed_by_rule"),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

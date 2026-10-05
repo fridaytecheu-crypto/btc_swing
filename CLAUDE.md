@@ -25,4 +25,5 @@ Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 
 ## Layout
 See README.md. Config `config/btc_swing.default.yaml`; CLI `btc-swing` (`data probe`,
-`data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`, `phase24`); tests `tests/`; reproducibility manifests in `manifests/`.
+`data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`, `phase24`, `phase3-freeze`, `phase3`);
+tests `tests/`; reproducibility manifests in `manifests/`.
