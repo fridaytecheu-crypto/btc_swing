@@ -585,5 +585,44 @@ def v2_research(
     )
 
 
+v3_app = typer.Typer(help="V3: active multi-timeframe swing (deterministic research only)")
+app.add_typer(v3_app, name="v3")
+
+
+@v3_app.command("research")
+def v3_research(
+    v3_config: Path = Path("config/btc_swing_v3.yaml"),
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V3_ACTIVE_SWING_RESEARCH.md"),
+) -> None:
+    """V3 research: one pre-registered configuration run once (raw 0.25% risk) plus reporting-only
+    streams; 26-section report with one classification. No trading engine."""
+    from btc_swing.v3.config import load_v3_config
+    from btc_swing.v3.report import render_v3
+    from btc_swing.v3.research import load_v3_inputs, run_v3_research
+
+    cfg = load_v3_config(v3_config)
+    d = _data_dir()
+    inp = load_v3_inputs(cfg, d)
+    run_dir = out or (d / "btc" / "runs" / f"v3_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}")
+    res = run_v3_research(cfg, inp, run_dir)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_v3(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "classification": res.classification,
+                "criteria_met": [c["id"] for c in res.criteria if c["met"]],
+                "trades": res.overall.get("n"),
+                "expectancy_R": res.overall.get("mean_R"),
+                "trades_per_day": res.freq.get("trades_per_day"),
+                "median_hold_h": res.hold.get("quantiles", {}).get(0.5),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

@@ -76,7 +76,8 @@ ATR14(1h) unless stated.
 - Retest and acceptance within 12 1H bars after the break: a 15m bar whose low <= L + 0.25 ATR
   (touches the level from above) that closes >= L with close > open (the level holds as support).
 - Entry zone: [L - 0.25 ATR, L + 0.5 ATR].
-- Stop: min(retest-bar low, L) - 0.5 ATR (reason: failed breakout, price accepted back inside).
+- Stop: L - 0.5 ATR, fixed at detection (reason: failed breakout, price accepted back inside the
+  prior range); a retest that closes below L - 0.25 ATR on 1H cancels the setup before entry.
 - Structural target: L + H (measured move), TP2 capped at 4R.
 - Pre-entry invalidation: 1H close < L - 0.25 ATR; 5m close below the stop level.
 
