@@ -1,6 +1,6 @@
 # BTC Swing V1 — Phase 2.2: EARLY ZONE ENTRY + CONFIRMATION-BASED EARLY EXIT
 
-Generated 2026-10-05 09:19 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY_CONFIRM_EXIT result hash `b7c691887c32` · code `a31e22c19f6d`
+Generated 2026-10-05 09:31 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY_CONFIRM_EXIT result hash `b7c691887c32` · code `c7c2ccfc0660`
 
 **Central question.** Can we capture the timing advantage of entering at the plan zone while using the existing confirmation logic as an early risk filter rather than as a prerequisite for entry?
 
@@ -19,6 +19,7 @@ Phase 2.1 showed that entering at the pre-defined zone improves timing on shared
 | identical | yes |
 | CONTROL trades / episodes | 275 / 533 |
 | config hash CONTROL / variant | `871a444e107e` / `ef9aa2c56b49` (differ only in `experiment.entry_mode`) |
+| row-level check vs persisted Phase 2 trades | identical: 275 trades, 89 columns compared |
 
 ## 3. Exact variant definition
 
@@ -473,6 +474,8 @@ Pre-declared criteria (from the hypothesis, thresholds stated so the reader can 
 
 - **Verdict: H2 NOT SUPPORTED: using the confirmation as an early exit does not recover enough of the filter's value, or the extra trades' costs consume the timing gain. Recommended next step: stop changing entry mechanics; remaining pre-registered candidates from Phase 2 are the exit design and the regime eligibility of the SHORT families, each needing a new single hypothesis and owner approval.**
 - Where the variant's result comes from (its trades split by CONTROL's outcome on the same episode): INVALIDATED: n=79, -0.874R, -3513 USDT; NEVER_TRIGGERED: n=82, 0.206R, 863 USDT; TRADED: n=240, 0.126R, 1569 USDT; UNMATCHED: n=113, -0.060R, -357 USDT.
+- Why the filter value is not recovered: on the plans CONTROL would have rejected (INVALIDATED), the early exit on an invalidation-level close saves only 0.236R per trade versus Phase 2.1 (-1.111R -> -0.874R), because the invalidation level sits only 0.5 ATR above the stop: by the time a 5m bar closes beyond it, most of the stop loss is already realised. Only 33 of these 79 trades exited on the invalidation rule; the rest hit the stop or the deadline.
+- Why the recovered opportunities shrink: of 82 recovered never-triggered plans, 2 confirmed and 80 were cut at the 2 h deadline while mostly still in profit (mean 0.238R, 971 USDT); Phase 2.1 let the same plans run to 0.782R. The confirmation predicate requires price within one pad of the zone, so it rarely fires on a plan that moves away quickly, and the deadline exit truncates exactly the winners it was meant to keep.
 - Lifecycle: 52% of variant trades confirmed (99 at entry, 167 later, median 0.42 h); 183 exited at the deadline and 33 on invalidation before confirmation.
 - 2025+ stays untouched. No live trading. No tuning. The `experiment.entry_mode` default remains CONFIRMED_TRIGGER.
 
