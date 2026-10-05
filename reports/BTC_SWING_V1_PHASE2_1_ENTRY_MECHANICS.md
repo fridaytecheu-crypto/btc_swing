@@ -1,6 +1,6 @@
 # BTC Swing V1 — Phase 2.1: ENTRY MECHANICS (CONTROL vs ZONE_ENTRY)
 
-Generated 2026-10-05 08:16 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY result hash `83234c5cbb54` · code `a4e2966938bb-dirty`
+Generated 2026-10-05 08:25 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY result hash `83234c5cbb54` · code `b2e9935c0b72-dirty`
 
 **Central question.** Is the current confirmation trigger destroying edge by making us enter too late or miss valid BTC swing setups that already reached the planned entry zone?
 
@@ -380,6 +380,8 @@ Pre-declared success criteria (set in the hypothesis, not after the results):
 
 
 - **Verdict: H1 PARTIALLY SUPPORTED. The variant improves some pre-declared criteria but not all; it must not be adopted on this evidence. Recommended next step: owner review of which criterion failed and why (sections 8, 9, 13), then either (a) stop here, or (b) pre-register a second, narrower hypothesis derived from the matched analysis (for example confirmation-free entry only where the paired timing effect is positive) for one more run on 2022-2024. No parameter search, no family dropped.**
+- Where the ZONE_ENTRY result comes from (its trades split by what CONTROL did on the same episode): INVALIDATED: n=70, -1.111R, -3985 USDT; NEVER_TRIGGERED: n=73, 0.782R, 2921 USDT; TRADED: n=198, 0.187R, 1913 USDT; UNMATCHED: n=50, -0.099R, -270 USDT. Reading: the confirmation trigger acts mainly as a FILTER against plans that fail after reaching the zone (the CONTROL-INVALIDATED group), not only as a timing delay; zone entry gains on shared episodes and on recovered never-triggered plans, and gives most of it back on the group CONTROL would have filtered out.
+- Drawdown note: the drawdown criterion is met only at the margin (8.96% -> 12.07%, limit 12.20%); the longest losing streak doubled (5 -> 10).
 - 2025+ stays untouched. No live trading. No tuning.
 
 ## Appendix — frozen configuration (CONTROL; ZONE_ENTRY differs only in `experiment.entry_mode`)
