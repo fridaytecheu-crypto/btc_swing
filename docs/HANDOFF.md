@@ -32,10 +32,21 @@
   stopped at breakeven, only 6 later resumed to 2R while 22 would have hit the initial stop first;
   the paired exit-rule effect is -0.016R per TP1 trade. The breakeven move protects more than the
   structural trail recovers.
-- Phase 3 has NOT started. Entry mechanics (2.1, 2.2) and the post-TP1 exit (2.3) are exhausted
-  as single-switch hypotheses; the next step is the owner's decision. No tuning. All experiment
-  switches stay at their frozen defaults (`entry_mode: CONFIRMED_TRIGGER`,
-  `breakeven_after_tp1: true`).
+- Phase 2.4 (SHORT REGIME ELIGIBILITY, the final planned Phase 2 hypothesis) done: variant
+  `NO_NEW_SHORT_IN_TREND_DOWN` = `experiment.block_short_in_trend_down: true` (a SHORT trigger firing
+  while the PIT regime is TREND_DOWN does not open a trade; uniform across SHORT families; nothing
+  else changed). Report: `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md`. Classification:
+  A — ADOPTABLE FOR UNTOUCHED VALIDATION: net +0.184R vs +0.081R, PF 1.32 vs 1.14, max DD 6.5% vs
+  9.0%, 2024 +0.061R vs +0.007R, SHORT +0.31R vs -0.01R, LONG identical (158 trades, same R); the
+  60 removed TREND_DOWN shorts were a coherent -0.19R population (34 losers / 26 winners, worst-3
+  share 10%). Caveats: the hypothesis came from the Phase 2 regime table on the same window (in-
+  sample confirmation, not out-of-sample evidence); removed-population t = -1.24; remaining 2024
+  SHORT still -0.19R on 21 trades; criterion 2 met narrowly (+0.054R vs +0.05R threshold).
+- Phase 3 has NOT started. The next step is the owner's decision whether to pre-register the
+  single confirmatory run on untouched 2025+ with `block_short_in_trend_down: true` and nothing
+  else changed. No tuning. All experiment switches remain at their frozen defaults in
+  `config/btc_swing.default.yaml` (`entry_mode: CONFIRMED_TRIGGER`, `breakeven_after_tp1: true`,
+  `block_short_in_trend_down: false`).
 
 ## Commands
 ```
@@ -47,6 +58,7 @@ uv run btc-swing phase2 --out data/btc/runs/phase2_validation
 uv run btc-swing phase21 --out data/btc/runs/phase21_entry_mechanics   # CONTROL vs ZONE_ENTRY (~8 min)
 uv run btc-swing phase22 --out data/btc/runs/phase22_confirmation_exit  # CONTROL vs ZONE_ENTRY_CONFIRM_EXIT (~10 min)
 uv run btc-swing phase23 --out data/btc/runs/phase23_post_tp1_exit      # CONTROL vs STRUCTURAL_TRAIL_AFTER_TP1 (~10 min)
+uv run btc-swing phase24 --out data/btc/runs/phase24_short_regime       # CONTROL vs NO_NEW_SHORT_IN_TREND_DOWN (~10 min)
 bash scripts/check.sh
 ```
 

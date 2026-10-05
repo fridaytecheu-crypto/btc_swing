@@ -4,8 +4,8 @@ Project: BTC Leveraged Swing Engine V1, a deterministic, point-in-time research 
 risk-controlled BTC perpetual LONG/SHORT swing methodology. Paper/backtest only.
 Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 `reports/BTC_SWING_V1_PHASE2_VALIDATION.md`, `reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md` and
-`reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md` and
-`reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`.
+`reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`,
+`reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md` and `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md`.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -25,4 +25,4 @@ Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 
 ## Layout
 See README.md. Config `config/btc_swing.default.yaml`; CLI `btc-swing` (`data probe`,
-`data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`); tests `tests/`; reproducibility manifests in `manifests/`.
+`data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`, `phase24`); tests `tests/`; reproducibility manifests in `manifests/`.
