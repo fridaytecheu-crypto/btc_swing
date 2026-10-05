@@ -1,0 +1,40 @@
+# BTC Swing V2 — cost-aware learned opportunity ranking. Research protocol only.
+# Every value is pre-declared (docs/BTC_SWING_V2_DESIGN.md); nothing here is searched or tuned.
+# The execution framework (setups, exits, sizing, costs) is the FROZEN V1 config below.
+name: btc_swing_v2_ranking
+v1_config_path: config/btc_swing.default.yaml
+
+candidates:
+  start: "2022-01-01"            # first candidate decision time (data from 2021-10 is warm-up)
+  end_exclusive: "2026-10-01"    # last complete archive month at design time (2026-09)
+  cooldown_after_candidate_bars: 12   # = V1 episode.cooldown_bars_after_close
+
+labels:
+  clip_low: -2.0                 # robust expected-net-R target: net R clipped to [-2, 4]
+  clip_high: 4.0
+
+walkforward:
+  first_test_start: "2023-01-01" # 2022 is training-only
+  block_months: 3                # quarterly test blocks, expanding training window
+  min_train_rows: 100
+
+models:
+  logistic_c: 1.0
+  ridge_alpha: 10.0
+  hgb: {max_depth: 3, learning_rate: 0.05, max_iter: 200, min_samples_leaf: 50, l2_regularization: 1.0}
+  gate_min_top_quartile_gain_r: 0.05
+
+slices: [0.5, 0.25, 0.10, 0.05] # PIT selectivity thresholds (training-score quantiles)
+top_n_per_month: [5, 10]
+null_k: 5
+seed: 7
+
+criteria:                        # pre-declared classification thresholds (design doc section 11)
+  top_slice: 0.25
+  spearman_fold_share: 0.7
+  min_candidates_per_fold_for_spearman: 20
+  decile_monotonicity: 0.6
+  gain_vs_all_r: 0.10
+  min_trades_per_month: 2.0
+  stability_fold_share: 0.6
+  min_selected_per_fold: 5

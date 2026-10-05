@@ -543,5 +543,47 @@ def phase3(
     )
 
 
+v2_app = typer.Typer(help="V2: cost-aware learned opportunity ranking (offline research only)")
+app.add_typer(v2_app, name="v2")
+
+
+@v2_app.command("research")
+def v2_research(
+    config: ConfigOpt = None,
+    v2_config: Path = Path("config/btc_swing_v2.default.yaml"),
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V2_RANKING_RESEARCH.md"),
+) -> None:
+    """V2 offline research pipeline: candidates -> labels -> features -> walk-forward models ->
+    evaluation -> 21-section report with one classification. No trading engine."""
+    from btc_swing.research.phase2 import load_inputs
+    from btc_swing.v2.config import load_v2_config
+    from btc_swing.v2.report import render_v2
+    from btc_swing.v2.research import run_v2_research
+
+    cfg2 = load_v2_config(v2_config)
+    cfg1 = _cfg(config or Path(cfg2.v1_config_path), None)
+    d = _data_dir()
+    inp = load_inputs(cfg1, d, _ms(cfg2.candidates.start), _ms(cfg2.candidates.end_exclusive))
+    run_dir = out or (d / "btc" / "runs" / f"v2_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}")
+    res = run_v2_research(cfg2, cfg1, inp, run_dir)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_v2(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "classification": res.classification,
+                "criteria_met": [c["id"] for c in res.criteria if c["met"]],
+                "candidates": res.population.get("n_candidates"),
+                "evaluable": res.population.get("n_evaluable_walk_forward"),
+                "spearman_M1": res.rank["M1_logistic"].get("spearman"),
+                "gate_passed": res.gate.get("passed"),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()
