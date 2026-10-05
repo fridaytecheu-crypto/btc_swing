@@ -25,8 +25,17 @@
   sits 0.5 ATR above the stop, and the deadline exit truncates the recovered never-triggered winners
   (80 of 82 never "confirm" because the predicate needs price near the zone). Entry mechanics are
   exhausted as a hypothesis family.
-- Phase 3 has NOT started. The next step is the owner's decision (report §19). No tuning.
-  The `experiment.entry_mode` switch stays at `CONFIRMED_TRIGGER` (frozen baseline).
+- Phase 2.3 (POST-TP1 EXIT DESIGN, one pre-registered hypothesis) done: variant
+  `STRUCTURAL_TRAIL_AFTER_TP1` = `exits.breakeven_after_tp1: false`, everything else frozen.
+  Report: `reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`. Verdict: NOT SUPPORTED (net +0.063R vs
+  +0.081R, 2024 slightly worse, PF 1.10 vs 1.14, MFE capture 35% vs 37%). Of the 28 CONTROL trades
+  stopped at breakeven, only 6 later resumed to 2R while 22 would have hit the initial stop first;
+  the paired exit-rule effect is -0.016R per TP1 trade. The breakeven move protects more than the
+  structural trail recovers.
+- Phase 3 has NOT started. Entry mechanics (2.1, 2.2) and the post-TP1 exit (2.3) are exhausted
+  as single-switch hypotheses; the next step is the owner's decision. No tuning. All experiment
+  switches stay at their frozen defaults (`entry_mode: CONFIRMED_TRIGGER`,
+  `breakeven_after_tp1: true`).
 
 ## Commands
 ```
@@ -37,6 +46,7 @@ uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism
 uv run btc-swing phase2 --out data/btc/runs/phase2_validation
 uv run btc-swing phase21 --out data/btc/runs/phase21_entry_mechanics   # CONTROL vs ZONE_ENTRY (~8 min)
 uv run btc-swing phase22 --out data/btc/runs/phase22_confirmation_exit  # CONTROL vs ZONE_ENTRY_CONFIRM_EXIT (~10 min)
+uv run btc-swing phase23 --out data/btc/runs/phase23_post_tp1_exit      # CONTROL vs STRUCTURAL_TRAIL_AFTER_TP1 (~10 min)
 bash scripts/check.sh
 ```
 

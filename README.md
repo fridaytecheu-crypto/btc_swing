@@ -14,8 +14,9 @@ that repeatable positive expectancy is **not demonstrated** with the frozen defa
 tested one pre-registered hypothesis (entry at the zone without confirmation, `btc-swing phase21`,
 `reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md`): partially supported, not adopted. Phase 2.2
 tested zone entry with the confirmation as an early-exit filter (`btc-swing phase22`,
-`reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`): not supported. Phase 3 has
-not started. 2025+ data is reserved and must not be used for development.
+`reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`): not supported. Phase 2.3 tested
+removing the forced breakeven after TP1 (`btc-swing phase23`,
+`reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`): not supported. Phase 3 has not started. 2025+ data is reserved and must not be used for development.
 
 ## Quick start
 ```
