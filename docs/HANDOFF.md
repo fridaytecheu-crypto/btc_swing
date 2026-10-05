@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-05, V2 research done)
+# Handoff — state of work and next steps (2026-10-05, V3 research done)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -71,9 +71,23 @@
   NO_NEW_SHORT_IN_TREND_DOWN hard block (+0.02R) remains the only thing that helped.
 - 2025-01..2026-09 was inspected in V1 Phase 3 and used chronologically in V2; it is NOT an
   untouched holdout for anything any more. No live or paper trading exists.
-- Next step: the owner's decision. The V2 report proposes no parameter tweak; a different
-  candidate generator or label definition would be a new research generation with a new
-  pre-registration. Nothing should be re-run with changed thresholds in search of a positive result.
+- V1 and V2 are CLOSED research generations (immutable). V3 (ACTIVE MULTI-TIMEFRAME SWING,
+  `btc_swing/v3/`, `config/btc_swing_v3.yaml`, `docs/BTC_SWING_V3_DESIGN.md` committed before any
+  result, CLI `btc-swing v3 research`, report `reports/BTC_SWING_V3_ACTIVE_SWING_RESEARCH.md`,
+  manifest `manifests/v3_active_swing_run_manifest.json`) done: one pre-registered run on
+  2022-01..2026-09. Classification: C — NO ROBUST STRUCTURAL EDGE. Frequency and holds hit the
+  target (1.53 trades/day, median hold 3.2 h) but net expectancy is -0.35R on 2659 trades
+  (gross -0.02R, cost drag 0.34R per trade because stops average 0.66% of price against ~17 bps
+  round-trip costs), PF 0.50, every year and every qualifying quarter negative, every family
+  negative net, nulls with the same geometry lose almost as much (timing adds nothing), and the
+  research account is ruined. Only criterion 6 (frequency/hold) was met. Deterministic rerun,
+  truncation audit and resampling oracle all pass.
+- Lessons recorded for any future generation (new pre-registration required): at this holding
+  horizon the stop geometry, not the signal, decides survivability; a design needs either much
+  wider structural stops (lower frequency) or far cheaper execution; the LIQUIDITY_SWEEP family
+  dominated the candidate stream (61% of episodes) with the tightest stops.
+- No live or paper trading exists. 2022-01..2026-09 is development data for every generation.
+- Next step: the owner's decision. No parameter tweak is proposed by any report.
 
 ## Commands
 ```
@@ -90,6 +104,7 @@ uv run btc-swing data ingest --from 2025-01 --to 2026-09                 # holdo
 uv run btc-swing phase3-freeze --ingest-stats manifests/phase3_ingest_stats.json   # freeze BEFORE the run; commit it
 uv run btc-swing phase3 --out data/btc/runs/phase3_untouched_validation  # ONE confirmatory run per arm (~15 min)
 uv run btc-swing v2 research --out data/btc/runs/v2_ranking_research     # V2 candidates/labels/features/walk-forward/report (~25 min)
+uv run btc-swing v3 research --out data/btc/runs/v3_active_swing_research # V3 one pre-registered run + reporting streams (~60 min)
 bash scripts/check.sh
 ```
 

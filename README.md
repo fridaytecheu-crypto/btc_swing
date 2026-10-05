@@ -31,8 +31,11 @@ infrastructure; its artefacts are immutable.
 execution labels (net R after costs), a fixed PIT feature set, chronological walk-forward models
 (`docs/BTC_SWING_V2_DESIGN.md`, `btc-swing v2 research`, `reports/BTC_SWING_V2_RANKING_RESEARCH.md`):
 **C — NO USEFUL RANKING EDGE** (walk-forward Spearman -0.02, top-25% slice -0.21R vs all candidates
--0.03R). 2025-2026 is no longer untouched for any purpose; no further research without a new
-owner pre-registration.
+-0.03R). **V3 (active multi-timeframe swing, 4H/1H/15m/5m, four new families, 0.25% risk)**:
+`docs/BTC_SWING_V3_DESIGN.md`, `btc-swing v3 research`, `reports/BTC_SWING_V3_ACTIVE_SWING_RESEARCH.md`:
+**C — NO ROBUST STRUCTURAL EDGE** (1.5 trades/day and 3 h median hold as targeted, but -0.35R net
+on 2659 trades; costs of 0.34R per trade against 0.66% stops). 2022-2026 is development data for
+every generation; no further research without a new owner pre-registration.
 
 ## Quick start
 ```
@@ -42,7 +45,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 48 tests, no database needed
+uv run pytest -q                                            # 52 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with
