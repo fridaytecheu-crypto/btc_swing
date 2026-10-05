@@ -103,9 +103,7 @@ def _keyed_trades(arm: Arm) -> pl.DataFrame:
 
 
 def removed_trade_analysis(control: Arm, variant: Arm, segments: list[Segment]) -> dict[str, Any]:
-    ct = control.trades.join(
-        control.episodes.select(["episode_id", *KEY]), on="episode_id", how="left"
-    )
+    ct = _keyed_trades(control)
     ve = variant.episodes.select(
         [
             *KEY,
@@ -245,12 +243,8 @@ def remaining_short(variant: Arm, control: Arm) -> dict[str, Any]:
 
 
 def long_control_check(control: Arm, variant: Arm) -> dict[str, Any]:
-    cl = control.trades.filter(pl.col("side") == "LONG").join(
-        control.episodes.select(["episode_id", *KEY]), on="episode_id", how="left"
-    )
-    vl = variant.trades.filter(pl.col("side") == "LONG").join(
-        variant.episodes.select(["episode_id", *KEY]), on="episode_id", how="left"
-    )
+    cl = _keyed_trades(control).filter(pl.col("side") == "LONG")
+    vl = _keyed_trades(variant).filter(pl.col("side") == "LONG")
     j = cl.join(vl, on=KEY, how="full", suffix="_v", coalesce=True)
     both = j.filter(pl.col("trade_id").is_not_null() & pl.col("trade_id_v").is_not_null())
     c_only = j.filter(pl.col("trade_id_v").is_null())
@@ -281,12 +275,8 @@ def sequencing_split(
     total = (variant.costs.get("net", 0.0) or 0.0) - (control.costs.get("net", 0.0) or 0.0)
     direct = (removed.get("opportunity_cost") or {}).get("net_pnl_effect_of_removal", 0.0) or 0.0
     # variant-only trades (new trades enabled by freed slots), any side
-    ct = control.trades.join(
-        control.episodes.select(["episode_id", *KEY]), on="episode_id", how="left"
-    )
-    vt = variant.trades.join(
-        variant.episodes.select(["episode_id", *KEY]), on="episode_id", how="left"
-    )
+    ct = _keyed_trades(control)
+    vt = _keyed_trades(variant)
     v_only = vt.join(ct.select(KEY), on=KEY, how="anti")
     c_only_not_blocked = ct.join(vt.select(KEY), on=KEY, how="anti")
     blocked_keys = variant.episodes.filter(pl.col("outcome_class") == "REGIME_BLOCKED").select(KEY)
