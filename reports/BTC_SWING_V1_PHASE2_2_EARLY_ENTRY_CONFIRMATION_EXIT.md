@@ -1,6 +1,6 @@
 # BTC Swing V1 — Phase 2.2: EARLY ZONE ENTRY + CONFIRMATION-BASED EARLY EXIT
 
-Generated 2026-10-05 09:31 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY_CONFIRM_EXIT result hash `b7c691887c32` · code `c7c2ccfc0660`
+Generated 2026-10-05 10:20 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · ZONE_ENTRY_CONFIRM_EXIT result hash `fb0f69075176` · code `beb93b379abd-dirty`
 
 **Central question.** Can we capture the timing advantage of entering at the plan zone while using the existing confirmation logic as an early risk filter rather than as a prerequisite for entry?
 
@@ -38,7 +38,7 @@ Phase 2.1 showed that entering at the pre-defined zone improves timing on shared
 
 ## 5. Overall comparison (combined 2022-01 -> 2024-12)
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | ZONE_ENTRY_CONFIRM_EXIT |
 |---|---|---|
 | trades | 275 | 514 |
 | episodes | 533 | 603 |
@@ -84,7 +84,7 @@ Reference — Phase 2.1 ZONE_ENTRY on the same window (from its persisted summar
 
 ## 6. dev_2022_2023
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | ZONE_ENTRY_CONFIRM_EXIT |
 |---|---|---|
 | trades | 168 | 315 |
 | episodes | 323 | 370 |
@@ -125,7 +125,7 @@ Phase 2.1 ZONE_ENTRY in dev_2022_2023: n=237, expectancy 0.055R, max DD -6.60%.
 
 ## 7. val_2024
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | ZONE_ENTRY_CONFIRM_EXIT |
 |---|---|---|
 | trades | 107 | 199 |
 | episodes | 210 | 233 |

@@ -1,6 +1,6 @@
 # BTC Swing V1 — Phase 2.3: POST-TP1 EXIT DESIGN (CONTROL vs STRUCTURAL_TRAIL_AFTER_TP1)
 
-Generated 2026-10-05 10:00 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · variant result hash `0493f066c878` · code `7a8d53f6212d`
+Generated 2026-10-05 10:09 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · variant result hash `0493f066c878` · code `9a9891dfc6da-dirty`
 
 **Central question.** Does forcing breakeven immediately after TP1 prematurely truncate valid BTC swing winners, and can the existing structural trail capture more of their MFE without materially increasing downside?
 
@@ -36,7 +36,7 @@ Phase 2 (frozen defaults): realised mean winner 1.42R, mean MFE 2.07R, TP1 at 1.
 
 ## 5. Main comparison (combined 2022-01 -> 2024-12)
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | STRUCTURAL_TRAIL_AFTER_TP1 |
 |---|---|---|
 | trades | 275 | 273 |
 | episodes | 533 | 524 |
@@ -80,7 +80,7 @@ Exit-path and MFE capture:
 
 ### dev_2022_2023
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | STRUCTURAL_TRAIL_AFTER_TP1 |
 |---|---|---|
 | trades | 168 | 168 |
 | episodes | 323 | 320 |
@@ -106,7 +106,7 @@ Exit-path and MFE capture:
 
 ### val_2024
 
-| metric | CONTROL | ZONE_ENTRY |
+| metric | CONTROL | STRUCTURAL_TRAIL_AFTER_TP1 |
 |---|---|---|
 | trades | 107 | 105 |
 | episodes | 210 | 204 |
