@@ -11,7 +11,8 @@
  "note": "ingestion ran in two passes: the first fetched 214 files and died on a transient TLS error from the proxy; the resumable second pass verified those 214 by sha256 and fetched the remaining 571 (519261 rows). Missing-bar counts come from the second pass; the first pass' partitions (2025-01..2025-04 monthly files, metrics to 2025-04-19) were normalised without anomalies in its log.",
  "partitions": 785,
  "raw_files_2025_plus": 785,
- "rows": null,
+ "rows": 519261,
+ "rows_note": "rows normalised in the resumed second pass only",
  "skipped": 0,
  "window": "2025-01 -> 2026-09 (monthly klines 5m/1h/4h/1d, funding, premium index, mark price; daily metrics)"
 }

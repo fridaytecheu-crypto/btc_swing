@@ -19,7 +19,12 @@ removing the forced breakeven after TP1 (`btc-swing phase23`,
 `reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`): not supported. Phase 2.4 tested blocking new
 SHORT entries in the TREND_DOWN regime (`btc-swing phase24`,
 `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md`): classified A, adoptable for untouched validation,
-pending the owner's decision. Phase 3 has not started. 2025+ data is reserved and must not be used for development.
+pending the owner's decision. Phase 3 then ran the single owner-approved confirmatory test of that
+variant on the untouched 2025-01 -> 2026-09 holdout (`btc-swing phase3-freeze`, `btc-swing phase3`,
+`reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md`): **C — FAILED OUT-OF-SAMPLE** (variant
+-0.07R / PF 0.90 vs CONTROL -0.10R / PF 0.85; the regime rule helps relative to CONTROL but the
+frozen strategy is net negative out of sample). The 2025-01..2026-09 window is now spent as a
+holdout; no further research phase is planned without a new owner pre-registration.
 
 ## Quick start
 ```

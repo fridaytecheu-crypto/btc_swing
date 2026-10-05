@@ -5,7 +5,8 @@ risk-controlled BTC perpetual LONG/SHORT swing methodology. Paper/backtest only.
 Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 `reports/BTC_SWING_V1_PHASE2_VALIDATION.md`, `reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md` and
 `reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`,
-`reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md` and `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md`.
+`reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`, `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md` and
+`reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md` (Phase 3: C, failed out of sample).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -13,7 +14,8 @@ Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
   and a single pre-registered run.
 - PIT discipline: a decision at T may only use bars with `close_time <= T` and auxiliary rows with
   `time + latency <= T`. Raw archive files are immutable (sha256 verified).
-- 2025+ data is reserved for one confirmatory run; never use it for development.
+- 2025-01..2026-09 was the single confirmatory holdout (Phase 3) and is now spent; it must not be
+  used for development, and any new hypothesis needs a new owner pre-registration and a new window.
 - Hard limits in the config schema: `max_leverage <= 10`, `risk_per_trade <= 2%`.
 
 ## Environment

@@ -42,11 +42,22 @@
   share 10%). Caveats: the hypothesis came from the Phase 2 regime table on the same window (in-
   sample confirmation, not out-of-sample evidence); removed-population t = -1.24; remaining 2024
   SHORT still -0.19R on 21 trades; criterion 2 met narrowly (+0.054R vs +0.05R threshold).
-- Phase 3 has NOT started. The next step is the owner's decision whether to pre-register the
-  single confirmatory run on untouched 2025+ with `block_short_in_trend_down: true` and nothing
-  else changed. No tuning. All experiment switches remain at their frozen defaults in
-  `config/btc_swing.default.yaml` (`entry_mode: CONFIRMED_TRIGGER`, `breakeven_after_tp1: true`,
-  `block_short_in_trend_down: false`).
+- Phase 3 (UNTOUCHED CONFIRMATORY VALIDATION, owner-approved, one run per arm) done:
+  `reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md`. Holdout 2025-01-01 -> 2026-10-01 (first
+  time any 2025+ file was downloaded; freeze manifest `manifests/phase3_freeze_manifest.json`
+  committed before the run; both arms re-reproduce the Phase 2 / Phase 2.4 hashes on 2022-2024).
+  Classification: C — FAILED OUT-OF-SAMPLE. APPROVED_VARIANT (`block_short_in_trend_down: true`)
+  net -0.066R, PF 0.90, net P&L -426 USDT on 121 trades; CONTROL -0.104R, PF 0.85, -973 USDT on
+  180 trades. The SHORT regime rule still helped relative to CONTROL (57 blocked TREND_DOWN shorts
+  at -0.27R, max DD 7.0% vs 11.3%, criteria 3/4/5/7 met) but the strategy as frozen is net
+  negative out of sample (criteria 1/2 fail) and its 2026 YTD segment is -0.15R; LONG families are
+  the main holdout drag (-0.07R on 88 trades, identical in both arms). Pre-declared criteria were
+  not moved; no parameter tweak is proposed.
+- Next step: the owner's decision. The report proposes nothing beyond stopping or observing; any
+  new hypothesis would be a new research phase with a new pre-registration and would need a new
+  untouched window (2025-01..2026-09 is now spent). All experiment switches remain at their frozen
+  defaults in `config/btc_swing.default.yaml` (`entry_mode: CONFIRMED_TRIGGER`,
+  `breakeven_after_tp1: true`, `block_short_in_trend_down: false`). No live or paper trading.
 
 ## Commands
 ```
