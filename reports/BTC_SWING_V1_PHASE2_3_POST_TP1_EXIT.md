@@ -1,6 +1,6 @@
 # BTC Swing V1 — Phase 2.3: POST-TP1 EXIT DESIGN (CONTROL vs STRUCTURAL_TRAIL_AFTER_TP1)
 
-Generated 2026-10-05 10:09 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · variant result hash `0493f066c878` · code `9a9891dfc6da-dirty`
+Generated 2026-10-05 10:29 UTC · period 2022-01-01 00:00 -> 2025-01-01 00:00 UTC · CONTROL result hash `92ebe5d7fc65` · variant result hash `0493f066c878` · code `5b6b00a7a1ab`
 
 **Central question.** Does forcing breakeven immediately after TP1 prematurely truncate valid BTC swing winners, and can the existing structural trail capture more of their MFE without materially increasing downside?
 
@@ -342,6 +342,7 @@ Pre-declared criteria (from the hypothesis, thresholds stated so the reader can 
 - **Verdict: NOT SUPPORTED.** removing the breakeven move does not improve realised expectancy on this window; the breakeven stop protects more P&L than the structural trail recovers.
 - Trade-off in numbers: of 28 CONTROL trades stopped at breakeven, 6 later resumed to 2R (6 to 3R) and 22 would have hit the initial stop first. Under the variant those trades realise 0.502R on average vs 0.572R, a net P&L difference of -104 USDT; 3 of them become meaningful losses (<= -0.25R, total impact -94 USDT) while 3 improve (+306 USDT).
 - Across all 123 paired TP1 trades the exit-rule effect is -0.016R per trade (paired t -0.44); MFE capture 36.2% -> 35.8%; funding on these trades -69 -> -69 USDT.
+- Decomposition of the net P&L change (-263 USDT): -104 USDT is the direct exit-rule effect on the 268 trades with identical entries; the remaining -159 USDT comes from the changed trade sequence (longer variant holds shift later detections: CONTROL 275 vs variant 273 trades), a side-effect of the single-slot design, not of the exit rule itself.
 - 2025+ stays untouched. No live trading. No tuning. The frozen default remains `breakeven_after_tp1: true` unless the owner decides otherwise.
 
 ## Appendix — frozen configuration (CONTROL; the variant differs only in `exits.breakeven_after_tp1`)
