@@ -223,3 +223,26 @@ def test_zone_entry_confirm_exit_mechanics(synthetic_data: dict[str, object]) ->
     res_c = BacktestEngine(cfg, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
     assert "early_exit_reason" not in res_c.trades.columns
     assert "confirmed_after_entry" not in res_c.trades.columns
+
+
+def test_block_short_in_trend_down_rule(synthetic_data: dict[str, object]) -> None:
+    """Phase 2.4: no SHORT trade may be opened when the regime at the trigger bar is TREND_DOWN;
+    LONG trades and everything else are untouched; blocked episodes are recorded."""
+    cfg = synthetic_data["cfg"]
+    bars, funding = synthetic_data["bars"], synthetic_data["funding"]
+    assert isinstance(cfg, BtcStrategyConfig) and isinstance(bars, pl.DataFrame)
+    cfg_v = cfg.model_copy(
+        update={"experiment": cfg.experiment.model_copy(update={"block_short_in_trend_down": True})}
+    )
+    res_c = BacktestEngine(cfg, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
+    res_v = BacktestEngine(cfg_v, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
+    shorts_v = res_v.trades.filter(pl.col("side") == "SHORT")
+    assert (shorts_v["regime_at_trigger"] != "TREND_DOWN").all()
+    blocked = res_v.episodes.filter(pl.col("outcome_class") == "REGIME_BLOCKED")
+    n_td_shorts_control = res_c.trades.filter(
+        (pl.col("side") == "SHORT") & (pl.col("regime_at_trigger") == "TREND_DOWN")
+    ).height
+    assert blocked.height >= n_td_shorts_control
+    assert (blocked["side"] == "SHORT").all() if blocked.height else True
+    # the control arm is unaffected by the new column
+    assert res_c.trades["regime_at_trigger"].null_count() == 0

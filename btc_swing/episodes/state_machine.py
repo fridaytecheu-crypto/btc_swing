@@ -31,13 +31,16 @@ class Episode:
     end_reason: str | None = None
     closed_bar: int | None = None
     features: dict[str, float] = field(default_factory=dict)
+    regime_at_trigger: Regime | None = None
 
     @property
     def outcome_class(self) -> str:
-        """TRADED | INVALIDATED | RISK_REJECTED | NEVER_TRIGGERED (incl. EXPIRED watch)."""
+        """TRADED | INVALIDATED | RISK_REJECTED | REGIME_BLOCKED | NEVER_TRIGGERED (incl. EXPIRED)."""
         if self.trade_id is not None:
             return "TRADED"
         r = self.end_reason or ""
+        if r.startswith("REGIME_BLOCKED"):
+            return "REGIME_BLOCKED"
         if r.startswith(InvalidationReason.RISK_REJECTED.value):
             return "RISK_REJECTED"
         if r == InvalidationReason.LEVEL_BREACHED.value:
@@ -93,6 +96,7 @@ class Episode:
             "reached_entry_ready": self.reached_entry_ready,
             "expired": self.end_reason == InvalidationReason.WATCH_TIMEOUT.value,
             "run_away_level": p.run_away_level,
+            "regime_at_trigger": self.regime_at_trigger.value if self.regime_at_trigger else None,
             **{f"f_{k}": v for k, v in self.features.items()},
         }
 
@@ -229,6 +233,11 @@ class EpisodeManager:
     def mark_active(self, ep: Episode, bar: int, t: int, trade_id: int) -> None:
         ep.trade_id = trade_id
         ep.set_state(EpisodeState.ACTIVE, bar, t, "filled")
+
+    def mark_regime_blocked(self, ep: Episode, bar: int, t: int, regime: Regime) -> None:
+        """Phase 2.4: the trigger fired but the entry is not allowed in this regime."""
+        ep.set_state(EpisodeState.INVALIDATED, bar, t, f"REGIME_BLOCKED:{regime.value}")
+        self._end(ep, bar, self.cfg.cooldown_bars_after_invalidation)
 
     def mark_risk_rejected(self, ep: Episode, bar: int, t: int, detail: str) -> None:
         ep.set_state(

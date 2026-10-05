@@ -24,7 +24,14 @@ import polars as pl
 
 from btc_swing.backtest.ledger import TRADE_HASH_COLUMNS, PartialExit, Position
 from btc_swing.core.config import BtcStrategyConfig
-from btc_swing.core.enums import EpisodeState, ExitReason, InvalidationReason, Regime, Timeframe
+from btc_swing.core.enums import (
+    EpisodeState,
+    ExitReason,
+    InvalidationReason,
+    Regime,
+    Side,
+    Timeframe,
+)
 from btc_swing.core.hashing import round_floats, stable_hash
 from btc_swing.core.versions import (
     BACKTEST_VERSION,
@@ -48,6 +55,8 @@ from btc_swing.setups.registry import build_detectors
 
 log = logging.getLogger(__name__)
 DAY_MS = 86_400_000
+# episode columns added after Phase 2 (instrumentation only) are excluded from the result hash
+EPISODE_HASH_EXCLUDE = frozenset({"regime_at_trigger"})
 
 
 @dataclass
@@ -190,7 +199,15 @@ class BacktestEngine:
                 if ep_now is not None and ep_now.opened_bar == i and not ep_now.features:
                     ep_now.features = self.aux.snapshot(t, view, self.series)
                 if action.kind == "ENTER" and action.episode is not None:
-                    pending = self._size(action.episode, view, c, equity, i, t, episodes)
+                    action.episode.regime_at_trigger = reg.regime
+                    if (
+                        cfg.experiment.block_short_in_trend_down
+                        and action.episode.plan.side is Side.SHORT
+                        and reg.regime is Regime.TREND_DOWN
+                    ):
+                        episodes.mark_regime_blocked(action.episode, i, t, reg.regime)
+                    else:
+                        pending = self._size(action.episode, view, c, equity, i, t, episodes)
             ep = episodes.current
             unreal = position.unrealised(c) if position is not None else 0.0
             journal.t_ms.append(t)
@@ -269,7 +286,14 @@ class BacktestEngine:
                     else [],
                     6,
                 ),
-                "episodes": round_floats(episodes_df.to_dicts(), 6),
+                "episodes": round_floats(
+                    episodes_df.drop(
+                        [c for c in EPISODE_HASH_EXCLUDE if c in episodes_df.columns]
+                    ).to_dicts()
+                    if episodes_df.height
+                    else [],
+                    6,
+                ),
                 "n_decisions": decisions_df.height,
                 "final_equity": round(equity, 6),
             }
@@ -398,6 +422,9 @@ class BacktestEngine:
             mark_price_at_decision=p.mark_ref,
             liquidation_basis="mark" if self.has_mark else "traded",
             features=p.features,
+            regime_at_trigger=(
+                p.episode.regime_at_trigger.value if p.episode.regime_at_trigger else None
+            ),
         )
         pos.entry_fee = self.costs.fee(qty * fill)
         if cfg.experiment.entry_mode == "ZONE_ENTRY_CONFIRM_EXIT":

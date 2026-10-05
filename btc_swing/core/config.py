@@ -251,6 +251,10 @@ class ExperimentCfg(_Strict):
     entry_mode: Literal["CONFIRMED_TRIGGER", "ZONE_ENTRY", "ZONE_ENTRY_CONFIRM_EXIT"] = (
         "CONFIRMED_TRIGGER"
     )
+    # Phase 2.4: when true, a SHORT trigger that fires while the PIT regime at that decision bar is
+    # TREND_DOWN does not open a trade (episode ends REGIME_BLOCKED). Applies uniformly to every
+    # SHORT family; never closes an open position. Default false = frozen baseline.
+    block_short_in_trend_down: bool = False
 
 
 class BtcStrategyConfig(_Strict):

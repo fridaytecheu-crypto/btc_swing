@@ -154,6 +154,9 @@ class Position:
     entry_fee: float = 0.0
     funding: float = 0.0
     funding_events: int = 0
+    regime_at_trigger: str | None = (
+        None  # Phase 2.4 instrumentation (excluded from the result hash)
+    )
     # Phase 2.3 exit-path instrumentation (always recorded; excluded from the result hash)
     tp1_bar: int | None = None
     tp1_ms: int | None = None
@@ -335,7 +338,8 @@ class Position:
                 else None
             ),
         }
-        # Phase 2.3 exit-path columns (not part of TRADE_HASH_COLUMNS)
+        # Phase 2.3 / 2.4 columns (not part of TRADE_HASH_COLUMNS)
+        row["regime_at_trigger"] = self.regime_at_trigger
         row["tp1_ms"] = self.tp1_ms
         row["hours_to_tp1"] = (
             (self.tp1_ms - self.entry_ms) / 3_600_000.0 if self.tp1_ms is not None else None
