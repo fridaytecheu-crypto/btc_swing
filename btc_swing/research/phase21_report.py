@@ -88,7 +88,10 @@ def _arm_rows(
 
 def _compare_block(control: dict[str, str], variant: dict[str, str]) -> list[str]:
     keys = [k for k in control if k != "arm"]
-    return _table(["metric", "CONTROL", "ZONE_ENTRY"], [[k, control[k], variant[k]] for k in keys])
+    return _table(
+        ["metric", control.get("arm", "CONTROL"), variant.get("arm", "VARIANT")],
+        [[k, control[k], variant[k]] for k in keys],
+    )
 
 
 def _fam_compare(cf: list[dict[str, Any]], vf: list[dict[str, Any]], title: str) -> list[str]:
