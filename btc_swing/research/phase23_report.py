@@ -584,6 +584,16 @@ def _verdict(res: Phase23Result) -> list[str]:
         lines.append(
             f"- Across all {ts['n']} paired TP1 trades the exit-rule effect is {_n(ts['paired_mean_diff_R'])}R per trade (paired t {_n(ts['paired_t'], 2)}); MFE capture {_p(ts['mfe_capture_control'], 1)} -> {_p(ts['mfe_capture_variant'], 1)}; funding on these trades {_n(ts['control_funding_sum'], 0)} -> {_n(ts['variant_funding_sum'], 0)} USDT."
         )
+    ap = res.paired.get("all_pairs", {})
+    if ap:
+        total_diff = (v.costs.get("net", 0.0) or 0.0) - (c.costs.get("net", 0.0) or 0.0)
+        paired_diff = (ap.get("variant_sum_pnl", 0.0) or 0.0) - (
+            ap.get("control_sum_pnl", 0.0) or 0.0
+        )
+        lines.append(
+            f"- Decomposition of the net P&L change ({_n(total_diff, 0)} USDT): {_n(paired_diff, 0)} USDT is the direct exit-rule effect on the {ap.get('n', 0)} trades with identical entries; "
+            f"the remaining {_n(total_diff - paired_diff, 0)} USDT comes from the changed trade sequence (longer variant holds shift later detections: CONTROL {co.get('n', 0)} vs variant {vo.get('n', 0)} trades), a side-effect of the single-slot design, not of the exit rule itself."
+        )
     lines.append(
         "- 2025+ stays untouched. No live trading. No tuning. The frozen default remains `breakeven_after_tp1: true` unless the owner decides otherwise."
     )
