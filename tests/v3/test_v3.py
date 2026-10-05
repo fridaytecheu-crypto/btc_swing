@@ -44,13 +44,9 @@ def test_v3_detectors_plans_respect_frozen_bounds(synthetic_data: dict[str, obje
                 continue
             n_plans += 1
             s = det.s
-            dist = s * (view.close(series.base.tf) - plan.stop_price)
             assert plan.entry_zone_low < plan.entry_zone_high
             assert plan.structural_target is not None
             assert s * (plan.structural_target - plan.stop_price) > 0
-            assert (
-                dist > 0 or True
-            )  # the 5m close may sit beyond the stop; the lifecycle cancels it
             assert plan.detected_at_ms == view.t_ms
     assert n_plans >= 0
 
