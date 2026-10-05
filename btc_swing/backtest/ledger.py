@@ -60,6 +60,15 @@ class Position:
     entry_fee: float = 0.0
     funding: float = 0.0
     funding_events: int = 0
+    # Phase 2.2 confirmation monitoring (None/False when the entry mode does not use it)
+    awaiting_confirmation: bool = False
+    confirm_deadline_bar: int | None = None
+    confirmed_at_entry: bool = False
+    confirmed_bar: int | None = None
+    confirmed_ms: int | None = None
+    mfe_before_confirm: float = float("nan")
+    mae_before_confirm: float = float("nan")
+    pending_early_exit: ExitReason | None = None
     exits: list[PartialExit] = field(default_factory=list)
     tp1_done: bool = False
     tp2_done: bool = False
@@ -85,6 +94,11 @@ class Position:
         s = self.side.sign
         fav = high if s > 0 else low
         adv = low if s > 0 else high
+        if self.awaiting_confirmation:
+            if math.isnan(self.mfe_before_confirm) or s * (fav - self.mfe_before_confirm) > 0:
+                self.mfe_before_confirm = fav
+            if math.isnan(self.mae_before_confirm) or s * (adv - self.mae_before_confirm) < 0:
+                self.mae_before_confirm = adv
         if s * (fav - self.mfe_price) > 0:
             self.mfe_price = fav
         if s * (adv - self.mae_price) < 0:
@@ -215,6 +229,34 @@ class Position:
                 else None
             ),
         }
+        conf = self.confirmed_bar is not None or self.confirmed_at_entry
+        row["confirmed_after_entry"] = conf
+        row["confirmed_at_entry"] = self.confirmed_at_entry
+        row["bars_to_confirmation"] = (
+            (self.confirmed_bar - self.entry_bar) if self.confirmed_bar is not None else None
+        )
+        row["hours_to_confirmation"] = (
+            (self.confirmed_ms - self.entry_ms) / 3_600_000.0
+            if self.confirmed_ms is not None
+            else None
+        )
+        row["mfe_before_confirm_R"] = (
+            s * (self.mfe_before_confirm - self.entry_price) / self.stop_distance
+            if not math.isnan(self.mfe_before_confirm)
+            else None
+        )
+        row["mae_before_confirm_R"] = (
+            s * (self.mae_before_confirm - self.entry_price) / self.stop_distance
+            if not math.isnan(self.mae_before_confirm)
+            else None
+        )
+        row["early_exit_reason"] = (
+            self.exits[-1].reason.value
+            if self.exits
+            and self.exits[-1].reason
+            in (ExitReason.EARLY_EXIT_NO_CONFIRMATION, ExitReason.EARLY_EXIT_INVALIDATION)
+            else None
+        )
         for r in self.r_levels:
             row[f"cf_hit_{r:g}R"] = self.cf_hits[r]
             row[f"cf_bars_to_{r:g}R"] = self.cf_bars_to_hit[r]

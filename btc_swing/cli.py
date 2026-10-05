@@ -285,5 +285,71 @@ def phase21(
     )
 
 
+@app.command("phase22")
+def phase22(
+    config: ConfigOpt = None,
+    dev_start: str = "2022-01-01",
+    dev_end: str = "2024-01-01",
+    val_start: str = "2024-01-01",
+    val_end: str = "2025-01-01",
+    null_k: int = 20,
+    seed: int = 7,
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md"),
+    expected_control_hash: Path = Path("manifests/phase2_validation_run_manifest.json"),
+    phase21_summary: Path = Path("data/btc/runs/phase21_entry_mechanics/summary.json"),
+) -> None:
+    """Phase 2.2: CONTROL vs ZONE_ENTRY_CONFIRM_EXIT on identical data; 19-section report."""
+    from btc_swing.research.phase2 import Segment, load_inputs
+    from btc_swing.research.phase22 import run_phase22
+    from btc_swing.research.phase22_report import render_phase22
+
+    cfg = _cfg(config, None)
+    d = _data_dir()
+    segs = [
+        Segment("dev_2022_2023", _ms(dev_start), _ms(dev_end)),
+        Segment("val_2024", _ms(val_start), _ms(val_end)),
+    ]
+    inp = load_inputs(cfg, d, segs[0].start_ms, segs[-1].end_ms)
+    expected = (
+        json.loads(expected_control_hash.read_text())["result_hash"]
+        if expected_control_hash.exists()
+        else None
+    )
+    run_dir = out or (
+        d / "btc" / "runs" / f"phase22_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+    res = run_phase22(
+        cfg,
+        inp,
+        segs,
+        null_k,
+        seed,
+        run_dir,
+        expected,
+        phase21_summary if phase21_summary.exists() else None,
+    )
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_phase22(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "baseline_identical": res.baseline_check["identical"],
+                "control": {
+                    "trades": res.control.result.manifest["n_trades"],
+                    "expectancy_R": res.control.metrics["overall"].get("expectancy_R"),
+                },
+                "variant": {
+                    "trades": res.variant.result.manifest["n_trades"],
+                    "expectancy_R": res.variant.metrics["overall"].get("expectancy_R"),
+                    "confirmed_share": res.timing.get("confirmed_share"),
+                },
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

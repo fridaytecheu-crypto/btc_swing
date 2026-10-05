@@ -24,7 +24,7 @@ import polars as pl
 
 from btc_swing.backtest.ledger import PartialExit, Position
 from btc_swing.core.config import BtcStrategyConfig
-from btc_swing.core.enums import EpisodeState, ExitReason, Regime, Timeframe
+from btc_swing.core.enums import EpisodeState, ExitReason, InvalidationReason, Regime, Timeframe
 from btc_swing.core.hashing import round_floats, stable_hash
 from btc_swing.core.versions import (
     BACKTEST_VERSION,
@@ -68,6 +68,7 @@ class _Pending:
     atr_setup: float
     features: dict[str, float]
     mark_ref: float
+    confirmed_at_decision: bool = False
 
 
 @dataclass
@@ -105,6 +106,7 @@ class BacktestEngine:
             self.series.base.close_ms
         )
         self.has_mark = bool(np.isfinite(self.mark_c).any())
+        self._plans: dict[int, Any] = {}
 
     # ------------------------------------------------------------------ run
     def run(
@@ -143,8 +145,15 @@ class BacktestEngine:
                 episodes.mark_active(pending.episode, i, t, position.trade_id)
                 next_trade_id += 1
                 pending = None
+            closed = False
+            # 1b. Phase 2.2: early exit scheduled at the previous close -> fill at this bar's open
+            if position is not None and position.pending_early_exit is not None:
+                reason = position.pending_early_exit
+                position.pending_early_exit = None
+                position.awaiting_confirmation = False
+                self._exit(position, i, t, o, position.qty_open, reason, stop_like=True)
             # 2. exits on this bar's path
-            if position is not None:
+            if position is not None and position.is_open:
                 closed = self._process_bar(position, i, t, o, h, lo, c)
                 # 3. funding
                 if position.is_open:
@@ -154,22 +163,24 @@ class BacktestEngine:
                             rate, position.qty_open, c, position.side
                         )
                         position.funding_events += 1
-                if closed or not position.is_open:
-                    equity += position.net_pnl
-                    trades.append(position)
-                    ep = episodes.current
-                    if ep is not None and ep.trade_id == position.trade_id:
-                        episodes.mark_closed(ep, i, t, position.exits[-1].reason.value)
-                    position = None
-                elif position.pending_stop is not None:
-                    position.stop = position.pending_stop
-                    position.stop_moved = True
-                    position.pending_stop = None
+            if position is not None and (closed or not position.is_open):
+                equity += position.net_pnl
+                trades.append(position)
+                ep = episodes.current
+                if ep is not None and ep.trade_id == position.trade_id:
+                    episodes.mark_closed(ep, i, t, position.exits[-1].reason.value)
+                position = None
+            elif position is not None and position.pending_stop is not None:
+                position.stop = position.pending_stop
+                position.stop_moved = True
+                position.pending_stop = None
             # 4. decision at T
             view = self.series.view_at(t)
             reg = classify_regime(view, cfg.regime)
             regime_counts[reg.regime.value] += 1
             if position is not None:
+                if position.awaiting_confirmation:
+                    self._monitor_confirmation(position, view, i, t, episodes)
                 self._update_trail(position, view, c)
             else:
                 action = episodes.step(view, reg.regime, i)
@@ -319,7 +330,18 @@ class BacktestEngine:
             episodes.mark_risk_rejected(ep, bar, t, sizing.reason)
             return None
         feats = self.aux.snapshot(t, view, self.series)
-        return _Pending(ep, sizing, ep.plan.atr_setup_tf, feats, feats.get("mark_price", math.nan))
+        confirmed_now = False
+        if cfg.experiment.entry_mode == "ZONE_ENTRY_CONFIRM_EXIT":
+            confirmed_now = episodes.detectors[ep.plan.family].confirmed(view, ep.plan)
+        self._plans[ep.episode_id] = ep.plan
+        return _Pending(
+            ep,
+            sizing,
+            ep.plan.atr_setup_tf,
+            feats,
+            feats.get("mark_price", math.nan),
+            confirmed_now,
+        )
 
     def _open_position(
         self, p: _Pending, trade_id: int, bar: int, open_ms: int, open_price: float, equity: float
@@ -369,7 +391,37 @@ class BacktestEngine:
             features=p.features,
         )
         pos.entry_fee = self.costs.fee(qty * fill)
+        if cfg.experiment.entry_mode == "ZONE_ENTRY_CONFIRM_EXIT":
+            pos.confirmed_at_entry = p.confirmed_at_decision
+            pos.awaiting_confirmation = not p.confirmed_at_decision
+            # the existing explicit confirmation-lifecycle timeout, reused unchanged
+            pos.confirm_deadline_bar = bar + cfg.episode.entry_ready_timeout_bars - 1
         return pos
+
+    def _monitor_confirmation(
+        self, pos: Position, view: Any, bar: int, t: int, episodes: EpisodeManager
+    ) -> None:
+        """Phase 2.2: after a zone entry, look for the ORIGINAL confirmation predicate.
+
+        confirmed            -> normal lifecycle from here on (nothing else changes)
+        invalidation level breached (5m close) before confirmation -> exit at the next 5m open
+        deadline reached without confirmation -> exit at the next 5m open
+        """
+        plan = self._plans.get(pos.episode_id)
+        if plan is None:
+            pos.awaiting_confirmation = False
+            return
+        det = episodes.detectors[plan.family]
+        if det.confirmed(view, plan):
+            pos.awaiting_confirmation = False
+            pos.confirmed_bar = bar
+            pos.confirmed_ms = t
+            return
+        if det.pre_entry_invalidated(view, plan) is InvalidationReason.LEVEL_BREACHED:
+            pos.pending_early_exit = ExitReason.EARLY_EXIT_INVALIDATION
+            return
+        if pos.confirm_deadline_bar is not None and bar >= pos.confirm_deadline_bar:
+            pos.pending_early_exit = ExitReason.EARLY_EXIT_NO_CONFIRMATION
 
     # ------------------------------------------------------------------ exits
     def _exit(

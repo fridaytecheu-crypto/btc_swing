@@ -172,7 +172,7 @@ class EpisodeManager:
         if bar - ep.opened_bar > self.cfg.watch_timeout_bars:
             return self._invalidate(ep, bar, t, InvalidationReason.WATCH_TIMEOUT.value)
         if ep.state is EpisodeState.WATCH:
-            if self.entry_mode == "ZONE_ENTRY":
+            if self.entry_mode in ("ZONE_ENTRY", "ZONE_ENTRY_CONFIRM_EXIT"):
                 # Phase 2.1 variant: the pre-defined zone is reached while the plan is valid -> enter
                 if det.zone_reached(view, ep.plan):
                     ep.set_state(EpisodeState.TRIGGERED, bar, t, "zone_reached")

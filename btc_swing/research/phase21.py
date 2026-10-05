@@ -44,6 +44,15 @@ from btc_swing.research.phase2 import (
 
 log = logging.getLogger(__name__)
 KEY = ["family", "detected_at_ms"]
+CONFIRM_COLS = [
+    "confirmed_after_entry",
+    "confirmed_at_entry",
+    "bars_to_confirmation",
+    "hours_to_confirmation",
+    "mfe_before_confirm_R",
+    "mae_before_confirm_R",
+    "early_exit_reason",
+]
 
 
 def _f(x: object) -> float:

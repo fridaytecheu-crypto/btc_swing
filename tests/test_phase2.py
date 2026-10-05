@@ -186,3 +186,39 @@ def test_leverage_override_never_exceeds_hard_cap() -> None:
             ROOT / "config" / "btc_swing.default.yaml",
             overrides={"risk": {"max_leverage": 25, "allowed_leverage": [1, 25]}},
         )
+
+
+def test_zone_entry_confirm_exit_mechanics(synthetic_data: dict[str, object]) -> None:
+    """Phase 2.2: zone entry, then confirmation monitoring with early exits."""
+    from btc_swing.core.enums import ExitReason
+
+    cfg = synthetic_data["cfg"]
+    bars, funding = synthetic_data["bars"], synthetic_data["funding"]
+    assert isinstance(cfg, BtcStrategyConfig) and isinstance(bars, pl.DataFrame)
+    cfg_v = cfg.model_copy(
+        update={
+            "experiment": cfg.experiment.model_copy(
+                update={"entry_mode": "ZONE_ENTRY_CONFIRM_EXIT"}
+            )
+        }
+    )
+    res = BacktestEngine(cfg_v, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
+    t = res.trades
+    assert t.height > 0
+    window = cfg.episode.entry_ready_timeout_bars
+    for r in t.to_dicts():
+        if r["early_exit_reason"] == ExitReason.EARLY_EXIT_NO_CONFIRMATION.value:
+            # exit at the open of the bar after the deadline: window bars + 1 after the entry open
+            assert abs(r["holding_hours"] - (window + 1) * 5 / 60) < 1e-6
+            assert not r["confirmed_after_entry"]
+        if r["confirmed_after_entry"] and not r["confirmed_at_entry"]:
+            assert 0 <= r["bars_to_confirmation"] < window
+            assert r["early_exit_reason"] is None
+        if r["early_exit_reason"] == ExitReason.EARLY_EXIT_INVALIDATION.value:
+            assert r["holding_hours"] <= (window + 1) * 5 / 60 + 1e-9
+    # unconfirmed trades never live past the window unless a normal exit took them out earlier
+    unconfirmed = t.filter(~pl.col("confirmed_after_entry"))
+    assert (unconfirmed["holding_hours"] <= (window + 1) * 5 / 60 + 1e-9).all()
+    # the control arm is untouched by the new fields
+    res_c = BacktestEngine(cfg, bars, funding).run(_ms(2023, 3, 1), _ms(2023, 9, 1))  # type: ignore[arg-type]
+    assert res_c.trades["early_exit_reason"].null_count() == res_c.trades.height

@@ -239,9 +239,18 @@ class ExperimentCfg(_Strict):
       ZONE_ENTRY         Phase 2.1 variant: the first entry-TF bar that reaches the pre-defined zone
                          while the plan is still valid -> TRIGGERED (fill at the next 5m open).
                          No confirmation, no trigger. Everything else identical.
+      ZONE_ENTRY_CONFIRM_EXIT
+                         Phase 2.2 variant: ZONE_ENTRY entry, then the position is monitored for the
+                         ORIGINAL confirm-TF confirmation predicate. Confirmation within the existing
+                         confirmation-lifecycle timeout (`episode.entry_ready_timeout_bars`) converts
+                         the trade to the normal lifecycle; a 5m close beyond the plan's invalidation
+                         level before confirmation, or no confirmation by the deadline, exits at the
+                         next 5m open (stop-type slippage). Normal stop/TP/trail stay active throughout.
     """
 
-    entry_mode: Literal["CONFIRMED_TRIGGER", "ZONE_ENTRY"] = "CONFIRMED_TRIGGER"
+    entry_mode: Literal["CONFIRMED_TRIGGER", "ZONE_ENTRY", "ZONE_ENTRY_CONFIRM_EXIT"] = (
+        "CONFIRMED_TRIGGER"
+    )
 
 
 class BtcStrategyConfig(_Strict):
