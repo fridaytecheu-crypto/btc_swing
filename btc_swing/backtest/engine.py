@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 import polars as pl
 
-from btc_swing.backtest.ledger import PartialExit, Position
+from btc_swing.backtest.ledger import TRADE_HASH_COLUMNS, PartialExit, Position
 from btc_swing.core.config import BtcStrategyConfig
 from btc_swing.core.enums import EpisodeState, ExitReason, InvalidationReason, Regime, Timeframe
 from btc_swing.core.hashing import round_floats, stable_hash
@@ -173,7 +173,9 @@ class BacktestEngine:
             elif position is not None and position.pending_stop is not None:
                 position.stop = position.pending_stop
                 position.stop_moved = True
+                position.stop_source = position.pending_stop_source or position.stop_source
                 position.pending_stop = None
+                position.pending_stop_source = None
             # 4. decision at T
             view = self.series.view_at(t)
             reg = classify_regime(view, cfg.regime)
@@ -259,7 +261,14 @@ class BacktestEngine:
         )
         result_hash = stable_hash(
             {
-                "trades": round_floats(trades_df.to_dicts(), 6),
+                "trades": round_floats(
+                    trades_df.select(
+                        [c for c in TRADE_HASH_COLUMNS if c in trades_df.columns]
+                    ).to_dicts()
+                    if trades_df.height
+                    else [],
+                    6,
+                ),
                 "episodes": round_floats(episodes_df.to_dicts(), 6),
                 "n_decisions": decisions_df.height,
                 "final_equity": round(equity, 6),
@@ -476,12 +485,14 @@ class BacktestEngine:
         if not pos.tp1_done and s * (favourable_extreme - pos.tp1) >= 0:
             q = min(pos.qty_open, pos.qty_initial * cfg.exits.tp1_frac)
             pos.tp1_done = True
+            pos.tp1_bar, pos.tp1_ms = i, t
             if q > 0:
                 self._exit(pos, i, t, pos.tp1, q, ExitReason.TP1, stop_like=False)
             if cfg.exits.breakeven_after_tp1:
                 be = pos.entry_price
                 if s * (be - pos.stop) > 0:
                     pos.pending_stop = be
+                    pos.pending_stop_source = "BREAKEVEN"
             pos.trail_active = True
             if not pos.is_open:
                 return True
@@ -513,3 +524,4 @@ class BacktestEngine:
         cand = swing - s * cfg.exits.trail_atr_buffer * a
         if s * (cand - pos.stop) > 0 and s * (close - cand) > 0:
             pos.pending_stop = cand
+            pos.pending_stop_source = "TRAIL"

@@ -351,5 +351,61 @@ def phase22(
     )
 
 
+@app.command("phase23")
+def phase23(
+    config: ConfigOpt = None,
+    dev_start: str = "2022-01-01",
+    dev_end: str = "2024-01-01",
+    val_start: str = "2024-01-01",
+    val_end: str = "2025-01-01",
+    null_k: int = 20,
+    seed: int = 7,
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md"),
+    expected_control_hash: Path = Path("manifests/phase2_validation_run_manifest.json"),
+) -> None:
+    """Phase 2.3: CONTROL (breakeven after TP1) vs STRUCTURAL_TRAIL_AFTER_TP1 on identical data."""
+    from btc_swing.research.phase2 import Segment, load_inputs
+    from btc_swing.research.phase23 import run_phase23
+    from btc_swing.research.phase23_report import render_phase23
+
+    cfg = _cfg(config, None)
+    d = _data_dir()
+    segs = [
+        Segment("dev_2022_2023", _ms(dev_start), _ms(dev_end)),
+        Segment("val_2024", _ms(val_start), _ms(val_end)),
+    ]
+    inp = load_inputs(cfg, d, segs[0].start_ms, segs[-1].end_ms)
+    expected = (
+        json.loads(expected_control_hash.read_text())["result_hash"]
+        if expected_control_hash.exists()
+        else None
+    )
+    run_dir = out or (
+        d / "btc" / "runs" / f"phase23_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+    res = run_phase23(cfg, inp, segs, null_k, seed, run_dir, expected)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_phase23(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "baseline_identical": res.baseline_check["identical"],
+                "control": {
+                    "trades": res.control.result.manifest["n_trades"],
+                    "expectancy_R": res.control.metrics["overall"].get("expectancy_R"),
+                },
+                "variant": {
+                    "trades": res.variant.result.manifest["n_trades"],
+                    "expectancy_R": res.variant.metrics["overall"].get("expectancy_R"),
+                },
+                "tp1_pairs": res.paired.get("tp1_pairs"),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

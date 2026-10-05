@@ -17,6 +17,100 @@ from typing import Any
 from btc_swing.core.enums import ExitReason, Regime, SetupFamily, Side
 from btc_swing.risk.sizing import Sizing
 
+# The trade columns that define the Phase 2 result hash. Instrumentation added in later phases is
+# excluded so that a frozen CONTROL run reproduces the Phase 2 hash byte for byte.
+TRADE_HASH_COLUMNS: list[str] = [
+    "trade_id",
+    "episode_id",
+    "family",
+    "side",
+    "regime_at_entry",
+    "entry_ms",
+    "exit_ms",
+    "holding_hours",
+    "entry_price",
+    "entry_ref_price",
+    "mark_price_at_decision",
+    "liquidation_basis",
+    "tp1_price",
+    "tp2_price",
+    "avg_exit_price",
+    "qty",
+    "notional",
+    "leverage",
+    "margin",
+    "initial_stop",
+    "final_stop",
+    "stop_reason",
+    "stop_distance",
+    "stop_distance_pct",
+    "stop_distance_atr",
+    "liquidation_price",
+    "liquidation_distance",
+    "liquidation_distance_pct",
+    "stop_to_liquidation_ratio",
+    "stop_to_liquidation_buffer_pct",
+    "liquidation_distance_atr",
+    "risk_amount",
+    "risk_frac",
+    "risk_capped",
+    "equity_at_entry",
+    "fees",
+    "slippage",
+    "funding",
+    "funding_events",
+    "gross_pnl",
+    "POSITION_PNL",
+    "BTC_RETURN",
+    "RETURN_ON_MARGIN",
+    "ACCOUNT_RETURN",
+    "R_MULTIPLE",
+    "R_MULTIPLE_GROSS",
+    "mfe_price",
+    "mae_price",
+    "MFE_R",
+    "MAE_R",
+    "MFE_PCT",
+    "MAE_PCT",
+    "max_unrealised_loss",
+    "max_account_loss_at_stop",
+    "max_account_loss_at_liquidation",
+    "exit_reason",
+    "n_partial_exits",
+    "tp1_hit",
+    "tp2_hit",
+    "stop_moved",
+    "structural_target",
+    "structural_target_r",
+    "cf_hit_1R",
+    "cf_bars_to_1R",
+    "cf_hit_1.5R",
+    "cf_bars_to_1.5R",
+    "cf_hit_2R",
+    "cf_bars_to_2R",
+    "cf_hit_3R",
+    "cf_bars_to_3R",
+    "f_funding_rate_last",
+    "f_funding_rate_mean_3",
+    "f_funding_annualised_pct",
+    "f_open_interest",
+    "f_open_interest_value",
+    "f_oi_change_1h_pct",
+    "f_oi_change_4h_pct",
+    "f_oi_change_24h_pct",
+    "f_long_short_ratio_accounts",
+    "f_top_trader_ls_positions",
+    "f_taker_long_short_vol_ratio",
+    "f_premium_index",
+    "f_premium_mean_1h",
+    "f_mark_price",
+    "f_last_minus_mark_pct",
+    "f_taker_buy_ratio_1h",
+    "f_taker_buy_ratio_4h",
+    "f_volume_accel_1h",
+    "f_volume_accel_5m",
+]
+
 
 @dataclass
 class PartialExit:
@@ -60,6 +154,13 @@ class Position:
     entry_fee: float = 0.0
     funding: float = 0.0
     funding_events: int = 0
+    # Phase 2.3 exit-path instrumentation (always recorded; excluded from the result hash)
+    tp1_bar: int | None = None
+    tp1_ms: int | None = None
+    mfe_after_tp1: float = float("nan")
+    mae_after_tp1: float = float("nan")
+    stop_source: str = "INITIAL"  # INITIAL | BREAKEVEN | TRAIL (which rule owns the current stop)
+    pending_stop_source: str | None = None
     # Phase 2.2 confirmation monitoring (None/False when the entry mode does not use it)
     awaiting_confirmation: bool = False
     confirm_deadline_bar: int | None = None
@@ -99,6 +200,11 @@ class Position:
                 self.mfe_before_confirm = fav
             if math.isnan(self.mae_before_confirm) or s * (adv - self.mae_before_confirm) < 0:
                 self.mae_before_confirm = adv
+        if self.tp1_bar is not None and bar > self.tp1_bar:
+            if math.isnan(self.mfe_after_tp1) or s * (fav - self.mfe_after_tp1) > 0:
+                self.mfe_after_tp1 = fav
+            if math.isnan(self.mae_after_tp1) or s * (adv - self.mae_after_tp1) < 0:
+                self.mae_after_tp1 = adv
         if s * (fav - self.mfe_price) > 0:
             self.mfe_price = fav
         if s * (adv - self.mae_price) < 0:
@@ -229,6 +335,36 @@ class Position:
                 else None
             ),
         }
+        # Phase 2.3 exit-path columns (not part of TRADE_HASH_COLUMNS)
+        row["tp1_ms"] = self.tp1_ms
+        row["hours_to_tp1"] = (
+            (self.tp1_ms - self.entry_ms) / 3_600_000.0 if self.tp1_ms is not None else None
+        )
+        row["mfe_after_tp1_R"] = (
+            s * (self.mfe_after_tp1 - self.entry_price) / self.stop_distance
+            if not math.isnan(self.mfe_after_tp1)
+            else None
+        )
+        row["mae_after_tp1_R"] = (
+            s * (self.mae_after_tp1 - self.entry_price) / self.stop_distance
+            if not math.isnan(self.mae_after_tp1)
+            else None
+        )
+        row["stop_source_at_exit"] = self.stop_source
+        row["stopped_at_breakeven"] = bool(
+            self.exits
+            and self.exits[-1].reason in (ExitReason.STOP, ExitReason.TRAIL)
+            and self.stop_source == "BREAKEVEN"
+        )
+        row["realised_R_after_tp1"] = (
+            sum(
+                s * (e.price - self.entry_price) * e.qty / (self.qty_initial * self.stop_distance)
+                for e in self.exits
+                if e.reason is not ExitReason.TP1
+            )
+            if self.tp1_done
+            else None
+        )
         if self.confirm_deadline_bar is not None:
             # Phase 2.2 confirmation-monitoring columns: present only when the entry mode used them,
             # so CONTROL rows (and the CONTROL result hash) stay byte-identical to Phase 2.
