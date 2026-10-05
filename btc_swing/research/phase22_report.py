@@ -99,6 +99,10 @@ def render_phase22(res: Phase22Result) -> str:
                     "config hash CONTROL / variant",
                     f"`{res.baseline_check['control_config_hash'][:12]}` / `{res.baseline_check['variant_config_hash'][:12]}` (differ only in `experiment.entry_mode`)",
                 ],
+                [
+                    "row-level check vs persisted Phase 2 trades",
+                    _row_check_text(res.baseline_check.get("row_check_vs_phase2_trades", {})),
+                ],
             ],
         ),
         "## 3. Exact variant definition",
@@ -882,6 +886,32 @@ def _recommendation(res: Phase22Result) -> list[str]:
                 for d in pop
             )
             + "."
+        )
+    inval_22_d = next(
+        (
+            x
+            for x in res.matched.get("variant_trades_by_control_outcome", [])
+            if x.get("control_outcome") == "INVALIDATED"
+        ),
+        None,
+    )
+    inval_21_d = (ref or {}).get("invalidated_group") if ref else None
+    if inval_22_d and inval_21_d:
+        lines.append(
+            "- Why the filter value is not recovered: on the plans CONTROL would have rejected (INVALIDATED), "
+            f"the early exit on an invalidation-level close saves only {_n(inval_22_d['expectancy_R'] - inval_21_d['expectancy_R'])}R per trade "
+            f"versus Phase 2.1 ({_n(inval_21_d['expectancy_R'])}R -> {_n(inval_22_d['expectancy_R'])}R), because the invalidation level sits only 0.5 ATR "
+            "above the stop: by the time a 5m bar closes beyond it, most of the stop loss is already realised. "
+            f"Only {res.early_inval.get('n', 0)} of these {inval_22_d['n']} trades exited on the invalidation rule; the rest hit the stop or the deadline."
+        )
+    rc = res.recovery
+    if rc.get("became_trades"):
+        unc = rc.get("unconfirmed") or {}
+        lines.append(
+            f"- Why the recovered opportunities shrink: of {rc['became_trades']} recovered never-triggered plans, {rc.get('later_confirmed', 0)} confirmed and "
+            f"{rc.get('early_exit_no_confirmation', 0)} were cut at the {res.confirmation_window_bars * 5 / 60:.0f} h deadline while mostly still in profit "
+            f"(mean {_n(unc.get('mean_R'))}R, {_n(unc.get('sum_pnl'), 0)} USDT); Phase 2.1 let the same plans run to {_n(((ref or {}).get('recovered') or {}).get('expectancy_R'))}R. "
+            "The confirmation predicate requires price within one pad of the zone, so it rarely fires on a plan that moves away quickly, and the deadline exit truncates exactly the winners it was meant to keep."
         )
     tm = res.timing
     if tm.get("n_trades"):
