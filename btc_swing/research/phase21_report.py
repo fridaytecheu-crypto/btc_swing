@@ -744,5 +744,21 @@ def _recommendation(res: Phase21Result) -> list[str]:
     else:
         verdict = "H1 NOT SUPPORTED. Entering at the zone without confirmation does not produce materially stronger net expectancy on this window. The confirmation trigger is not the main source of the missing edge; the never-triggered population's forward returns are not converted into realised R once stops, exits and costs apply. Recommended next step: stop changing entry mechanics; the remaining pre-registered candidates from Phase 2 are the exit design (section 12: realised winner vs MFE) and the regime eligibility of the SHORT families. Any of them needs a new single pre-registered hypothesis and owner approval."
     lines += ["", f"- **Verdict: {verdict}**"]
+    pop = res.matched.get("variant_trades_by_control_outcome") or []
+    if pop:
+        parts = [
+            f"{d['control_outcome']}: n={d['n']}, {_n(d['expectancy_R'])}R, {_n(d['sum_pnl'], 0)} USDT"
+            for d in pop
+        ]
+        lines.append(
+            "- Where the ZONE_ENTRY result comes from (its trades split by what CONTROL did on the same episode): "
+            + "; ".join(parts)
+            + ". Reading: the confirmation trigger acts mainly as a FILTER against plans that fail after reaching the zone (the CONTROL-INVALIDATED group), not only as a timing delay; "
+            "zone entry gains on shared episodes and on recovered never-triggered plans, and gives most of it back on the group CONTROL would have filtered out."
+        )
+    if dd_ok and dd_v > dd_c:
+        lines.append(
+            f"- Drawdown note: the drawdown criterion is met only at the margin ({_p(dd_c)} -> {_p(dd_v)}, limit {_p(dd_c * 1.25 + 0.01)}); the longest losing streak doubled ({ca.get('longest_losing_streak')} -> {va.get('longest_losing_streak')})."
+        )
     lines += ["- 2025+ stays untouched. No live trading. No tuning."]
     return lines

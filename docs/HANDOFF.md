@@ -10,8 +10,15 @@
   expectancy NOT demonstrated (combined +0.08R net, t=0.9; 2022-23 +0.13R, 2024 +0.01R; costs take
   ~64% of the gross edge; never-triggered plans out-ran traded ones). Result hash
   `92ebe5d7fc65...` (see `manifests/phase2_validation_run_manifest.json`).
-- Phase 3 has NOT started. The next step is the owner's decision on the single pre-registered
-  structural hypothesis proposed in report §21. No tuning.
+- Phase 2.1 (ENTRY MECHANICS, one pre-registered hypothesis) done: CONTROL (frozen Phase 2, result
+  hash verified identical) vs ZONE_ENTRY (enter at the pre-defined zone without the 15m/5m
+  confirmation). Report: `reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md`. Verdict: PARTIALLY
+  SUPPORTED, not adoptable: net expectancy fell (+0.08R -> +0.03R) and drawdown rose; the timing
+  effect on the 198 shared episodes is positive (+0.09R paired) and 73 never-triggered plans were
+  recovered at +0.78R, but 70 plans that CONTROL filtered out as INVALIDATED were entered at
+  -1.11R each. The confirmation trigger acts mainly as a filter, not a timing delay.
+- Phase 3 has NOT started. The next step is the owner's decision (report §17). No tuning.
+  The `experiment.entry_mode` switch stays at `CONFIRMED_TRIGGER` (frozen baseline).
 
 ## Commands
 ```
@@ -20,6 +27,7 @@ export BTC_DATA_DIR=./data
 uv run btc-swing data ingest --from 2021-10 --to 2024-12   # ~1.5k archive files, resumable
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing phase2 --out data/btc/runs/phase2_validation
+uv run btc-swing phase21 --out data/btc/runs/phase21_entry_mechanics   # CONTROL vs ZONE_ENTRY (~8 min)
 bash scripts/check.sh
 ```
 

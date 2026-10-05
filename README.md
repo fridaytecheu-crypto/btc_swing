@@ -10,7 +10,9 @@ Read first: `docs/BTC_SWING_V1_DESIGN.md` (architecture, setups, risk model, Pha
 ## Status (2026-10-05)
 Phase 1 (foundation) and Phase 2 (all eight setup families, PIT features, mark-price liquidation,
 null benchmark, leverage comparison, first validation) are complete. The validation verdict is
-that repeatable positive expectancy is **not demonstrated** with the frozen defaults. Phase 3 has
+that repeatable positive expectancy is **not demonstrated** with the frozen defaults. Phase 2.1
+tested one pre-registered hypothesis (entry at the zone without confirmation, `btc-swing phase21`,
+`reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md`): partially supported, not adopted. Phase 3 has
 not started. 2025+ data is reserved and must not be used for development.
 
 ## Quick start
