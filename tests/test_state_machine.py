@@ -128,3 +128,34 @@ def test_regime_change_and_level_breach_invalidate() -> None:
     det.invalid = InvalidationReason.LEVEL_BREACHED
     assert m.step(FakeView(), Regime.TREND_UP, 21).kind == "INVALIDATED"
     assert m.closed[-1].end_reason == InvalidationReason.LEVEL_BREACHED.value
+
+
+def test_zone_entry_mode_enters_on_zone_without_confirmation() -> None:
+    cfg = load_btc_config(ROOT / "config" / "btc_swing.default.yaml")
+    det = ScriptedDetector()
+    m = EpisodeManager(cfg.episode, [det], entry_mode="ZONE_ENTRY")
+    det.detect_now = True
+    m.step(FakeView(), Regime.TREND_UP, 0)
+    ep = m.current
+    assert ep is not None and ep.state is EpisodeState.WATCH
+    # zone not reached yet -> stays WATCH even though confirmation/trigger flags are irrelevant
+    det.confirm = det.trigger = True
+    assert m.step(FakeView(), Regime.TREND_UP, 1).kind == "NONE" and ep.state is EpisodeState.WATCH
+    # zone reached -> TRIGGERED immediately, no ENTRY_READY state, no confirmation needed
+    det.zone, det.confirm, det.trigger = True, False, False
+    a = m.step(FakeView(), Regime.TREND_UP, 2)
+    assert a.kind == "ENTER" and ep.state is EpisodeState.TRIGGERED
+    assert all(t["to"] != EpisodeState.ENTRY_READY.value for t in ep.transitions)
+    # invalidation and regime checks are unchanged in the variant
+    det2 = ScriptedDetector()
+    m2 = EpisodeManager(cfg.episode, [det2], entry_mode="ZONE_ENTRY")
+    det2.detect_now = True
+    m2.step(FakeView(), Regime.TREND_UP, 0)
+    det2.invalid = InvalidationReason.LEVEL_BREACHED
+    det2.zone = True
+    assert m2.step(FakeView(), Regime.TREND_UP, 1).kind == "INVALIDATED"
+
+
+def test_control_mode_is_unchanged_default() -> None:
+    cfg = load_btc_config(ROOT / "config" / "btc_swing.default.yaml")
+    assert cfg.experiment.entry_mode == "CONFIRMED_TRIGGER"

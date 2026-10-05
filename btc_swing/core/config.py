@@ -230,6 +230,20 @@ class ResearchCfg(_Strict):
     sharpe_periods_per_year: int = Field(ge=1)
 
 
+class ExperimentCfg(_Strict):
+    """Pre-registered structural experiments. Exactly one switch per phase; default = frozen baseline.
+
+    entry_mode:
+      CONFIRMED_TRIGGER  Phase 2 baseline: zone reached AND confirm-TF confirmation -> ENTRY_READY,
+                         then entry-TF trigger -> TRIGGERED (fill at the next 5m open).
+      ZONE_ENTRY         Phase 2.1 variant: the first entry-TF bar that reaches the pre-defined zone
+                         while the plan is still valid -> TRIGGERED (fill at the next 5m open).
+                         No confirmation, no trigger. Everything else identical.
+    """
+
+    entry_mode: Literal["CONFIRMED_TRIGGER", "ZONE_ENTRY"] = "CONFIRMED_TRIGGER"
+
+
 class BtcStrategyConfig(_Strict):
     strategy_name: str
     instrument: InstrumentCfg
@@ -243,6 +257,7 @@ class BtcStrategyConfig(_Strict):
     costs: CostsCfg
     backtest: BacktestCfg
     research: ResearchCfg
+    experiment: ExperimentCfg = ExperimentCfg()
 
     def canonical_yaml(self) -> str:
         return yaml.safe_dump(self.model_dump(mode="json"), sort_keys=True)

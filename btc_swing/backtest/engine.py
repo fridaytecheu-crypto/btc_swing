@@ -113,7 +113,7 @@ class BacktestEngine:
         cfg = self.cfg
         base = self.series.base
         n = len(base)
-        episodes = EpisodeManager(cfg.episode, build_detectors(cfg))
+        episodes = EpisodeManager(cfg.episode, build_detectors(cfg), cfg.experiment.entry_mode)
         journal = _Journal()
         trades: list[Position] = []
         daily: list[tuple[int, float, float]] = []
@@ -270,6 +270,7 @@ class BacktestEngine:
                 "backtest": BACKTEST_VERSION,
             },
             "information_mode": cfg.backtest.information_mode,
+            "entry_mode": cfg.experiment.entry_mode,
             "provider": cfg.data.provider,
             "latency_minutes": cfg.data.latency_minutes,
             "data_hashes": dict(self.data_hashes),

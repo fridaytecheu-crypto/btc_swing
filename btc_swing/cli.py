@@ -230,5 +230,60 @@ def phase2(
     )
 
 
+@app.command("phase21")
+def phase21(
+    config: ConfigOpt = None,
+    dev_start: str = "2022-01-01",
+    dev_end: str = "2024-01-01",
+    val_start: str = "2024-01-01",
+    val_end: str = "2025-01-01",
+    null_k: int = 20,
+    seed: int = 7,
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V1_PHASE2_1_ENTRY_MECHANICS.md"),
+    expected_control_hash: Path = Path("manifests/phase2_validation_run_manifest.json"),
+) -> None:
+    """Phase 2.1: CONTROL (frozen Phase 2) vs ZONE_ENTRY on identical data; 17-section report."""
+    from btc_swing.research.phase2 import Segment, load_inputs
+    from btc_swing.research.phase21 import run_phase21
+    from btc_swing.research.phase21_report import render_phase21
+
+    cfg = _cfg(config, None)
+    d = _data_dir()
+    segs = [
+        Segment("dev_2022_2023", _ms(dev_start), _ms(dev_end)),
+        Segment("val_2024", _ms(val_start), _ms(val_end)),
+    ]
+    inp = load_inputs(cfg, d, segs[0].start_ms, segs[-1].end_ms)
+    expected = (
+        json.loads(expected_control_hash.read_text())["result_hash"]
+        if expected_control_hash.exists()
+        else None
+    )
+    run_dir = out or (
+        d / "btc" / "runs" / f"phase21_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+    res = run_phase21(cfg, inp, segs, null_k, seed, run_dir, expected)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_phase21(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "baseline_identical": res.baseline_check["identical"],
+                "control": {
+                    "trades": res.control.result.manifest["n_trades"],
+                    "expectancy_R": res.control.metrics["overall"].get("expectancy_R"),
+                },
+                "zone_entry": {
+                    "trades": res.variant.result.manifest["n_trades"],
+                    "expectancy_R": res.variant.metrics["overall"].get("expectancy_R"),
+                },
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

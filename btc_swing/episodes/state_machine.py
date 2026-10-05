@@ -104,8 +104,14 @@ class Action:
 
 
 class EpisodeManager:
-    def __init__(self, cfg: EpisodeCfg, detectors: list[SetupDetector]) -> None:
+    def __init__(
+        self,
+        cfg: EpisodeCfg,
+        detectors: list[SetupDetector],
+        entry_mode: str = "CONFIRMED_TRIGGER",
+    ) -> None:
         self.cfg = cfg
+        self.entry_mode = entry_mode
         self.detectors = {d.family: d for d in detectors}
         self.current: Episode | None = None
         self.closed: list[Episode] = []
@@ -166,6 +172,12 @@ class EpisodeManager:
         if bar - ep.opened_bar > self.cfg.watch_timeout_bars:
             return self._invalidate(ep, bar, t, InvalidationReason.WATCH_TIMEOUT.value)
         if ep.state is EpisodeState.WATCH:
+            if self.entry_mode == "ZONE_ENTRY":
+                # Phase 2.1 variant: the pre-defined zone is reached while the plan is valid -> enter
+                if det.zone_reached(view, ep.plan):
+                    ep.set_state(EpisodeState.TRIGGERED, bar, t, "zone_reached")
+                    return Action("ENTER", ep)
+                return Action("NONE", ep)
             if det.zone_reached(view, ep.plan) and det.confirmed(view, ep.plan):
                 ep.set_state(EpisodeState.ENTRY_READY, bar, t, "zone_reached_and_confirmed")
             return Action("NONE", ep)
