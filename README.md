@@ -24,7 +24,15 @@ variant on the untouched 2025-01 -> 2026-09 holdout (`btc-swing phase3-freeze`, 
 `reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md`): **C — FAILED OUT-OF-SAMPLE** (variant
 -0.07R / PF 0.90 vs CONTROL -0.10R / PF 0.85; the regime rule helps relative to CONTROL but the
 frozen strategy is net negative out of sample). The 2025-01..2026-09 window is now spent as a
-holdout; no further research phase is planned without a new owner pre-registration.
+holdout. V1 is closed by the owner as failed out-of-sample as a strategy and successful as research
+infrastructure; its artefacts are immutable.
+
+**V2 (cost-aware learned opportunity ranking)**: V1 setups as candidate generators, frozen-V1
+execution labels (net R after costs), a fixed PIT feature set, chronological walk-forward models
+(`docs/BTC_SWING_V2_DESIGN.md`, `btc-swing v2 research`, `reports/BTC_SWING_V2_RANKING_RESEARCH.md`):
+**C — NO USEFUL RANKING EDGE** (walk-forward Spearman -0.02, top-25% slice -0.21R vs all candidates
+-0.03R). 2025-2026 is no longer untouched for any purpose; no further research without a new
+owner pre-registration.
 
 ## Quick start
 ```
@@ -34,7 +42,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 44 tests, no database needed
+uv run pytest -q                                            # 48 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

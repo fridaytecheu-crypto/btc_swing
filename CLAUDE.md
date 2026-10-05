@@ -7,6 +7,8 @@ Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 `reports/BTC_SWING_V1_PHASE2_2_EARLY_ENTRY_CONFIRMATION_EXIT.md`,
 `reports/BTC_SWING_V1_PHASE2_3_POST_TP1_EXIT.md`, `reports/BTC_SWING_V1_PHASE2_4_SHORT_REGIME.md` and
 `reports/BTC_SWING_V1_PHASE3_UNTOUCHED_VALIDATION.md` (Phase 3: C, failed out of sample).
+V1 is closed and immutable. V2 (learned ranking, `btc_swing/v2/`): `docs/BTC_SWING_V2_DESIGN.md`
+and `reports/BTC_SWING_V2_RANKING_RESEARCH.md` (classification C — no useful ranking edge).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -26,6 +28,7 @@ Read `docs/HANDOFF.md`, then `docs/BTC_SWING_V1_DESIGN.md`,
 - Work on branch `main` unless told otherwise.
 
 ## Layout
-See README.md. Config `config/btc_swing.default.yaml`; CLI `btc-swing` (`data probe`,
-`data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`, `phase24`, `phase3-freeze`, `phase3`);
-tests `tests/`; reproducibility manifests in `manifests/`.
+See README.md. Config `config/btc_swing.default.yaml` (V1, frozen) and `config/btc_swing_v2.default.yaml`
+(V2 protocol); CLI `btc-swing` (`data probe`, `data ingest`, `backtest`, `phase2`, `phase21`,
+`phase22`, `phase23`, `phase24`, `phase3-freeze`, `phase3`, `v2 research`); tests `tests/`;
+reproducibility manifests in `manifests/`. Never modify V1 modules or V1 reports for V2 work.

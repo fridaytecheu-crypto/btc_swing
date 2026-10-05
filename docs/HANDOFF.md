@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-05)
+# Handoff — state of work and next steps (2026-10-05, V2 research done)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -53,11 +53,27 @@
   negative out of sample (criteria 1/2 fail) and its 2026 YTD segment is -0.15R; LONG families are
   the main holdout drag (-0.07R on 88 trades, identical in both arms). Pre-declared criteria were
   not moved; no parameter tweak is proposed.
-- Next step: the owner's decision. The report proposes nothing beyond stopping or observing; any
-  new hypothesis would be a new research phase with a new pre-registration and would need a new
-  untouched window (2025-01..2026-09 is now spent). All experiment switches remain at their frozen
-  defaults in `config/btc_swing.default.yaml` (`entry_mode: CONFIRMED_TRIGGER`,
-  `breakeven_after_tp1: true`, `block_short_in_trend_down: false`). No live or paper trading.
+- V1 is CLOSED by the owner: FAILED OUT-OF-SAMPLE AS A TRADING STRATEGY, SUCCESSFUL AS RESEARCH
+  INFRASTRUCTURE. V1 code, configs, reports and manifests are immutable (reproducible via the
+  hashes in `manifests/`). All V1 experiment switches stay at their frozen defaults.
+- BTC Swing V2 (COST-AWARE LEARNED OPPORTUNITY RANKING) research generation done:
+  `docs/BTC_SWING_V2_DESIGN.md` (pre-declared protocol), package `btc_swing/v2/`, CLI
+  `btc-swing v2 research`, report `reports/BTC_SWING_V2_RANKING_RESEARCH.md`, run manifest
+  `manifests/v2_ranking_research_run_manifest.json`. V1 setups were used as candidate generators
+  (838 candidates 2022-01..2026-09, one lifecycle per family, no slot), labelled with the frozen V1
+  execution engine (net R after fees/slippage/funding), 78 PIT features (`v2-fs-1`), quarterly
+  walk-forward (15 folds, 721 predictions from 2023-01), logistic / ridge / gated boosting.
+  Classification: C — NO USEFUL RANKING EDGE. Walk-forward Spearman(score, net R) = -0.02, AUC
+  0.48, deciles non-monotone, the PIT top-25% slice -0.21R (worse than all candidates -0.03R and
+  both nulls), ablation without derivatives no better, gradient boosting not fitted (gate failed).
+  Only criterion 5 (frequency) was met. The candidate population itself is net negative from 2025
+  (-0.13R / -0.19R per year) and costs (0.10R per trade) exceed its gross edge; the unranked
+  NO_NEW_SHORT_IN_TREND_DOWN hard block (+0.02R) remains the only thing that helped.
+- 2025-01..2026-09 was inspected in V1 Phase 3 and used chronologically in V2; it is NOT an
+  untouched holdout for anything any more. No live or paper trading exists.
+- Next step: the owner's decision. The V2 report proposes no parameter tweak; a different
+  candidate generator or label definition would be a new research generation with a new
+  pre-registration. Nothing should be re-run with changed thresholds in search of a positive result.
 
 ## Commands
 ```
@@ -73,6 +89,7 @@ uv run btc-swing phase24 --out data/btc/runs/phase24_short_regime       # CONTRO
 uv run btc-swing data ingest --from 2025-01 --to 2026-09                 # holdout archive (Phase 3 only)
 uv run btc-swing phase3-freeze --ingest-stats manifests/phase3_ingest_stats.json   # freeze BEFORE the run; commit it
 uv run btc-swing phase3 --out data/btc/runs/phase3_untouched_validation  # ONE confirmatory run per arm (~15 min)
+uv run btc-swing v2 research --out data/btc/runs/v2_ranking_research     # V2 candidates/labels/features/walk-forward/report (~25 min)
 bash scripts/check.sh
 ```
 
