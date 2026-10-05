@@ -25,7 +25,7 @@ import numpy as np
 import polars as pl
 
 from btc_swing.backtest.ledger import PartialExit, Position
-from btc_swing.core.enums import EpisodeState, ExitReason, Regime, Side, Timeframe
+from btc_swing.core.enums import EpisodeState, ExitReason, Regime, SetupFamily, Side, Timeframe
 from btc_swing.core.hashing import round_floats, stable_hash
 from btc_swing.core.versions import code_version
 from btc_swing.episodes.state_machine import Episode, EpisodeManager
@@ -40,6 +40,7 @@ from btc_swing.v3.config import (
     V3_SETUP_RULE_VERSION,
     V3_VERSION,
     V3Config,
+    V3Family,
     V3Regime,
 )
 from btc_swing.v3.context import classify_v3_regime
@@ -561,7 +562,7 @@ def simulate_entry(
     pos = Position(
         trade_id=-1,
         episode_id=-1,
-        family=cast(Any, "NULL"),
+        family=cast(SetupFamily, V3Family.TREND_PULLBACK_CONTINUATION),  # label only (null)
         side=side,
         regime_at_entry=cast(Regime, V3Regime.UNCLEAR),
         entry_bar=bar,

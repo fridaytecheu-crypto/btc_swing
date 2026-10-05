@@ -11,6 +11,7 @@ from btc_swing.v3.config import V3Family, V3Regime, load_v3_config
 from btc_swing.v3.context import classify_v3_regime
 from btc_swing.v3.engine import V3Engine
 from btc_swing.v3.evaluation import classify
+from btc_swing.v3.null import run_v3_null
 from btc_swing.v3.setups import build_v3_detectors
 
 
@@ -73,6 +74,11 @@ def test_v3_engine_one_exposure_and_deterministic(synthetic_data: dict[str, obje
         assert (t["leverage"] <= cfg.risk.max_leverage).all()
         assert (t["holding_hours"] <= cfg.exits.max_hold_hours + 1).all()
         assert set(t["side"].unique().to_list()) <= {Side.LONG.value, Side.SHORT.value}
+    if t.height:
+        nl = run_v3_null(
+            V3Engine(cfg, bars, funding, None, aux, series), t.head(5), r1.decisions, s, e, 2, 1
+        )
+        assert nl["n_trades"] == 5 and "time" in nl
     ov = V3Engine(cfg, bars, funding, None, aux, series, safety_overlay=True).run(s, e)
     assert ov.manifest["n_trades"] <= r1.manifest["n_trades"] + 1
 
