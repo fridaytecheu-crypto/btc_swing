@@ -483,7 +483,7 @@ def render_phase22(res: Phase22Result) -> str:
         ),
     ]
     # 10 early exit no confirmation
-    for title, sec, key in (
+    for title, sec, _key in (
         (
             "## 10. Early-exit outcomes: no confirmation within the window",
             res.early_no_conf,

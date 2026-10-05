@@ -228,6 +228,7 @@ def _episode_keyed(arm: Arm) -> pl.DataFrame:
         "risk_amount",
         "gross_pnl",
     ]
+    tr_cols += [c for c in CONFIRM_COLS if arm.trades.height and c in arm.trades.columns]
     if arm.trades.height:
         ep = ep.join(arm.trades.select(tr_cols), on="episode_id", how="left")
     else:
@@ -309,6 +310,11 @@ def matched_analysis(control: Arm, variant: Arm) -> dict[str, Any]:
             pl.col("holding_hours_v").alias("zone_hold_h"),
             pl.col("exit_reason").alias("control_exit"),
             pl.col("exit_reason_v").alias("zone_exit"),
+            *[
+                pl.col(f"{c}_v").alias(f"zone_{c}")
+                for c in CONFIRM_COLS
+                if f"{c}_v" in both.columns
+            ],
         ).sort("detected_at_ms")
         d = (pairs["zone_R"] - pairs["control_R"]).to_numpy().astype(float)
         out["both_traded"] = {
