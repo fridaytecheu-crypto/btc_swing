@@ -1,0 +1,47 @@
+{
+ "code_version": "6467fb4a0408-dirty",
+ "config_hash": "199fdf6fda0b526c04042daf93415669a06ff11c2eef4d35a633f37cf11a1488",
+ "data_hashes": {
+  "funding": "4a29807f74d124b34da9f7d12c0b47b8f8d68f503473a15d0c8a47f795e35655",
+  "perp_klines_5m": "638c306cfa96e287f74ae83b09b4ea2566d721ec9e59234146dc095fed0b0646"
+ },
+ "determinism_check": {
+  "hash_b": "aa729bbdb473e49e641901139ead362f5100ed676dc473b8c6ea71af3f798fec",
+  "identical": true
+ },
+ "final_equity": 10633.671420518032,
+ "finished_at": "2026-10-04T06:59:35.645087+00:00",
+ "information_mode": "MARKET_AS_OF",
+ "initial_equity": 10000.0,
+ "latency_minutes": 0,
+ "n_5m_evaluations": 105409,
+ "n_days": 366.00347222222223,
+ "n_episodes": 102,
+ "n_trades": 43,
+ "notes": {},
+ "period_end_ms": 1735689600000,
+ "period_start_ms": 1704067200000,
+ "provider": "binance_vision",
+ "regime_bar_counts": {
+  "BREAKOUT_REGIME": 5472,
+  "HIGH_VOLATILITY": 9216,
+  "LOW_VOLATILITY": 0,
+  "RANGE": 27217,
+  "TREND_DOWN": 12768,
+  "TREND_UP": 43920,
+  "UNCLEAR": 6816
+ },
+ "result_hash": "aa729bbdb473e49e641901139ead362f5100ed676dc473b8c6ea71af3f798fec",
+ "rule_versions": {
+  "backtest": "btc-bt-1",
+  "costs": "btc-cost-1",
+  "episodes": "btc-episode-1",
+  "features": "btc-fs-1",
+  "regime": "btc-regime-1",
+  "risk": "btc-risk-1",
+  "setups": "btc-setup-1"
+ },
+ "started_at": "2026-10-04T06:59:33.761478+00:00",
+ "strategy_name": "btc_leveraged_swing_v1",
+ "strategy_version": "1.0.0-foundation"
+}

@@ -1,0 +1,76 @@
+{
+ "code_version": "ccc247ba4dba-dirty",
+ "config_hash": "a837c775056e64f276e2fc488ee21a26146f1176bfb644787176b474b6f002a3",
+ "config_yaml": "backtest:\n  fill_rule: next_bar_open\n  information_mode: MARKET_AS_OF\n  same_bar_stop_and_target: stop_first\n  warmup_days: 60\ncosts:\n  apply_funding: true\n  default_funding_interval_hours: 8\n  entry_slippage_bps: 2.0\n  maker_fee_bps: 2.0\n  stop_slippage_bps: 5.0\n  taker_fee_bps: 5.0\n  use_maker_for_targets: false\ndata:\n  base_timeframe: 5m\n  ingest_funding: true\n  ingest_mark_price: true\n  ingest_metrics: true\n  ingest_native_timeframes:\n  - 1h\n  - 4h\n  - 1d\n  ingest_premium_index: true\n  ingest_spot: false\n  latency_minutes: 0\n  provider: binance_vision\nepisode:\n  anchor_tolerance_atr: 0.25\n  cooldown_bars_after_close: 12\n  cooldown_bars_after_invalidation: 6\n  dedupe_same_anchor: true\n  entry_ready_timeout_bars: 24\n  max_concurrent_positions: 1\n  watch_timeout_bars: 96\nexits:\n  breakeven_after_tp1: true\n  evaluate_r_levels:\n  - 1.0\n  - 1.5\n  - 2.0\n  - 3.0\n  max_hold_hours: 240\n  regime_exit: false\n  tp1_frac: 0.4\n  tp1_r: 1.5\n  tp2_frac: 0.3\n  tp2_r: 3.0\n  trail_atr_buffer: 0.5\n  trail_method: structure_atr\n  trail_tf: 1h\nindicators:\n  atr_period: 14\n  donchian_period: 20\n  ema_fast: 20\n  ema_slow: 50\n  ema_trend: 200\n  min_bars:\n    15m: 220\n    1d: 60\n    1h: 220\n    4h: 220\n    5m: 220\n  swing_k: 3\ninstrument:\n  market: binance_um_perp\n  quote: USDT\n  spot_symbol: BTCUSDT\n  symbol: BTCUSDT\nregime:\n  breakout_atr_expansion: 1.25\n  breakout_lookback_bars: 3\n  high_vol_atr_pct: 0.055\n  low_vol_atr_pct: 0.018\n  range_ema_band_atr: 1.0\n  trend_slope_bars: 5\nresearch:\n  min_cell_n: 20\n  sharpe_periods_per_year: 365\nrisk:\n  allowed_leverage:\n  - 1.0\n  - 2.0\n  - 3.0\n  - 5.0\n  - 10.0\n  compounding: false\n  initial_equity: 10000.0\n  liquidation_atr_tf: 4h\n  maintenance_margin_rate: 0.005\n  margin_cap_frac: 0.25\n  max_leverage: 10.0\n  min_liquidation_distance_atr: 3.0\n  min_stop_to_liquidation_ratio: 3.0\n  risk_per_trade: 0.005\nsetups:\n  breakout:\n    confirm_tf: 15m\n    entry_tf: 5m\n    level_tf: 4h\n    max_extension_atr: 2.0\n    max_stop_atr: 3.0\n    min_expansion: 1.2\n    min_stop_atr: 0.5\n    setup_tf: 1h\n    stop_atr_buffer: 0.5\n    zone_inner_atr: 0.25\n    zone_outer_atr: 0.75\n  eligible_regimes:\n    BREAKDOWN_SHORT:\n    - BREAKOUT_REGIME\n    - RANGE\n    - LOW_VOLATILITY\n    BREAKOUT_LONG:\n    - BREAKOUT_REGIME\n    - RANGE\n    - LOW_VOLATILITY\n    MOMENTUM_CONTINUATION_LONG:\n    - TREND_UP\n    - BREAKOUT_REGIME\n    MOMENTUM_CONTINUATION_SHORT:\n    - TREND_DOWN\n    - BREAKOUT_REGIME\n    RESISTANCE_REJECTION_SHORT:\n    - RANGE\n    - TREND_DOWN\n    SUPPORT_RECLAIM_LONG:\n    - RANGE\n    - TREND_UP\n    TREND_PULLBACK_LONG:\n    - TREND_UP\n    TREND_PULLBACK_SHORT:\n    - TREND_DOWN\n  enabled:\n  - TREND_PULLBACK_LONG\n  - TREND_PULLBACK_SHORT\n  - BREAKOUT_LONG\n  - BREAKDOWN_SHORT\n  - SUPPORT_RECLAIM_LONG\n  - RESISTANCE_REJECTION_SHORT\n  - MOMENTUM_CONTINUATION_LONG\n  - MOMENTUM_CONTINUATION_SHORT\n  momentum_continuation:\n    confirm_tf: 15m\n    entry_tf: 5m\n    flag_max_age_bars: 3\n    flag_max_atr: 0.6\n    flag_min_atr: 0.2\n    impulse_close_location: 0.7\n    impulse_min_atr: 1.5\n    impulse_tf: 4h\n    max_stop_atr: 4.0\n    min_stop_atr: 0.5\n    setup_tf: 1h\n    stop_atr_buffer: 0.5\n  support_reclaim:\n    confirm_tf: 15m\n    entry_tf: 5m\n    level_max_age_bars: 90\n    level_tf: 4h\n    max_stop_atr: 3.0\n    min_stop_atr: 0.5\n    setup_tf: 1h\n    stop_atr_buffer: 0.5\n    sweep_min_atr: 0.1\n    sweep_window_bars: 6\n    zone_inner_atr: 0.25\n    zone_outer_atr: 0.75\n  trend_pullback:\n    confirm_tf: 15m\n    entry_tf: 5m\n    max_stop_atr: 4.0\n    min_pullback_atr: 1.0\n    min_stop_atr: 0.75\n    setup_tf: 1h\n    stop_atr_buffer: 0.5\n    structural_target_lookback: 50\n    trend_tf: 4h\n    zone_lower_ema: ema_slow\n    zone_pad_atr: 0.25\n    zone_upper_ema: ema_fast\nstrategy_name: btc_leveraged_swing_v1\n",
+ "data_hashes": {
+  "funding": "56e538e3d77b22135c76f0ebbd96bb11c4ac29cba1dd9f43b14141a8f8f4b94e",
+  "mark_price_5m": "3d7353c49401953dd5993fd9f2e82fad632024f39b2e2eb9b63af1bc47fbee87",
+  "metrics": "ffffc8e70b18e0e06758b27dae98201d1f43e509a2c6542f5807301fe90f677e",
+  "perp_klines_5m": "ff13edaaa131f79d569484cd2368e937c8bf8c1a3ac469457816fde8b3cab960",
+  "premium_index_5m": "7755d8bc4abdf74109358e0f972d411a2565b60876f1055c583aa316aadaf792"
+ },
+ "deterministic": true,
+ "final_equity": 11133.306307692777,
+ "finished_at": "2026-10-04T14:01:31.764608+00:00",
+ "information_mode": "MARKET_AS_OF",
+ "initial_equity": 10000.0,
+ "latency_minutes": 0,
+ "leverage_levels": [
+  1.0,
+  3.0,
+  5.0,
+  10.0
+ ],
+ "n_5m_evaluations": 315649,
+ "n_days": 1096.0034722222222,
+ "n_episodes": 533,
+ "n_shadow_detections": 46,
+ "n_trades": 275,
+ "notes": {
+  "phase": "2",
+  "segments": [
+   "dev_2022_2023",
+   "val_2024"
+  ]
+ },
+ "null_k": 20,
+ "period_end_ms": 1735689600000,
+ "period_start_ms": 1640995200000,
+ "phase": "2",
+ "provider": "binance_vision",
+ "regime_bar_counts": {
+  "BREAKOUT_REGIME": 12384,
+  "HIGH_VOLATILITY": 47808,
+  "LOW_VOLATILITY": 864,
+  "RANGE": 70561,
+  "TREND_DOWN": 60528,
+  "TREND_UP": 93312,
+  "UNCLEAR": 30192
+ },
+ "result_hash": "92ebe5d7fc65fc978ba4d3d222723e30c31d1db26e74d6e6585c786528c4ea56",
+ "rule_versions": {
+  "backtest": "btc-bt-1",
+  "costs": "btc-cost-1",
+  "episodes": "btc-episode-1",
+  "features": "btc-fs-1",
+  "regime": "btc-regime-1",
+  "risk": "btc-risk-1",
+  "setups": "btc-setup-1"
+ },
+ "seed": 7,
+ "segments": [
+  {
+   "end_ms": 1704067200000,
+   "name": "dev_2022_2023",
+   "start_ms": 1640995200000
+  },
+  {
+   "end_ms": 1735689600000,
+   "name": "val_2024",
+   "start_ms": 1704067200000
+  }
+ ],
+ "started_at": "2026-10-04T14:01:19.721285+00:00",
+ "strategy_name": "btc_leveraged_swing_v1",
+ "strategy_version": "1.0.0-foundation"
+}

@@ -1,0 +1,160 @@
+# BTC Leveraged Swing Engine V1 — pre-registered research defaults.
+# EVERY value here is an initial hypothesis. Do NOT search for the best value (owner's rule).
+# Paper/backtest only. No live trading.
+strategy_name: btc_leveraged_swing_v1
+
+instrument:
+  symbol: BTCUSDT                 # Binance USDT-margined perpetual (execution/context instrument)
+  market: binance_um_perp
+  spot_symbol: BTCUSDT            # spot context (separate dataset, never mixed with perp bars)
+  quote: USDT
+
+data:
+  provider: binance_vision        # public historical archive (data.binance.vision); REST is not used
+  base_timeframe: 5m              # everything else is resampled from 5m without look-ahead
+  latency_minutes: 0              # provider_available_time = close_time + latency (DEPLOYMENT_AS_OF)
+  ingest_native_timeframes: [1h, 4h, 1d]   # native bars are ingested ONLY to cross-check resampling
+  ingest_funding: true
+  ingest_metrics: true            # open interest / long-short / taker ratios (5-minute rows, daily files, from 2020-09)
+  ingest_premium_index: true      # perpetual premium index klines (basis proxy)
+  ingest_mark_price: true         # mark price klines: liquidation is evaluated on mark price
+  ingest_spot: false
+
+indicators:
+  ema_fast: 20
+  ema_slow: 50
+  ema_trend: 200
+  atr_period: 14
+  swing_k: 3                      # fractal half-width for swing highs/lows
+  donchian_period: 20
+  min_bars:                       # completed bars required before a timeframe is considered warm
+    5m: 220
+    15m: 220
+    1h: 220
+    4h: 220
+    1d: 60
+
+regime:                           # evaluated on completed 1d and 4h bars only
+  high_vol_atr_pct: 0.055         # 1d ATR(14)/close above this -> HIGH_VOLATILITY
+  low_vol_atr_pct: 0.018          # 1d ATR(14)/close below this -> LOW_VOLATILITY (when not trending)
+  breakout_lookback_bars: 3       # 1d close beyond the 20-bar Donchian channel within N bars
+  breakout_atr_expansion: 1.25    # and ATR(14) / ATR(14) shifted 10 bars above this
+  range_ema_band_atr: 1.0         # |EMA20 - EMA50| below this many ATR on 1d -> RANGE candidate
+  trend_slope_bars: 5             # EMA50 slope measured over this many 1d bars
+
+setups:
+  enabled:                        # the eight pre-registered families; no others will be added
+    [TREND_PULLBACK_LONG, TREND_PULLBACK_SHORT, BREAKOUT_LONG, BREAKDOWN_SHORT,
+     SUPPORT_RECLAIM_LONG, RESISTANCE_REJECTION_SHORT,
+     MOMENTUM_CONTINUATION_LONG, MOMENTUM_CONTINUATION_SHORT]
+  eligible_regimes:
+    TREND_PULLBACK_LONG: [TREND_UP]
+    TREND_PULLBACK_SHORT: [TREND_DOWN]
+    BREAKOUT_LONG: [BREAKOUT_REGIME, RANGE, LOW_VOLATILITY]
+    BREAKDOWN_SHORT: [BREAKOUT_REGIME, RANGE, LOW_VOLATILITY]
+    SUPPORT_RECLAIM_LONG: [RANGE, TREND_UP]
+    RESISTANCE_REJECTION_SHORT: [RANGE, TREND_DOWN]
+    MOMENTUM_CONTINUATION_LONG: [TREND_UP, BREAKOUT_REGIME]
+    MOMENTUM_CONTINUATION_SHORT: [TREND_DOWN, BREAKOUT_REGIME]
+  trend_pullback:
+    trend_tf: 4h                  # dominant trend: EMA20 > EMA50 and close > EMA50 (long)
+    setup_tf: 1h                  # primary swing setup: pullback into the EMA20..EMA50 zone
+    confirm_tf: 15m               # confirmation: 15m close back above 15m EMA20 (long)
+    entry_tf: 5m                  # timing: 5m close above the previous 5m high (long)
+    min_pullback_atr: 1.0         # pullback from the 1h swing high must be >= this many 1h ATR
+    zone_pad_atr: 0.25            # entry zone padded by this many 1h ATR
+    stop_atr_buffer: 0.5          # stop = 1h swing low - buffer * ATR(1h)
+    min_stop_atr: 0.75            # reject if stop distance < this many 1h ATR (noise)
+    max_stop_atr: 4.0             # reject if stop distance > this many 1h ATR
+    structural_target_lookback: 50  # 1h bars searched for the structural target (prior swing high)
+  breakout:                       # BREAKOUT_LONG / BREAKDOWN_SHORT (pre-registered Phase 2 defaults)
+    level_tf: 4h                  # level = prior 20-bar Donchian high/low of completed 4h bars
+    setup_tf: 1h                  # a completed 1h close beyond the level with ATR(1h) expansion
+    confirm_tf: 15m               # retest holds: 15m close back on the breakout side of the level
+    entry_tf: 5m
+    min_expansion: 1.2            # ATR(1h) / ATR(1h) ten bars earlier
+    max_extension_atr: 2.0        # 1h close at most this many ATR(1h) beyond the level (no chasing)
+    zone_inner_atr: 0.25          # retest zone reaches this far back through the level ...
+    zone_outer_atr: 0.75          # ... and this far beyond it
+    stop_atr_buffer: 0.5          # stop = level - buffer * ATR(1h): a failed breakout
+    min_stop_atr: 0.5
+    max_stop_atr: 3.0
+  support_reclaim:                # SUPPORT_RECLAIM_LONG / RESISTANCE_REJECTION_SHORT
+    level_tf: 4h                  # level = last confirmed 4h swing low (long) / high (short)
+    setup_tf: 1h
+    confirm_tf: 15m
+    entry_tf: 5m
+    level_max_age_bars: 90        # 4h bars (15 days): older levels are ignored
+    sweep_min_atr: 0.1            # a 1h low must pierce the level by >= this many ATR(1h) ...
+    sweep_window_bars: 6          # ... within the last N completed 1h bars, and 1h close back above it
+    zone_inner_atr: 0.25          # zone = [level - inner*ATR, level + outer*ATR] (long)
+    zone_outer_atr: 0.75
+    stop_atr_buffer: 0.5          # stop = sweep extreme - buffer * ATR(1h)
+    min_stop_atr: 0.5
+    max_stop_atr: 3.0
+  momentum_continuation:          # MOMENTUM_CONTINUATION_LONG / _SHORT
+    impulse_tf: 4h                # impulse bar: range >= 1.5 ATR(4h), close in the top 30% (long)
+    setup_tf: 1h                  # shallow flag: retrace 0.2..0.6 ATR(4h) from the impulse extreme
+    confirm_tf: 15m
+    entry_tf: 5m
+    impulse_min_atr: 1.5
+    impulse_close_location: 0.7
+    flag_min_atr: 0.2
+    flag_max_atr: 0.6
+    flag_max_age_bars: 3          # impulse must be within the last N completed 4h bars
+    stop_atr_buffer: 0.5          # stop = flag low - buffer * ATR(1h)
+    min_stop_atr: 0.5
+    max_stop_atr: 4.0
+
+episode:
+  watch_timeout_bars: 96          # 5m bars (8h) a WATCH may wait for the zone before INVALIDATED
+  entry_ready_timeout_bars: 24    # 5m bars (2h) ENTRY_READY may wait for the trigger
+  cooldown_bars_after_close: 12   # 5m bars (1h) before the same family may open a new episode
+  cooldown_bars_after_invalidation: 6
+  max_concurrent_positions: 1
+  dedupe_same_anchor: true        # no new episode on the same structural anchor during cooldown
+  anchor_tolerance_atr: 0.25
+
+risk:
+  initial_equity: 10000.0         # USDT, research account
+  risk_per_trade: 0.005           # 0.5% of equity at risk between entry and stop (fees excluded)
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10                # hard research maximum; validated against the schema ceiling
+  margin_cap_frac: 0.25           # at most this fraction of equity posted as isolated margin
+  maintenance_margin_rate: 0.005  # conservative tier-1 MMR assumption for BTCUSDT (configuration)
+  min_stop_to_liquidation_ratio: 3.0   # liquidation distance must be >= 3x the stop distance
+  min_liquidation_distance_atr: 3.0    # and >= 3 ATR of the timeframe below
+  liquidation_atr_tf: 4h
+  compounding: false              # fixed research equity for sizing; account curve still compounds
+
+exits:
+  tp1_r: 1.5
+  tp1_frac: 0.4
+  tp2_r: 3.0
+  tp2_frac: 0.3
+  breakeven_after_tp1: true
+  trail_method: structure_atr     # remainder trails the 1h swing structure minus an ATR buffer
+  trail_tf: 1h
+  trail_atr_buffer: 0.5
+  max_hold_hours: 240             # safety cap (10 days); the trend trail normally ends the trade first
+  regime_exit: false
+  evaluate_r_levels: [1.0, 1.5, 2.0, 3.0]   # counterfactual target-hit rates reported, not traded
+
+costs:
+  taker_fee_bps: 5.0              # Binance USDT-M VIP0 taker 0.05%
+  maker_fee_bps: 2.0              # VIP0 maker 0.02% (not assumed by default)
+  use_maker_for_targets: false
+  entry_slippage_bps: 2.0
+  stop_slippage_bps: 5.0
+  apply_funding: true
+  default_funding_interval_hours: 8
+
+backtest:
+  fill_rule: next_bar_open
+  same_bar_stop_and_target: stop_first
+  warmup_days: 60
+  information_mode: MARKET_AS_OF
+
+research:
+  min_cell_n: 20
+  sharpe_periods_per_year: 365    # daily account returns, crypto trades 7 days a week
