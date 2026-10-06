@@ -260,7 +260,7 @@ class V5Ingestor:
                     csv_bytes = z.read(z.namelist()[0])
             try:
                 df = aggregate_aggtrades(csv_bytes)
-            except Exception as e:  # noqa: BLE001 - recorded, never silently skipped
+            except Exception as e:
                 stats.errors.append(f"{key}: {type(e).__name__}: {e}")
                 continue
             df.write_parquet(out)
