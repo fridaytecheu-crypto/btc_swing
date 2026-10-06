@@ -1,0 +1,151 @@
+# BTC Swing V4 — Event & Positioning Driven Active Swing. Pre-registered research configuration.
+# Frozen by docs/BTC_SWING_V4_DESIGN.md before the first result run. Paper/backtest only.
+strategy_name: btc_swing_v4_event_positioning
+
+instrument: {symbol: BTCUSDT, market: binance_um_perp, spot_symbol: BTCUSDT, quote: USDT}
+
+data:
+  provider: binance_vision
+  base_timeframe: 5m
+  latency_minutes: 0
+  ingest_native_timeframes: [1h, 4h, 1d]
+  ingest_funding: true
+  ingest_metrics: true
+  ingest_premium_index: true
+  ingest_mark_price: true
+  ingest_spot: false
+
+indicators:
+  ema_fast: 21
+  ema_slow: 50
+  ema_trend: 200                  # schema compatibility only
+  atr_period: 14
+  swing_k: 2
+  donchian_period: 20             # schema compatibility only
+  min_bars: {5m: 220, 15m: 220, 1h: 220, 4h: 220, 1d: 60}
+
+features:
+  z_window_bars: 720              # completed 1h observations (30 days), excluding the current
+  z_min_periods: 240
+  funding_z_window: 90            # previous funding observations
+  cooling_lookback_hours: 48
+  level_lookback_bars: 48         # 1h structural extreme
+  rv_window_bars: 288             # 5m bars for realised volatility
+
+events:
+  deleveraging:
+    impulse_ret_z: 2.0            # |4h return z| at least this, against the trade direction
+    oi_change_4h_z: -2.0          # OI 4h-change z at most this (contraction)
+    volume_4h_z: 1.0
+    taker_4h_z: 1.0               # imbalance z against the trade direction at least this
+    flush_lookback_bars: 4        # 1h bars defining the flush extreme
+    watch_hours: 12
+    struct_buffer_atr: 0.25
+  positioning_reset:
+    pullback_ret_z: 0.5
+    oi_change_24h_z: -1.0
+    cooling_z_drop: 1.0
+    taker_4h_z: 1.0
+    pullback_low_bars: 24         # zone anchor = lowest 1h low of the last N bars
+    watch_hours: 24
+    struct_buffer_atr: 0.25
+  participation_breakout:
+    volume_1h_z: 2.0
+    oi_change_4h_z: 1.0
+    taker_1h_z: 1.0
+    max_crowding_z: 2.0
+    accept_bars_15m: 2
+    max_chase_atr: 1.5
+    watch_hours: 12
+    struct_buffer_atr: 0.5
+
+geometry:
+  vol_floor_atr: 1.5              # stop distance >= this many ATR(1h) (the farther of structural / floor)
+  max_stop_atr: 4.0
+  zone_width_atr: 1.5
+  zone_inner_atr: 0.25            # breakout zone reaches this far below the level
+
+episode:
+  watch_timeout_bars: 288         # overridden per family by watch_hours (shorter)
+  entry_ready_timeout_bars: 6
+  cooldown_bars_after_close: 12
+  cooldown_bars_after_invalidation: 6
+  max_concurrent_positions: 1
+  dedupe_same_anchor: true
+  anchor_tolerance_atr: 0.25
+  family_priority: [DELEVERAGING_REVERSAL, POSITIONING_RESET_CONTINUATION, PARTICIPATION_BREAKOUT]
+
+risk:
+  initial_equity: 10000.0
+  risk_per_trade: 0.0025
+  report_risk_per_trade: 0.005
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 4h
+  compounding: false
+
+exits:
+  tp1_r: 1.0
+  tp1_frac: 0.4
+  tp2_r: 2.0
+  tp2_frac: 0.3
+  breakeven_after_tp1: true
+  trail_tf: 1h
+  trail_atr_buffer: 0.5
+  max_hold_hours: 48
+  evaluate_r_levels: [1.0, 1.5, 2.0, 3.0]
+
+costs:
+  taker_fee_bps: 5.0
+  maker_fee_bps: 2.0
+  use_maker_for_targets: false
+  entry_slippage_bps: 2.0
+  stop_slippage_bps: 5.0
+  apply_funding: true
+  default_funding_interval_hours: 8
+
+cost_sensitivity:                 # Bybit-style schedule; sensitivity only, never classifies
+  taker_fee_bps: 5.5
+  maker_fee_bps: 2.0
+  use_maker_for_targets: true
+  entry_slippage_bps: 2.0
+  stop_slippage_bps: 5.0
+  apply_funding: true
+  default_funding_interval_hours: 8
+
+safety_overlay:
+  max_full_risk_losses_per_day: 3
+  full_risk_loss_r: -0.9
+  max_daily_loss_frac: 0.0075
+
+stage_a:
+  horizons_hours: [0.5, 1, 2, 4, 8, 12, 24]
+  mfe_mae_hours: 24
+
+research:
+  start: "2022-01-01"
+  end_exclusive: "2026-10-01"
+  null_k: 10
+  seed: 7
+  leverage_caps: [1, 2, 3, 5, 10]
+  min_cell_n: 20
+  criteria:
+    stage_a_min_t: 2.0
+    min_gross_expectancy_r: 0.15
+    min_net_expectancy_r: 0.08
+    min_profit_factor: 1.20
+    min_positive_years: 4
+    min_positive_quarter_share: 0.6
+    min_quarter_trades: 10
+    max_cost_drag_share: 0.5
+    max_drawdown: 0.12
+    min_trades_per_day: 0.5
+    max_trades_per_day: 3.0
+    median_hold_hours: [2.0, 12.0]
+    min_expectancy_without_best5_r: 0.04
+    max_family_pnl_share: 0.6
+    b_min_gross_expectancy_r: 0.10
