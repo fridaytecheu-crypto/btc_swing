@@ -1032,7 +1032,7 @@ def render_v5(res: V5Research) -> str:
                 ],
             ],
         ),
-        "- The Stage A nulls per family (random bars, no execution) are in sections 8-11.",
+        '- "mean gross R" in this table is the ledger R before fees and funding (slippage inside the fills); section 19 reports expectancy before fees, slippage and funding. The Stage A nulls per family (random bars, no execution) are in sections 8-11.',
         "",
         "## 32. Outlier robustness",
         "",

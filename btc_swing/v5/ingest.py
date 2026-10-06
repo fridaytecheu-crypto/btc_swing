@@ -439,5 +439,6 @@ def load_v5_dataset(data_dir: Path, name: str, symbol: str = "BTCUSDT") -> pl.Da
     if not files:
         return pl.DataFrame()
     df = pl.concat([pl.read_parquet(f) for f in files], how="vertical_relaxed")
-    tcol = df.columns[0]
-    return df.sort(tcol).unique(subset=[tcol], keep="first", maintain_order=True)
+    # partitions may overlap (monthly file + daily gap fill): de-duplicate on the row key
+    key = ["time_ms", "percentage"] if name == "book_depth" else [df.columns[0]]
+    return df.sort(key).unique(subset=key, keep="first", maintain_order=True)

@@ -47,6 +47,16 @@ def _f(x: object) -> float:
         return math.nan
 
 
+def _nanmean(s: pl.Series) -> float:
+    x = s.to_numpy().astype(float)
+    return float(np.nanmean(x)) if (~np.isnan(x)).any() else math.nan
+
+
+def _nanmedian(s: pl.Series) -> float:
+    x = s.to_numpy().astype(float)
+    return float(np.nanmedian(x)) if (~np.isnan(x)).any() else math.nan
+
+
 def _t(x: F) -> float:
     x = x[~np.isnan(x)]
     if len(x) < 3 or x.std(ddof=1) == 0:
@@ -197,8 +207,8 @@ def _terciles(sub: pl.DataFrame, hz: list[float]) -> list[dict[str, Any]] | None
                 "strength_min": _f(part["strength"].min()),
                 "strength_max": _f(part["strength"].max()),
                 **{f"fwd_{h:g}h": _f(part[f"fwd_{h:g}h"].mean()) for h in hz},
-                "mfe_atr": _f(part["mfe_atr"].mean()),
-                "mae_atr": _f(part["mae_atr"].mean()),
+                "mfe_atr": _nanmean(part["mfe_atr"]),
+                "mae_atr": _nanmean(part["mae_atr"]),
             }
         )
     return out
@@ -312,10 +322,10 @@ def stage_a_summary(ev: pl.DataFrame, cfg: V5Config, uncond: dict[str, Any]) -> 
             "by_side_n_all": {
                 sd: sub.filter(pl.col("side") == sd).height for sd in ("LONG", "SHORT")
             },
-            "mfe_atr": _f(subf["mfe_atr"].mean()),
-            "mae_atr": _f(subf["mae_atr"].mean()),
-            "mfe_atr_median": _f(subf["mfe_atr"].median()),
-            "mae_atr_median": _f(subf["mae_atr"].median()),
+            "mfe_atr": _nanmean(subf["mfe_atr"]),
+            "mae_atr": _nanmean(subf["mae_atr"]),
+            "mfe_atr_median": _nanmedian(subf["mfe_atr"]),
+            "mae_atr_median": _nanmedian(subf["mae_atr"]),
             "terciles": _terciles(subf, hz),
             "by_year": _period_means(subf, "year", cfg.stage_a.gate.horizons_hours),
             "by_quarter": _period_means(subf, "quarter", cfg.stage_a.gate.horizons_hours),
