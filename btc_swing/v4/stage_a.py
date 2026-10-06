@@ -53,7 +53,7 @@ def scan_events(
                 "j": j,
                 "t_ms": t,
                 "year": datetime.fromtimestamp(t / 1000, tz=UTC).year,
-                "regime": ff.regime[j],
+                "regime": ff.regime[j].value,
                 "strength": ev.strength,
                 "first_in_cluster": (j - last_fire.get(key, -(10**9))) > 4,
                 "close": c0,

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 import numpy as np
 import polars as pl
@@ -68,11 +69,24 @@ def _pct_rank_prev(x: F, window: int) -> F:
     return out
 
 
+class V4Regime(StrEnum):
+    UP_EXPANSION = "UP_EXPANSION"
+    UP_COMPRESSION = "UP_COMPRESSION"
+    UP_NORMAL = "UP_NORMAL"
+    DOWN_EXPANSION = "DOWN_EXPANSION"
+    DOWN_COMPRESSION = "DOWN_COMPRESSION"
+    DOWN_NORMAL = "DOWN_NORMAL"
+    NEUTRAL_EXPANSION = "NEUTRAL_EXPANSION"
+    NEUTRAL_COMPRESSION = "NEUTRAL_COMPRESSION"
+    NEUTRAL_NORMAL = "NEUTRAL_NORMAL"
+    UNCLEAR = "UNCLEAR"
+
+
 @dataclass
 class FeatureFrame:
     close_ms: I
     cols: dict[str, F] = field(default_factory=dict)
-    regime: list[str] = field(default_factory=list)
+    regime: list[V4Regime] = field(default_factory=list)
 
     def idx_at(self, t_ms: int) -> int:
         return int(np.searchsorted(self.close_ms, t_ms, side="right")) - 1
@@ -245,16 +259,16 @@ def build_feature_frame(series: MultiTfSeries, aux: AuxSeries, cfg: V4Config) ->
     return ff
 
 
-def _regimes(ff: FeatureFrame) -> list[str]:
-    out: list[str] = []
+def _regimes(ff: FeatureFrame) -> list[V4Regime]:
+    out: list[V4Regime] = []
     tr, pr = ff.cols["trend_4h"], ff.cols["atr_pct_rank"]
     for j in range(len(ff.close_ms)):
         if math.isnan(tr[j]) or math.isnan(pr[j]):
-            out.append("UNCLEAR")
+            out.append(V4Regime.UNCLEAR)
             continue
         a = "UP" if tr[j] > 0 else ("DOWN" if tr[j] < 0 else "NEUTRAL")
         b = "EXPANSION" if pr[j] >= 0.8 else ("COMPRESSION" if pr[j] <= 0.2 else "NORMAL")
-        out.append(f"{a}_{b}")
+        out.append(V4Regime(f"{a}_{b}"))
     return out
 
 

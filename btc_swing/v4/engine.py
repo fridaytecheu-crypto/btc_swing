@@ -32,7 +32,7 @@ from btc_swing.v4.config import (
     V4Family,
 )
 from btc_swing.v4.events import V4Detector, build_v4_detectors
-from btc_swing.v4.features import FeatureFrame, build_feature_frame
+from btc_swing.v4.features import FeatureFrame, V4Regime, build_feature_frame
 
 DAY_MS = 86_400_000
 
@@ -53,7 +53,7 @@ class _Pending:
     episode: Episode
     sizing: Sizing
     features: dict[str, float]
-    regime: str
+    regime: V4Regime
     cost_pct_of_stop: float
 
 
@@ -171,7 +171,7 @@ class V4Engine:
                 position.pending_stop_source = None
             view = self.series.view_at(t)
             j = self.ff.idx_at(t)
-            reg = self.ff.regime[j] if j >= 0 else "UNCLEAR"
+            reg = self.ff.regime[j] if j >= 0 else V4Regime.UNCLEAR
             if position is not None:
                 self._update_trail(position, view, c)
             for _det, mgr in managers:
@@ -207,7 +207,7 @@ class V4Engine:
                 pending = pend
             unreal = position.unrealised(c) if position is not None else 0.0
             j_t.append(t)
-            j_reg.append(reg)
+            j_reg.append(reg.value)
             j_open.append(position is not None)
             j_eq.append(equity + unreal)
             if d_now > last_day:
@@ -313,8 +313,10 @@ class V4Engine:
     def _episode_row(self, ep: Episode) -> dict[str, Any]:
         row = ep.as_row()
         row["episode_id"] = int(ep.features.get("_v4_id", ep.episode_id))
-        row["regime_at_detection"] = str(ep.regime_at_detection) if ep.regime_at_detection else None
-        row["regime_at_trigger"] = str(ep.regime_at_trigger) if ep.regime_at_trigger else None
+        row["regime_at_detection"] = (
+            ep.regime_at_detection.value if ep.regime_at_detection else None
+        )
+        row["regime_at_trigger"] = ep.regime_at_trigger.value if ep.regime_at_trigger else None
         row["event_strength"] = float(ep.plan.notes.get("strength", math.nan))
         row.pop("f__v4_id", None)
         return row
@@ -375,7 +377,7 @@ class V4Engine:
         bar: int,
         t: int,
         mgr: EpisodeManager,
-        reg: str,
+        reg: V4Regime,
         closed: list[dict[str, Any]],
     ) -> _Pending | None:
         cfg = self.cfg
@@ -448,7 +450,7 @@ class V4Engine:
             mark_price_at_decision=p.features.get("mark_price", math.nan),
             liquidation_basis="mark" if self.has_mark else "traded",
             features=p.features,
-            regime_at_trigger=p.regime,
+            regime_at_trigger=p.regime.value,
         )
         pos.entry_fee = self.costs.fee(qty * fill)
         return pos
@@ -576,7 +578,7 @@ def simulate_entry(
         episode_id=-1,
         family=cast(SetupFamily, V4Family.DELEVERAGING_REVERSAL),
         side=side,
-        regime_at_entry=cast(Regime, "NULL"),
+        regime_at_entry=cast(Regime, V4Regime.UNCLEAR),
         entry_bar=bar,
         entry_ms=int(base.open_ms[bar]),
         entry_price=fill,

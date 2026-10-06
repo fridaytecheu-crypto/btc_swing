@@ -78,17 +78,35 @@ def test_v4_feature_frame_and_stage_a_pit(synthetic_data: dict[str, object]) -> 
             assert a["t_ms"].to_list() == b["t_ms"].to_list()
 
 
+def _synthetic_metrics(bars: pl.DataFrame) -> pl.DataFrame:
+    """Random-walk open interest and ratios on the 5m grid so that V4 events can fire in tests."""
+    rng = np.random.RandomState(3)
+    n = bars.height
+    oi = 100_000.0 * np.exp(np.cumsum(rng.normal(0, 0.004, n)))
+    return pl.DataFrame(
+        {
+            "time_ms": bars["close_time_ms"],
+            "open_interest": oi,
+            "open_interest_value": oi * 30_000.0,
+            "long_short_ratio_accounts": 1.0 + rng.normal(0, 0.1, n),
+            "top_trader_long_short_ratio_positions": 1.0 + rng.normal(0, 0.1, n),
+            "taker_long_short_volume_ratio": 1.0 + rng.normal(0, 0.2, n),
+        }
+    )
+
+
 def test_v4_engine_stops_floor_and_one_exposure(synthetic_data: dict[str, object]) -> None:
     cfg = load_v4_config()
     bars, funding = synthetic_data["bars"], synthetic_data["funding"]
     assert isinstance(bars, pl.DataFrame) and isinstance(funding, pl.DataFrame)
-    aux = AuxSeries.build(funding, None, None, None, 0)
+    aux = AuxSeries.build(funding, _synthetic_metrics(bars), None, None, 0)
     series = MultiTfSeries(bars, cfg.indicators, 5)
     ff = build_feature_frame(series, aux, cfg)
     s, e = _ms(2023, 3, 1), _ms(2023, 9, 1)
     r1 = V4Engine(cfg, bars, funding, None, aux, series, ff).run(s, e)
     r2 = V4Engine(cfg, bars, funding, None, aux, series, ff).run(s, e)
     assert r1.result_hash == r2.result_hash and r1.decisions.height > 0
+    assert r1.episodes.height > 0  # events fire on the synthetic OI walk; episode rows serialise
     t = r1.trades
     if t.height:
         srt = t.sort("entry_ms")
