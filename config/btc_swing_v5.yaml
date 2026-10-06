@@ -1,0 +1,162 @@
+# BTC Swing V5 — Microstructure & Liquidation Driven Active Swing. Pre-registered configuration.
+# Frozen by docs/BTC_SWING_V5_DESIGN.md before the first outcome analysis. Paper/backtest only.
+strategy_name: btc_swing_v5_microstructure
+
+instrument: {symbol: BTCUSDT, market: binance_um_perp, spot_symbol: BTCUSDT, quote: USDT}
+
+data:
+  provider: binance_vision
+  base_timeframe: 5m
+  latency_minutes: 0
+  ingest_native_timeframes: [1h, 4h, 1d]
+  ingest_funding: true
+  ingest_metrics: true
+  ingest_premium_index: true
+  ingest_mark_price: true
+  ingest_spot: false
+
+indicators:
+  ema_fast: 21
+  ema_slow: 50
+  ema_trend: 200
+  atr_period: 14
+  swing_k: 2
+  donchian_period: 20
+  min_bars: {5m: 220, 15m: 220, 1h: 220, 4h: 220, 1d: 60}
+
+features:
+  z_window_bars: 8640             # previous 30 days of 5m rows, excluding the current
+  z_min_periods: 2880
+  funding_z_window: 90
+  big_trade_qty_btc: 1.0
+  range_window_bars: 576          # 48 h
+  break_window_bars: 288          # 24 h high/low for family D
+
+events:
+  liquidation_continuation:       # historical OI-flush PROXY (no liquidation archive exists)
+    impulse_ret_1h_z: 2.0
+    oi_chg_1h_z: -1.5
+    vol_1h_z: 1.5
+    imbalance_1h_z: 1.0
+  absorption_reversal:
+    imbalance_1h_z: -2.0          # against the trade direction (heavy opposite aggression)
+    vol_1h_z: 1.0
+    max_adverse_ret_1h_z: -0.5    # price impact absorbed: signed ret_1h z not below this
+  flow_oi_continuation:
+    ret_1h_z: 1.0
+    imbalance_1h_z: 1.0
+    cvd_slope_1h_z: 1.0
+    oi_chg_1h_z: 1.0
+    max_crowding_z: 2.0
+  flow_divergence_reversal:
+    max_cvd_slope_z: 0.0
+    max_oi_chg_z: 0.0
+  cluster_bars: 12                # first-in-cluster = no same family/side event in the previous 12 bars
+
+stage_a:
+  horizons_hours: [0.25, 0.5, 1, 2, 4, 8, 12]
+  mfe_mae_hours: 12
+  bootstrap_resamples: 1000
+  gate:
+    min_events: 100
+    min_t: 2.0
+    horizons_hours: [1, 4]
+    min_positive_years: 3
+
+execution:
+  confirm_window_bars: 24         # 2 h thesis window (5m bars)
+  zone_below_atr: 0.5
+  zone_above_atr: 1.0
+  struct_lookback_bars: 12        # lowest/highest 5m extreme of the 12 bars before the event bar
+  struct_buffer_atr: 0.25
+  vol_floor_atr: 1.25
+  max_stop_atr: 3.0
+
+episode:
+  watch_timeout_bars: 24
+  entry_ready_timeout_bars: 6
+  cooldown_bars_after_close: 12
+  cooldown_bars_after_invalidation: 6
+  max_concurrent_positions: 1
+  dedupe_same_anchor: true
+  anchor_tolerance_atr: 0.25
+  family_priority: [LIQUIDATION_CONTINUATION, ABSORPTION_REVERSAL, FLOW_OI_CONTINUATION, FLOW_DIVERGENCE_REVERSAL]
+
+risk:
+  initial_equity: 10000.0
+  risk_per_trade: 0.0025
+  report_risk_per_trade: 0.005
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 4h
+  compounding: false
+
+exits:
+  tp1_r: 1.0
+  tp1_frac: 0.4
+  tp2_r: 2.0
+  tp2_frac: 0.3
+  breakeven_after_tp1: true
+  trail_tf: 1h
+  trail_atr_buffer: 0.5
+  max_hold_hours: 24
+  evaluate_r_levels: [1.0, 1.5, 2.0, 3.0]
+
+costs:
+  taker_fee_bps: 5.0
+  maker_fee_bps: 2.0
+  use_maker_for_targets: false
+  entry_slippage_bps: 2.0
+  stop_slippage_bps: 5.0
+  apply_funding: true
+  default_funding_interval_hours: 8
+
+cost_sensitivity:
+  taker_fee_bps: 5.5
+  maker_fee_bps: 2.0
+  use_maker_for_targets: true
+  entry_slippage_bps: 2.0
+  stop_slippage_bps: 5.0
+  apply_funding: true
+  default_funding_interval_hours: 8
+
+safety_overlay:
+  max_full_risk_losses_per_day: 3
+  full_risk_loss_r: -0.9
+  max_daily_loss_frac: 0.0075
+
+collector:
+  url: wss://stream.bybit.com/v5/public/linear
+  symbol: BTCUSDT
+  topics: [publicTrade.BTCUSDT, orderbook.50.BTCUSDT, tickers.BTCUSDT, allLiquidation.BTCUSDT]
+  stale_seconds: 30
+  ping_seconds: 20
+  reconnect_backoff_seconds: [1, 2, 5, 10, 30]
+  dedupe_cache_size: 50000
+
+research:
+  start: "2022-01-01"
+  end_exclusive: "2026-10-01"
+  null_k: 10
+  seed: 7
+  leverage_caps: [1, 2, 3, 5, 10]
+  min_cell_n: 20
+  criteria:
+    min_gross_expectancy_r: 0.15
+    min_net_expectancy_r: 0.08
+    min_profit_factor: 1.20
+    min_positive_years: 3
+    min_positive_quarter_share: 0.6
+    min_quarter_trades: 10
+    max_cost_drag_share: 0.5
+    max_drawdown: 0.12
+    min_trades_per_day: 0.5
+    max_trades_per_day: 3.0
+    median_hold_hours: [1.0, 8.0]
+    min_expectancy_without_best5_r: 0.04
+    max_family_pnl_share: 0.6
+    b_min_gross_expectancy_r: 0.10
