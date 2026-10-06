@@ -13,6 +13,11 @@ V3 (active multi-timeframe swing, `btc_swing/v3/`): `docs/BTC_SWING_V3_DESIGN.md
 `reports/BTC_SWING_V3_ACTIVE_SWING_RESEARCH.md` (classification C — no robust structural edge).
 V4 (event & positioning driven, `btc_swing/v4/`): `docs/BTC_SWING_V4_DESIGN.md` and
 `reports/BTC_SWING_V4_EVENT_POSITIONING_RESEARCH.md` (classification C — no robust event edge).
+V5 (microstructure & liquidation driven, `btc_swing/v5/`): `docs/BTC_SWING_V5_DESIGN.md` and
+`reports/BTC_SWING_V5_MICROSTRUCTURE_RESEARCH.md` (classification C — no robust microstructure edge).
+`btc_swing/v5/collector.py` is a PUBLIC-data Bybit collector (no auth); `btc_swing/v5/execution.py`
+is a Bybit Demo execution abstraction that is designed but NOT activated (never activate it inside a
+research phase; no credentials exist or are required).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -26,15 +31,17 @@ V4 (event & positioning driven, `btc_swing/v4/`): `docs/BTC_SWING_V4_DESIGN.md` 
 
 ## Environment
 - Python 3.12+, `uv sync --all-extras`. No database. `BTC_DATA_DIR` (default ./data, git-ignored).
-- Network must allow `data.binance.vision` and `s3-ap-northeast-1.amazonaws.com` (archive listing).
+- Network must allow `data.binance.vision`, `s3-ap-northeast-1.amazonaws.com` (archive listing) and
+  `stream.bybit.com` (V5 public WebSocket collector).
   Binance REST (`api/fapi.binance.com`) is geo-blocked from the cloud container and is not used.
 - Checks before any commit: `bash scripts/check.sh` (ruff format/check, strict mypy, pytest).
 - Work on branch `main` unless told otherwise.
 
 ## Layout
 See README.md. Config `config/btc_swing.default.yaml` (V1, frozen) and `config/btc_swing_v2.default.yaml`
-(V2 protocol), `config/btc_swing_v3.yaml` (V3, frozen), `config/btc_swing_v4.yaml` (V4, frozen); CLI
+(V2 protocol), `config/btc_swing_v3.yaml` (V3, frozen), `config/btc_swing_v4.yaml` (V4, frozen),
+`config/btc_swing_v5.yaml` (V5, frozen); CLI
 `btc-swing` (`data probe`, `data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`,
-`phase24`, `phase3-freeze`, `phase3`, `v2 research`, `v3 research`, `v4 research`); tests `tests/`
-(+ `tests/v3/`, `tests/v4/`); reproducibility manifests in
+`phase24`, `phase3-freeze`, `phase3`, `v2 research`, `v3 research`, `v4 research`, `v5 ingest`,
+`v5 collect`, `v5 research`); tests `tests/` (+ `tests/v3/`, `tests/v4/`, `tests/v5/`); reproducibility manifests in
 `manifests/`. Never modify a closed generation's modules, configs or reports for later work.

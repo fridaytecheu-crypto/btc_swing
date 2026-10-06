@@ -39,8 +39,14 @@ every generation. **V4 (event & positioning driven, three event families on roll
 funding, taker flow, premium and volume; Stage A event edge before execution)**:
 `docs/BTC_SWING_V4_DESIGN.md`, `btc-swing v4 research`, `reports/BTC_SWING_V4_EVENT_POSITIONING_RESEARCH.md`:
 **C — NO ROBUST EVENT EDGE** (pooled event forward returns ~0; 176 trades, gross +0.02R, net
--0.10R; only participation-confirmed LONG breakouts showed a small-sample signal). No further
-research without a new owner pre-registration.
+-0.10R; only participation-confirmed LONG breakouts showed a small-sample signal). **V5
+(microstructure & liquidation driven: aggTrades flow / CVD, open interest, basis, four 5-minute event
+families, Stage A per-family gate, Bybit public forward collector, Bybit Demo abstraction designed but
+not activated)**: `docs/BTC_SWING_V5_DESIGN.md`, `btc-swing v5 ingest|collect|research`,
+`reports/BTC_SWING_V5_MICROSTRUCTURE_RESEARCH.md`: **C — NO ROBUST MICROSTRUCTURE EDGE** (no family
+passed the Stage A gate; 1210 trades, gross +0.12R, net -0.01R, PF 0.97; liquidation history does
+not exist in any public archive, so it is collected forward only). No further research without a new
+owner pre-registration.
 
 ## Quick start
 ```
@@ -50,7 +56,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 57 tests, no database needed
+uv run pytest -q                                            # 65 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with
@@ -63,7 +69,8 @@ and partition used by the published reports, so a re-ingest can be verified byte
 `ingest` · `features` (PIT resampling, indicators, market view, auxiliary features) · `regime` ·
 `setups` (eight families) · `episodes` (state machine) · `risk` (sizing, liquidation) · `execution`
 (fees, slippage, funding) · `backtest` (engine, ledger) · `research` (metrics, labels, null
-benchmark, Phase 2 runner and report) · `cli.py` (`btc-swing`).
+benchmark, Phase 2 runner and report) · `v2`, `v3`, `v4`, `v5` (closed generations; `v5` also holds
+the Bybit public collector and the non-activated execution abstraction) · `cli.py` (`btc-swing`).
 
 ## Non-negotiables
 - A decision at T sees only bars with `close_time <= T`; raw archive files are immutable.

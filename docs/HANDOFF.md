@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-06, V4 research done)
+# Handoff — state of work and next steps (2026-10-06, V5 research done)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -99,10 +99,41 @@
   nulls with the same geometry equal the strategy. The stop fix worked: median stop 1.54% of
   price (V3 0.66%), cost 11% of stop, drag 0.07-0.11R. Only criterion 6 (drawdown) was met.
   Deterministic rerun, truncation audit (decisions and events) and resampling oracle pass.
+- V5 (MICROSTRUCTURE & LIQUIDATION DRIVEN ACTIVE SWING, `btc_swing/v5/`, `config/btc_swing_v5.yaml`,
+  `docs/BTC_SWING_V5_DESIGN.md` frozen at commit 4e9412a before any feature or result, CLI
+  `btc-swing v5 ingest|collect|research`, report `reports/BTC_SWING_V5_MICROSTRUCTURE_RESEARCH.md`,
+  manifests `manifests/v5_microstructure_run_manifest.json` and
+  `manifests/v5_bybit_collector_verification.json`) done: data audit first (aggTrades with aggressor
+  flag 2019-12 -> present, ingested as checksum-verified 5m flow aggregates; bookDepth from
+  2023-01-01, diagnostics only; NO liquidation history exists for BTCUSDT UM, so family A is a
+  labelled OI-flush proxy and liquidations are collected forward only), 5m PIT feature frame
+  (trade flow / CVD / OI / basis / funding / premium / price), four pre-registered event families,
+  Stage A per-family gate, one Stage B run. Classification: C — NO ROBUST MICROSTRUCTURE EDGE.
+  Stage A: 8981 events (5.2/day, 2378 first-in-cluster); no family passed the gate (C
+  FLOW_OI_CONTINUATION is the closest: 1527 first-in-cluster events, +0.03% at 1 h / +0.06% at 4 h,
+  t 1.6-1.7, positive in 4-5 of 5 years, but the 4 h strength terciles are not monotone and the
+  pooled flow/OI effect is ~0.1 x the hourly dispersion). Stage B: 1210 trades (0.70/day, median
+  hold 13 h), gross +0.115R, net -0.014R, PF 0.97, max DD 14.5%, net positive in 1 of 5 years;
+  stops 1.40% of price (cost 12% of stop, drag 0.13R); beats both nulls (the only criterion met)
+  because random entries with the same geometry lose -0.13R. The Bybit public collector was verified
+  (900 s run with forced reconnect + 120 s resume: 45 k messages, 0 sequence gaps, 0 duplicates,
+  0 hash mismatches, latency p50 41 ms); the Bybit Demo execution abstraction exists but is NOT
+  activated (no credentials, every network method raises). Execution note: the frozen configuration
+  was executed three times for technical reasons (an order-book loader de-duplication bug left the
+  diagnostic book columns empty in the first execution; the second was stopped for a NaN-aware
+  display fix); the event and trade streams are identical across executions and no rule changed.
+  The published manifest records code `5ff237d6c94f-dirty` because those two fixes (committed as
+  f78c949) were in the working tree during the final execution; the null-table footnote in the
+  report and two 12 h strength-tercile cells of family C (NaN-propagated means recomputed as
+  NaN-aware means from the persisted `events.parquet`) were edited in the generated markdown by hand
+  (cosmetic, disclosed here; the code fix is committed for reproduction).
 - No live or paper trading exists. 2022-01..2026-09 is development data for every generation.
-- Next step: the owner's decision. No report proposes a tweak. If anything is pursued, the only
-  defensible candidate is a NEW pre-registration around participation-confirmed LONG breakouts
-  (small sample; would need its own criteria and, ideally, new forward data).
+- Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
+  ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
+  survives costs on this instrument at these horizons; the recurring finding is a small gross edge
+  (+0.02..+0.12R) that costs of 0.08..0.13R per trade erase. If anything is pursued it needs a NEW
+  owner pre-registration and, ideally, forward data: the Bybit collector (`btc-swing v5 collect`)
+  can accumulate a liquidation/order-book history that does not exist in any archive.
 
 ## Commands
 ```
@@ -121,6 +152,9 @@ uv run btc-swing phase3 --out data/btc/runs/phase3_untouched_validation  # ONE c
 uv run btc-swing v2 research --out data/btc/runs/v2_ranking_research     # V2 candidates/labels/features/walk-forward/report (~25 min)
 uv run btc-swing v3 research --out data/btc/runs/v3_active_swing_research # V3 one pre-registered run + reporting streams (~60 min)
 uv run btc-swing v4 research --out data/btc/runs/v4_event_positioning_research # V4 Stage A + Stage B (~45 min)
+uv run btc-swing v5 ingest --start 2021-12-01 --end 2026-09-30            # V5 archive datasets (index klines, bookDepth, aggTrades -> 5m flow; ~1 h)
+uv run btc-swing v5 collect --duration 900 --reconnect-after 420            # Bybit PUBLIC collector verification run (no auth, no orders)
+uv run btc-swing v5 research --out data/btc/runs/v5_microstructure_research --collector-stats manifests/v5_bybit_collector_verification.json  # V5 Stage A + Stage B (~8 min)
 bash scripts/check.sh
 ```
 
@@ -130,3 +164,7 @@ bash scripts/check.sh
 - Mark-price and premium-index klines have a few missing days (2022-10, 2023-02); the engine falls
   back to traded extremes for liquidation where a mark bar is missing.
 - Early `metrics` files (2021) contain empty fields; parsed as nulls.
+- V5 archive facts: the monthly indexPriceKlines files lack 13 whole days (2022-04-27, 2022-07-24/25/27/28/30/31,
+  2022-10-02, 2023-02-24, 2023-04-07/08, 2023-11-10, 2026-06-29); the daily files exist and are used
+  to fill them. bookDepth has no file for 2023-02-08, 2023-02-09 and 2024-04-18. aggTrades daily
+  files before mid-2025 have no CSV header. No liquidationSnapshot dataset exists for BTCUSDT UM.

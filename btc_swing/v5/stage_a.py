@@ -206,7 +206,7 @@ def _terciles(sub: pl.DataFrame, hz: list[float]) -> list[dict[str, Any]] | None
                 "n": part.height,
                 "strength_min": _f(part["strength"].min()),
                 "strength_max": _f(part["strength"].max()),
-                **{f"fwd_{h:g}h": _f(part[f"fwd_{h:g}h"].mean()) for h in hz},
+                **{f"fwd_{h:g}h": _nanmean(part[f"fwd_{h:g}h"]) for h in hz},
                 "mfe_atr": _nanmean(part["mfe_atr"]),
                 "mae_atr": _nanmean(part["mae_atr"]),
             }

@@ -1,0 +1,80 @@
+{
+ "additional_runs": [
+  {
+   "by_topic": {
+    "orderbook.50.BTCUSDT": 3738,
+    "publicTrade.BTCUSDT": 375,
+    "subscribe": 1,
+    "tickers.BTCUSDT": 713
+   },
+   "bytes_written": 2729658,
+   "duplicates": 0,
+   "errors": 0,
+   "forced_reconnect_requested": false,
+   "label": "verification run 2: restart/resume from state, 120 s",
+   "latency_ms": {
+    "max": 1378.0,
+    "n": 4826.0,
+    "p50": 40.0,
+    "p90": 47.0,
+    "p99": 69.0
+   },
+   "messages": 4827,
+   "messages_per_second": 37.125903149897475,
+   "orderbook_deltas": 3737,
+   "reconnects": 0,
+   "resumed_from_state": true,
+   "sequence_gap_rate": 0.0,
+   "sequence_gaps": 0,
+   "stale_timeouts": 0,
+   "storage": {
+    "by_channel": {
+     "orderbook.50.BTCUSDT": 33693,
+     "publicTrade.BTCUSDT": 4980,
+     "tickers.BTCUSDT": 6641
+    },
+    "files": 1,
+    "hash_mismatches": 0,
+    "rows": 45314
+   },
+   "uptime_seconds": 130.01703906059265
+  }
+ ],
+ "by_topic": {
+  "orderbook.50.BTCUSDT": 29955,
+  "publicTrade.BTCUSDT": 4605,
+  "subscribe": 2,
+  "tickers.BTCUSDT": 5928
+ },
+ "bytes_written": 24336152,
+ "duplicates": 0,
+ "errors": 1,
+ "forced_reconnect_requested": true,
+ "latency_ms": {
+  "max": 892.0,
+  "n": 40488.0,
+  "p50": 41.0,
+  "p90": 51.0,
+  "p99": 80.0
+ },
+ "messages": 40490,
+ "messages_per_second": 44.97481407673861,
+ "orderbook_deltas": 29953,
+ "reconnects": 1,
+ "resumed_from_state": false,
+ "run_label": "verification run 1 (900 s, forced reconnect at 420 s)",
+ "sequence_gap_rate": 0.0,
+ "sequence_gaps": 0,
+ "stale_timeouts": 0,
+ "storage": {
+  "by_channel": {
+   "orderbook.50.BTCUSDT": 29955,
+   "publicTrade.BTCUSDT": 4605,
+   "tickers.BTCUSDT": 5928
+  },
+  "files": 1,
+  "hash_mismatches": 0,
+  "rows": 40488
+ },
+ "uptime_seconds": 900.281653881073
+}
