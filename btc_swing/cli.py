@@ -667,5 +667,92 @@ def v4_research(
     )
 
 
+v5_app = typer.Typer(
+    help="V5: microstructure & liquidation driven active swing (deterministic research; "
+    "forward PUBLIC-data collector; no trading)"
+)
+app.add_typer(v5_app, name="v5")
+
+
+@v5_app.command("ingest")
+def v5_ingest(
+    start: str = "2021-12-01",
+    end: str = "2026-09-30",
+    datasets: str = "index_klines,book_depth,aggtrades_flow",
+) -> None:
+    """Ingest the V5 archive datasets (index klines, bookDepth, aggTrades -> 5m flow aggregates)
+    from Binance Vision with checksum verification; append-only manifest."""
+    from btc_swing.v5.ingest import run_v5_ingest
+
+    stats = run_v5_ingest(_data_dir(), start, end, [d.strip() for d in datasets.split(",") if d])
+    console.print_json(json.dumps(stats, default=str))
+
+
+@v5_app.command("collect")
+def v5_collect(
+    duration: float = 600.0,
+    reconnect_after: float | None = None,
+    out: Path | None = None,
+    v5_config: Path = Path("config/btc_swing_v5.yaml"),
+) -> None:
+    """Run the Bybit PUBLIC WebSocket collector for a bounded time (no authentication, no orders):
+    immutable raw events, dedupe, sequence-gap detection, reconnect, storage verification."""
+    from btc_swing.v5.collector import run_collector_test
+    from btc_swing.v5.config import load_v5_config
+
+    cfg = load_v5_config(v5_config)
+    d = _data_dir()
+    stats = run_collector_test(cfg.collector, d, duration, reconnect_after)
+    path = out or (
+        d
+        / "btc"
+        / "forward"
+        / "bybit"
+        / f"collector_stats_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(stats, indent=1, sort_keys=True))
+    console.print_json(json.dumps({"stats_path": str(path), **stats}, default=str))
+
+
+@v5_app.command("research")
+def v5_research(
+    v5_config: Path = Path("config/btc_swing_v5.yaml"),
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V5_MICROSTRUCTURE_RESEARCH.md"),
+    collector_stats: Path | None = None,
+) -> None:
+    """V5 two-stage research: Stage A event forward returns and gate, Stage B one frozen run plus
+    reporting-only streams; 36-section report with one classification. No trading engine."""
+    from btc_swing.v5.config import load_v5_config
+    from btc_swing.v5.report import render_v5
+    from btc_swing.v5.research import load_v5_inputs, run_v5_research
+
+    cfg = load_v5_config(v5_config)
+    d = _data_dir()
+    inp, extra = load_v5_inputs(cfg, d)
+    run_dir = out or (d / "btc" / "runs" / f"v5_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}")
+    cstats = json.loads(collector_stats.read_text()) if collector_stats else None
+    res = run_v5_research(cfg, inp, extra, run_dir, cstats)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_v5(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "classification": res.classification,
+                "criteria_met": [c["id"] for c in res.criteria if c["met"]],
+                "events": res.events.height,
+                "trades": res.overall.get("n"),
+                "gross_R": res.costs.get("expectancy_R_before_costs"),
+                "net_R": res.overall.get("mean_R"),
+                "trades_per_day": res.freq.get("trades_per_day"),
+                "stage_a_gate": res.gate.get("passed"),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

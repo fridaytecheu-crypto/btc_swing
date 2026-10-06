@@ -19,6 +19,9 @@ class NotActivatedError(RuntimeError):
     """Raised by the Bybit Demo adapter: execution is not enabled in this research phase."""
 
 
+NotActivated = NotActivatedError  # name used in docs/BTC_SWING_V5_DESIGN.md section 9
+
+
 class OrderSide(StrEnum):
     BUY = "Buy"
     SELL = "Sell"
