@@ -1,0 +1,425 @@
+"""V4 research orchestrator: feature frame -> Stage A (event edge) -> Stage B (one raw run plus
+reporting-only streams: overlay, 0.5% risk, Bybit-style cost sensitivity, leverage caps) -> audits
+-> nulls -> criteria. Persists manifest, summary and frames."""
+
+from __future__ import annotations
+
+import json
+import logging
+import math
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, cast
+
+import numpy as np
+import polars as pl
+
+from btc_swing.core.config import BtcStrategyConfig
+from btc_swing.core.enums import Timeframe
+from btc_swing.core.timeframes import tf_ms
+from btc_swing.features.context import AuxSeries
+from btc_swing.features.view import MultiTfSeries
+from btc_swing.research.phase2 import Phase2Inputs, account_stats, load_inputs, resample_oracle
+from btc_swing.v4.config import V4Config
+from btc_swing.v4.engine import V4Engine, V4Result
+from btc_swing.v4.evaluation import (
+    chronology,
+    classify,
+    cost_impact,
+    derivatives_context,
+    evaluate_criteria,
+    exits_table,
+    family_table,
+    frequency,
+    holding,
+    leverage_audit,
+    mfe_mae,
+    outliers,
+    regime_table,
+    sides,
+    stop_geometry,
+    strength_vs_outcome,
+)
+from btc_swing.v4.events import build_v4_detectors
+from btc_swing.v4.features import FEATURE_COLUMNS, FeatureFrame, build_feature_frame
+from btc_swing.v4.null import run_v4_null
+from btc_swing.v4.stage_a import scan_events, stage_a_gate, stage_a_summary, unconditional
+
+log = logging.getLogger(__name__)
+
+
+def _ms(s: str) -> int:
+    return int(datetime.fromisoformat(s).replace(tzinfo=UTC).timestamp() * 1000)
+
+
+@dataclass
+class V4Research:
+    manifest: dict[str, Any]
+    raw: V4Result
+    overlay: V4Result
+    half_pct: V4Result
+    bybit: V4Result
+    leverage_caps: list[dict[str, Any]]
+    events: pl.DataFrame
+    stage_a: dict[str, Any]
+    gate: dict[str, Any]
+    overall: dict[str, Any]
+    costs: dict[str, Any]
+    costs_bybit: dict[str, Any]
+    account: dict[str, Any]
+    account_overlay: dict[str, Any]
+    account_half: dict[str, Any]
+    freq: dict[str, Any]
+    hold: dict[str, Any]
+    chrono: dict[str, Any]
+    families: list[dict[str, Any]]
+    sides: dict[str, Any]
+    regimes: list[dict[str, Any]]
+    derivatives: list[dict[str, Any]]
+    strength: list[dict[str, Any]]
+    geometry: dict[str, Any]
+    mfe: dict[str, Any]
+    exits: list[dict[str, Any]]
+    leverage: dict[str, Any]
+    outl: dict[str, Any]
+    null: dict[str, Any]
+    pit: dict[str, Any]
+    coverage: dict[str, Any]
+    episodes: dict[str, Any]
+    feature_quality: dict[str, Any]
+    criteria: list[dict[str, Any]]
+    classification: str
+
+
+def load_v4_inputs(cfg: V4Config, data_dir: Path) -> Phase2Inputs:
+    return load_inputs(
+        cast(BtcStrategyConfig, cfg),
+        data_dir,
+        _ms(cfg.research.start),
+        _ms(cfg.research.end_exclusive),
+    )
+
+
+def _stats_all(t: pl.DataFrame) -> dict[str, Any]:
+    from btc_swing.research.phase24 import _stats
+
+    return _stats(t) if t.height else {"n": 0}
+
+
+def _fl(x: object) -> float:
+    try:
+        return float(x)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return math.nan
+
+
+def run_v4_research(cfg: V4Config, inp: Phase2Inputs, out_dir: Path) -> V4Research:
+    start_ms, end_ms = _ms(cfg.research.start), _ms(cfg.research.end_exclusive)
+    aux = AuxSeries.build(inp.funding, inp.metrics, inp.premium, inp.mark, cfg.data.latency_minutes)
+    series = MultiTfSeries(inp.bars, cfg.indicators, 5)
+    log.info("feature frame")
+    ff = build_feature_frame(series, aux, cfg)
+    fq = _feature_quality(ff, start_ms, end_ms)
+    log.info("Stage A: event scan")
+    dets = build_v4_detectors(cfg, ff)
+    events = scan_events(ff, dets, series, cfg, start_ms, end_ms)
+    uncond = unconditional(ff, series, cfg, start_ms, end_ms)
+    sa = stage_a_summary(events, cfg, uncond)
+    gate = stage_a_gate(sa, cfg)
+    log.info("Stage B: raw run (%d events)", events.height)
+    eng = V4Engine(cfg, inp.bars, inp.funding, inp.hashes, aux, series, ff)
+    raw = eng.run(start_ms, end_ms, notes={"stream": "raw_default_risk"})
+    log.info("determinism rerun")
+    rerun = V4Engine(cfg, inp.bars, inp.funding, inp.hashes, aux, series, ff).run(start_ms, end_ms)
+    log.info("overlay / 0.5%% / Bybit sensitivity")
+    overlay = V4Engine(
+        cfg, inp.bars, inp.funding, inp.hashes, aux, series, ff, safety_overlay=True
+    ).run(start_ms, end_ms, notes={"stream": "safety_overlay"})
+    cfg_half = cfg.model_copy(
+        update={
+            "risk": cfg.risk.model_copy(update={"risk_per_trade": cfg.risk.report_risk_per_trade})
+        }
+    )
+    half = V4Engine(cfg_half, inp.bars, inp.funding, inp.hashes, aux, series, ff).run(
+        start_ms, end_ms, notes={"stream": "report_risk_0_5pct"}
+    )
+    bybit = V4Engine(
+        cfg, inp.bars, inp.funding, inp.hashes, aux, series, ff, costs_cfg=cfg.cost_sensitivity
+    ).run(start_ms, end_ms, notes={"stream": "cost_sensitivity_bybit"})
+    log.info("leverage caps")
+    caps: list[dict[str, Any]] = []
+    for lv in cfg.research.leverage_caps:
+        allowed = [x for x in cfg.risk.allowed_leverage if x <= lv] or [lv]
+        c2 = cfg.model_copy(
+            update={
+                "risk": cfg.risk.model_copy(
+                    update={"max_leverage": lv, "allowed_leverage": allowed}
+                )
+            }
+        )
+        r = V4Engine(c2, inp.bars, inp.funding, inp.hashes, aux, series, ff).run(start_ms, end_ms)
+        t = r.trades
+        acct = account_stats(t, r.daily_equity, cfg.risk.initial_equity, start_ms, end_ms)
+        caps.append(
+            {
+                "max_leverage": lv,
+                "n_trades": t.height,
+                "risk_rejected": r.blocked.get("RISK_REJECTED", 0),
+                "mean_leverage": _fl(t["leverage"].mean()) if t.height else math.nan,
+                "mean_R": _fl(t["R_MULTIPLE"].mean()) if t.height else math.nan,
+                "total_return": acct.get("total_return"),
+                "max_dd": acct.get("max_drawdown_frac_trade_curve"),
+                "min_liq_distance_pct": 100 * _fl(t["liquidation_distance_pct"].min())
+                if t.height
+                else math.nan,
+                "liquidations": int((t["exit_reason"] == "LIQUIDATION").sum()) if t.height else 0,
+            }
+        )
+    t = raw.trades
+    overall = _stats_all(t)
+    costs = cost_impact(t) if t.height else {}
+    costs_bybit = cost_impact(bybit.trades) if bybit.trades.height else {}
+    account = account_stats(t, raw.daily_equity, cfg.risk.initial_equity, start_ms, end_ms)
+    account_overlay = account_stats(
+        overlay.trades, overlay.daily_equity, cfg.risk.initial_equity, start_ms, end_ms
+    )
+    account_half = account_stats(
+        half.trades, half.daily_equity, cfg.risk.initial_equity, start_ms, end_ms
+    )
+    freq = frequency(t, start_ms, end_ms)
+    hold = holding(t)
+    chrono = chronology(t, cfg.risk.initial_equity, start_ms, end_ms)
+    fams = family_table(t, events, cfg.risk.initial_equity, start_ms, end_ms)
+    outl = outliers(
+        t,
+        chrono,
+        [
+            {
+                "family": f["family"],
+                "side": f["side"],
+                "n": f.get("n", 0),
+                "sum_pnl": f.get("sum_pnl", 0.0),
+            }
+            for f in fams
+        ],
+    )
+    log.info("null benchmark (K=%d)", cfg.research.null_k)
+    null = (
+        run_v4_null(eng, t, raw.decisions, start_ms, end_ms, cfg.research.null_k, cfg.research.seed)
+        if t.height
+        else {"n_trades": 0}
+    )
+    log.info("PIT audit")
+    pit = _pit_audit(cfg, inp, aux, raw, events, start_ms, end_ms)
+    ep = raw.episodes
+    episodes = {
+        "n": ep.height,
+        "by_outcome": ep.group_by("end_reason").len().sort("len", descending=True).to_dicts()
+        if ep.height
+        else [],
+        "by_family": ep.group_by("family").len().sort("family").to_dicts() if ep.height else [],
+        "blocked": raw.blocked,
+        "events_total": events.height,
+        "events_first_in_cluster": int(events["first_in_cluster"].sum()) if events.height else 0,
+    }
+    criteria = evaluate_criteria(cfg, gate, overall, costs, account, freq, hold, chrono, outl, null)
+    cls = classify(cfg, criteria, costs)
+    manifest = {
+        "project": "btc_swing_v4",
+        "config_hash": cfg.config_hash,
+        "config_yaml": cfg.canonical_yaml(),
+        "design_freeze_commit": "56f7177c53b50f083a4f8765fce9cd4a956127f7",
+        "raw_manifest": raw.manifest,
+        "overlay_manifest": overlay.manifest,
+        "half_pct_manifest": half.manifest,
+        "bybit_manifest": bybit.manifest,
+        "determinism_identical": rerun.result_hash == raw.result_hash,
+        "coverage": inp.coverage,
+        "feature_columns": FEATURE_COLUMNS,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "validation_note": "2022-01..2026-09 is development data inspected by V1-V3; no V4 result on it is untouched out-of-sample.",
+    }
+    res = V4Research(
+        manifest,
+        raw,
+        overlay,
+        half,
+        bybit,
+        caps,
+        events,
+        sa,
+        gate,
+        overall,
+        costs,
+        costs_bybit,
+        account,
+        account_overlay,
+        account_half,
+        freq,
+        hold,
+        chrono,
+        fams,
+        sides(t),
+        regime_table(t),
+        derivatives_context(t),
+        strength_vs_outcome(t),
+        stop_geometry(t, cfg),
+        mfe_mae(t),
+        exits_table(t),
+        leverage_audit(t),
+        outl,
+        null,
+        pit,
+        inp.coverage,
+        episodes,
+        fq,
+        criteria,
+        cls,
+    )
+    _persist(res, out_dir, ff)
+    return res
+
+
+def _feature_quality(ff: FeatureFrame, start_ms: int, end_ms: int) -> dict[str, Any]:
+    j0, j1 = max(0, ff.idx_at(start_ms)), ff.idx_at(end_ms - 1)
+    out: dict[str, Any] = {"rows_in_window": j1 - j0 + 1}
+    for c in FEATURE_COLUMNS:
+        a = ff.cols[c][j0 : j1 + 1]
+        out[c] = {
+            "missing_share": float(np.isnan(a).mean()),
+            "mean": float(np.nanmean(a)) if (~np.isnan(a)).any() else math.nan,
+        }
+    return out
+
+
+def _pit_audit(
+    cfg: V4Config,
+    inp: Phase2Inputs,
+    aux: AuxSeries,
+    raw: V4Result,
+    events: pl.DataFrame,
+    start_ms: int,
+    end_ms: int,
+) -> dict[str, Any]:
+    cut = start_ms + (end_ms - start_ms) // 2
+    trunc = inp.bars.filter(pl.col("open_time_ms") + tf_ms(Timeframe.M5) <= cut)
+
+    def _cut(df: pl.DataFrame | None, col: str) -> pl.DataFrame | None:
+        return (
+            df
+            if df is None or df.is_empty() or col not in df.columns
+            else df.filter(pl.col(col) <= cut)
+        )
+
+    aux_t = AuxSeries.build(
+        _cut(inp.funding, "time_ms"),
+        _cut(inp.metrics, "time_ms"),
+        _cut(inp.premium, "close_time_ms"),
+        _cut(inp.mark, "close_time_ms"),
+        cfg.data.latency_minutes,
+    )
+    series_t = MultiTfSeries(trunc, cfg.indicators, 5)
+    ff_t = build_feature_frame(series_t, aux_t, cfg)
+    eng_t = V4Engine(cfg, trunc, _cut(inp.funding, "time_ms"), inp.hashes, aux_t, series_t, ff_t)
+    res_t = eng_t.run(start_ms, cut)
+    cols = ["t_ms", "regime", "position_open"]
+    a = raw.decisions.filter(pl.col("t_ms") <= cut).select(cols)
+    b = res_t.decisions.filter(pl.col("t_ms") <= cut).select(cols)
+    ev_t = scan_events(ff_t, build_v4_detectors(cfg, ff_t), series_t, cfg, start_ms, cut)
+    ev_a = (
+        events.filter(pl.col("t_ms") <= cut - 86_400_000 * 2).select(
+            "family", "side", "t_ms", "strength"
+        )
+        if events.height
+        else events
+    )
+    ev_b = (
+        ev_t.filter(pl.col("t_ms") <= cut - 86_400_000 * 2).select(
+            "family", "side", "t_ms", "strength"
+        )
+        if ev_t.height
+        else ev_t
+    )
+    ev_same = ev_a.height == ev_b.height and (
+        ev_a.height == 0
+        or (
+            bool(np.allclose(ev_a["strength"].to_numpy(), ev_b["strength"].to_numpy(), atol=1e-9))
+            and ev_a["t_ms"].to_list() == ev_b["t_ms"].to_list()
+        )
+    )
+    return {
+        "visibility_rule": "bars with close_time <= t; metrics/funding/premium rows with time + latency <= t; rolling z-scores over previous rows only; fill at the next 5m open; trail moves applied from the next bar",
+        "deterministic": None,
+        "truncation": {
+            "cut": datetime.fromtimestamp(cut / 1000, tz=UTC).isoformat(),
+            "rows_compared": a.height,
+            "decisions_identical": a.height == b.height and a.equals(b),
+            "events_compared": ev_a.height,
+            "events_identical": ev_same,
+        },
+        "resample_oracle": resample_oracle(inp.bars, inp.natives),
+        "liquidation_basis": raw.manifest["liquidation_basis"],
+    }
+
+
+def _persist(res: V4Research, out_dir: Path, ff: FeatureFrame) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "manifest.json").write_text(
+        json.dumps(res.manifest, indent=1, sort_keys=True, default=str)
+    )
+    summary = {
+        k: getattr(res, k)
+        for k in (
+            "classification",
+            "criteria",
+            "gate",
+            "stage_a",
+            "overall",
+            "costs",
+            "costs_bybit",
+            "account",
+            "account_overlay",
+            "account_half",
+            "freq",
+            "hold",
+            "chrono",
+            "families",
+            "sides",
+            "regimes",
+            "derivatives",
+            "strength",
+            "geometry",
+            "mfe",
+            "exits",
+            "leverage",
+            "outl",
+            "null",
+            "pit",
+            "coverage",
+            "episodes",
+            "feature_quality",
+            "leverage_caps",
+        )
+    }
+    (out_dir / "summary.json").write_text(
+        json.dumps(summary, indent=1, sort_keys=True, default=str)
+    )
+    for name, r in (
+        ("raw", res.raw),
+        ("overlay", res.overlay),
+        ("half_pct", res.half_pct),
+        ("bybit", res.bybit),
+    ):
+        for kind, df in (
+            ("trades", r.trades),
+            ("episodes", r.episodes),
+            ("daily_equity", r.daily_equity),
+        ):
+            if not df.is_empty():
+                df.write_parquet(out_dir / f"{name}_{kind}.parquet")
+    if not res.raw.decisions.is_empty():
+        res.raw.decisions.write_parquet(out_dir / "raw_decisions.parquet")
+    if not res.events.is_empty():
+        res.events.write_parquet(out_dir / "events.parquet")
+    ff.to_frame().write_parquet(out_dir / "feature_frame_1h.parquet")

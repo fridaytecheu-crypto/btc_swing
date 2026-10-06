@@ -624,5 +624,48 @@ def v3_research(
     )
 
 
+v4_app = typer.Typer(
+    help="V4: event & positioning driven active swing (deterministic research only)"
+)
+app.add_typer(v4_app, name="v4")
+
+
+@v4_app.command("research")
+def v4_research(
+    v4_config: Path = Path("config/btc_swing_v4.yaml"),
+    out: Path | None = None,
+    report: Path = Path("reports/BTC_SWING_V4_EVENT_POSITIONING_RESEARCH.md"),
+) -> None:
+    """V4 two-stage research: Stage A event forward returns, Stage B one frozen run plus
+    reporting-only streams; 32-section report with one classification. No trading engine."""
+    from btc_swing.v4.config import load_v4_config
+    from btc_swing.v4.report import render_v4
+    from btc_swing.v4.research import load_v4_inputs, run_v4_research
+
+    cfg = load_v4_config(v4_config)
+    d = _data_dir()
+    inp = load_v4_inputs(cfg, d)
+    run_dir = out or (d / "btc" / "runs" / f"v4_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}")
+    res = run_v4_research(cfg, inp, run_dir)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_v4(res))
+    console.print_json(
+        json.dumps(
+            {
+                "run_dir": str(run_dir),
+                "report": str(report),
+                "classification": res.classification,
+                "criteria_met": [c["id"] for c in res.criteria if c["met"]],
+                "events": res.events.height,
+                "trades": res.overall.get("n"),
+                "gross_R": res.costs.get("expectancy_R_before_costs"),
+                "net_R": res.overall.get("mean_R"),
+                "trades_per_day": res.freq.get("trades_per_day"),
+                "stage_a_gate": res.gate.get("passed"),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()
