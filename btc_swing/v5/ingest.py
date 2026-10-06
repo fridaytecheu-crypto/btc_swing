@@ -236,6 +236,60 @@ class V5Ingestor:
             stats.fetched += 1
             stats.rows += df.height
 
+    def fill_index_gaps(self, start: str, end: str, stats: V5IngestStats) -> list[str]:
+        """Days inside [start, end] whose monthly index-kline file holds fewer than 288 rows are
+        fetched from the DAILY archive (same source, checksum-verified) into day partitions."""
+        out_dir = self.ds_dir / "index_klines" / self.symbol / "5m"
+        have = load_v5_dataset(self.data_dir, "index_klines", self.symbol)
+        counts: dict[str, int] = {}
+        if not have.is_empty():
+            c = (
+                have.with_columns((pl.col("open_time_ms") // 86_400_000).alias("day"))
+                .group_by("day")
+                .len()
+            )
+            for day, n in zip(c["day"].to_list(), c["len"].to_list(), strict=True):
+                counts[datetime.fromtimestamp(int(day) * 86400, tz=UTC).strftime("%Y-%m-%d")] = int(
+                    n
+                )
+        missing = [d for d in _days(start, end) if counts.get(d, 0) < 288]
+        for day in missing:
+            key = f"data/futures/um/daily/indexPriceKlines/{self.symbol}/5m/{self.symbol}-5m-{day}.zip"
+            out = out_dir / f"{day}.parquet"
+            if key in self._done and out.exists():
+                stats.skipped += 1
+                continue
+            raw = self.raw_dir / key
+            raw.parent.mkdir(parents=True, exist_ok=True)
+            ok, sha = self._download(key, raw)
+            if not ok:
+                stats.unavailable.append(key)
+                raw.unlink(missing_ok=True)
+                continue
+            pub = self._published_sha(key)
+            if pub is not None and pub != sha:
+                stats.errors.append(f"checksum mismatch {key}")
+                raw.unlink(missing_ok=True)
+                continue
+            with zipfile.ZipFile(raw) as z:
+                csv_bytes = z.read(z.namelist()[0])
+            df = parse_kline_csv(csv_bytes).select("open_time_ms", "open", "high", "low", "close")
+            df.write_parquet(out)
+            self._record(
+                {
+                    "dataset": "index_klines_daily_gap_fill",
+                    "key": key,
+                    "sha256": sha,
+                    "published_sha256": pub,
+                    "rows": df.height,
+                    "raw_retained": True,
+                    "fetched_at": datetime.now(UTC).isoformat(),
+                }
+            )
+            stats.fetched += 1
+            stats.rows += df.height
+        return missing
+
     # ------------------------------------------------------------------ aggTrades -> 5m flow
     def ingest_aggtrades_flow(self, start: str, end: str, stats: V5IngestStats) -> None:
         out_dir = self.ds_dir / "aggtrades_flow" / self.symbol / "5m"
@@ -372,6 +426,7 @@ def run_v5_ingest(data_dir: Path, start: str, end: str, datasets: list[str]) -> 
         ing.ingest_book_depth(max(start, "2023-01-01"), end, stats)
     if "index_klines" in datasets:
         ing.ingest_index_klines(start, end, stats)
+        ing.fill_index_gaps(start, end, stats)
     if "aggtrades_flow" in datasets:
         ing.ingest_aggtrades_flow(start, end, stats)
     return stats.as_dict()
@@ -383,4 +438,6 @@ def load_v5_dataset(data_dir: Path, name: str, symbol: str = "BTCUSDT") -> pl.Da
     files = sorted(d.glob("*.parquet")) if d.exists() else []
     if not files:
         return pl.DataFrame()
-    return pl.concat([pl.read_parquet(f) for f in files], how="vertical_relaxed")
+    df = pl.concat([pl.read_parquet(f) for f in files], how="vertical_relaxed")
+    tcol = df.columns[0]
+    return df.sort(tcol).unique(subset=[tcol], keep="first", maintain_order=True)
