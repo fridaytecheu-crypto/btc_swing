@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-05, V3 research done)
+# Handoff — state of work and next steps (2026-10-06, V4 research done)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -86,8 +86,23 @@
   horizon the stop geometry, not the signal, decides survivability; a design needs either much
   wider structural stops (lower frequency) or far cheaper execution; the LIQUIDITY_SWEEP family
   dominated the candidate stream (61% of episodes) with the tightest stops.
+- V4 (EVENT & POSITIONING DRIVEN ACTIVE SWING, `btc_swing/v4/`, `config/btc_swing_v4.yaml`,
+  `docs/BTC_SWING_V4_DESIGN.md` frozen at commit 56f7177 before any code, CLI `btc-swing v4
+  research`, report `reports/BTC_SWING_V4_EVENT_POSITIONING_RESEARCH.md`, manifest
+  `manifests/v4_event_positioning_run_manifest.json`) done: two-stage research on 2022-01..2026-09.
+  Classification: C — NO ROBUST EVENT EDGE. Stage A: 962 events (0.56/day); pooled signed forward
+  return ~0 at 4 h / 8 h (gate failed); DELEVERAGING_REVERSAL events CONTINUE rather than reverse
+  (8 h -0.28%, t -2.3); POSITIONING_RESET ~0; PARTICIPATION_BREAKOUT LONG is the one sub-population
+  with signal (51 events, 8 h +1.0%, t 3.1; 29 trades gross +0.46R / net +0.31R, PF 1.63) but it
+  is too small and was not pre-selected, so it cannot be claimed. Stage B: 176 trades
+  (0.10/day, median hold 22.8 h), gross +0.016R, net -0.095R, PF 0.81, max DD 5.5%, SHORT -0.38R,
+  nulls with the same geometry equal the strategy. The stop fix worked: median stop 1.54% of
+  price (V3 0.66%), cost 11% of stop, drag 0.07-0.11R. Only criterion 6 (drawdown) was met.
+  Deterministic rerun, truncation audit (decisions and events) and resampling oracle pass.
 - No live or paper trading exists. 2022-01..2026-09 is development data for every generation.
-- Next step: the owner's decision. No parameter tweak is proposed by any report.
+- Next step: the owner's decision. No report proposes a tweak. If anything is pursued, the only
+  defensible candidate is a NEW pre-registration around participation-confirmed LONG breakouts
+  (small sample; would need its own criteria and, ideally, new forward data).
 
 ## Commands
 ```
@@ -105,6 +120,7 @@ uv run btc-swing phase3-freeze --ingest-stats manifests/phase3_ingest_stats.json
 uv run btc-swing phase3 --out data/btc/runs/phase3_untouched_validation  # ONE confirmatory run per arm (~15 min)
 uv run btc-swing v2 research --out data/btc/runs/v2_ranking_research     # V2 candidates/labels/features/walk-forward/report (~25 min)
 uv run btc-swing v3 research --out data/btc/runs/v3_active_swing_research # V3 one pre-registered run + reporting streams (~60 min)
+uv run btc-swing v4 research --out data/btc/runs/v4_event_positioning_research # V4 Stage A + Stage B (~45 min)
 bash scripts/check.sh
 ```
 

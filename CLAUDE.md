@@ -11,6 +11,8 @@ V1 is closed and immutable. V2 (learned ranking, `btc_swing/v2/`): `docs/BTC_SWI
 and `reports/BTC_SWING_V2_RANKING_RESEARCH.md` (classification C — no useful ranking edge).
 V3 (active multi-timeframe swing, `btc_swing/v3/`): `docs/BTC_SWING_V3_DESIGN.md` and
 `reports/BTC_SWING_V3_ACTIVE_SWING_RESEARCH.md` (classification C — no robust structural edge).
+V4 (event & positioning driven, `btc_swing/v4/`): `docs/BTC_SWING_V4_DESIGN.md` and
+`reports/BTC_SWING_V4_EVENT_POSITIONING_RESEARCH.md` (classification C — no robust event edge).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -31,7 +33,8 @@ V3 (active multi-timeframe swing, `btc_swing/v3/`): `docs/BTC_SWING_V3_DESIGN.md
 
 ## Layout
 See README.md. Config `config/btc_swing.default.yaml` (V1, frozen) and `config/btc_swing_v2.default.yaml`
-(V2 protocol), `config/btc_swing_v3.yaml` (V3, frozen); CLI `btc-swing` (`data probe`, `data ingest`,
-`backtest`, `phase2`, `phase21`, `phase22`, `phase23`, `phase24`, `phase3-freeze`, `phase3`,
-`v2 research`, `v3 research`); tests `tests/` (+ `tests/v3/`); reproducibility manifests in
+(V2 protocol), `config/btc_swing_v3.yaml` (V3, frozen), `config/btc_swing_v4.yaml` (V4, frozen); CLI
+`btc-swing` (`data probe`, `data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`,
+`phase24`, `phase3-freeze`, `phase3`, `v2 research`, `v3 research`, `v4 research`); tests `tests/`
+(+ `tests/v3/`, `tests/v4/`); reproducibility manifests in
 `manifests/`. Never modify a closed generation's modules, configs or reports for later work.
