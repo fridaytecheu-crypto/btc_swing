@@ -374,11 +374,21 @@ class RawProcessor:
             # can finalise that bar (the kline's own exchange ts belongs to the next bar)
             for k in msg.get("data") or []:
                 if k.get("confirm") and int(k["start"]) >= self.min_ts_ms:
-                    b = self._bar_for(int(k["start"]))
+                    start = int(k["start"])
+                    b = self._bar_for(start)
                     if b is not None:
                         b.kline_close = float(k["close"])
                         b.kline_volume = float(k["volume"])
                         b.kline_confirmed = 1.0
+                        continue
+                    # the bar was already finalised by an earlier message of the next bar (the
+                    # confirmed kline arrives a few hundred ms after the close): patch the
+                    # pending row before it is written
+                    for row in self._pending_rows:
+                        if row["open_time_ms"] == start:
+                            row["kline_close"] = float(k["close"])
+                            row["kline_volume"] = float(k["volume"])
+                            row["kline_confirmed"] = 1.0
             return
         bar = self._bar_for(ts_ex)
         if ch.startswith("tickers"):

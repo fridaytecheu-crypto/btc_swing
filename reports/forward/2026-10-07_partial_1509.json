@@ -1,0 +1,256 @@
+{
+ "bars": {
+  "bars_without_trades": 0,
+  "book_valid_share": 1.0,
+  "expected_if_full_day": 288,
+  "first_bar": "2026-10-07T14:55:00+00:00",
+  "forward_bars_today": 2,
+  "gap_filled_today": 0,
+  "kline_confirmed_share": 0.0,
+  "last_bar_close": "2026-10-07T15:05:00+00:00",
+  "latency_p50_ms_median": 44.5,
+  "messages_today": 27449
+ },
+ "collector": {
+  "by_topic_current_process": {
+   "kline.5.BTCUSDT": 60,
+   "orderbook.1.BTCUSDT": 1820,
+   "orderbook.50.BTCUSDT": 2808,
+   "publicTrade.BTCUSDT": 719,
+   "subscribe": 1,
+   "tickers.BTCUSDT": 592
+  },
+  "last_orderbook_u": {
+   "orderbook.1.BTCUSDT": 113304077,
+   "orderbook.50.BTCUSDT": 216624141
+  },
+  "latency_ms_current_process": {
+   "max": 1223.0,
+   "n": 5999.0,
+   "p50": 30.0,
+   "p90": 37.0,
+   "p99": 97.0
+  },
+  "newest_raw_file_mtime": "2026-10-07T15:09:30.335823+00:00",
+  "process_alive": true,
+  "raw_bytes_today": 32277415,
+  "raw_files_today": 2,
+  "state_saved_at": "2026-10-07T15:09:26.863186+00:00",
+  "stats_current_process": {
+   "bytes_written": 3866621,
+   "duplicates": 0,
+   "errors": 0,
+   "messages": 6000,
+   "messages_per_second": 92.94393523599436,
+   "reconnects": 0,
+   "sequence_gap_rate": 0.0,
+   "sequence_gaps": 0,
+   "stale_timeouts": 0,
+   "uptime_seconds": 64.55504584312439
+  }
+ },
+ "cumulative": {
+  "closed_trades": 0,
+  "cumulative_net_pnl": 0,
+  "equity_mtm": 10000.0,
+  "equity_realised": 10000.0,
+  "integrity_errors": [],
+  "max_drawdown_frac": 0.0,
+  "mean_gross_R": null,
+  "mean_net_R": null,
+  "win_rate": null
+ },
+ "cycles_today": 1,
+ "daily_pnl_usdt": 0,
+ "day": "2026-10-07",
+ "family_breakdown_cumulative": [
+  {
+   "family": "LIQUIDATION_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "ALL",
+   "sum_pnl": 0
+  },
+  {
+   "family": "LIQUIDATION_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "LONG",
+   "sum_pnl": 0
+  },
+  {
+   "family": "LIQUIDATION_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "SHORT",
+   "sum_pnl": 0
+  },
+  {
+   "family": "ABSORPTION_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "ALL",
+   "sum_pnl": 0
+  },
+  {
+   "family": "ABSORPTION_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "LONG",
+   "sum_pnl": 0
+  },
+  {
+   "family": "ABSORPTION_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "SHORT",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_OI_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "ALL",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_OI_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "LONG",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_OI_CONTINUATION",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "SHORT",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_DIVERGENCE_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "ALL",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_DIVERGENCE_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "LONG",
+   "sum_pnl": 0
+  },
+  {
+   "family": "FLOW_DIVERGENCE_REVERSAL",
+   "mean_gross_R": NaN,
+   "mean_net_R": NaN,
+   "n": 0,
+   "side": "SHORT",
+   "sum_pnl": 0
+  }
+ ],
+ "frozen_v5_config_hash": "d18ebf19bd0cde67be1c27683d3e7ad0385d2456a6edaa1fe55146f013096177",
+ "generated_at": "2026-10-07T15:09:30.325000+00:00",
+ "liquidations_today": {
+  "bars_with_liquidations": 1,
+  "intensity_btc_per_hour": 3.2520000000000002,
+  "liq_to_volume_ratio": 0.0015153463768684443,
+  "long_notional": 44767.32880000001,
+  "long_qty_btc": 0.542,
+  "max_5m_burst_qty_btc": 0.542,
+  "max_single_qty_btc": 0.399,
+  "n_long": 3,
+  "n_short": 0,
+  "short_notional": 0.0,
+  "short_qty_btc": 0.0
+ },
+ "matured_outcomes_today": 0,
+ "observation_start": "2026-10-07T14:59:22.972000+00:00",
+ "open_paper_position": null,
+ "outcomes_cumulative": {
+  "mean_fwd_0.25h": NaN,
+  "mean_fwd_0.5h": NaN,
+  "mean_fwd_12h": NaN,
+  "mean_fwd_1h": NaN,
+  "mean_fwd_2h": NaN,
+  "mean_fwd_4h": NaN,
+  "mean_fwd_8h": NaN,
+  "mean_hyp_gross_R": NaN,
+  "mean_hyp_net_R": NaN,
+  "n": 0
+ },
+ "paper_closed_today_list": [],
+ "paper_trades_closed_today": 0,
+ "paper_trades_opened_today": 0,
+ "partial": true,
+ "signals_cumulative": 0,
+ "signals_today": 0,
+ "signals_today_by_family_side": [
+  {
+   "family": "LIQUIDATION_CONTINUATION",
+   "n": 0,
+   "side": "LONG"
+  },
+  {
+   "family": "LIQUIDATION_CONTINUATION",
+   "n": 0,
+   "side": "SHORT"
+  },
+  {
+   "family": "ABSORPTION_REVERSAL",
+   "n": 0,
+   "side": "LONG"
+  },
+  {
+   "family": "ABSORPTION_REVERSAL",
+   "n": 0,
+   "side": "SHORT"
+  },
+  {
+   "family": "FLOW_OI_CONTINUATION",
+   "n": 0,
+   "side": "LONG"
+  },
+  {
+   "family": "FLOW_OI_CONTINUATION",
+   "n": 0,
+   "side": "SHORT"
+  },
+  {
+   "family": "FLOW_DIVERGENCE_REVERSAL",
+   "n": 0,
+   "side": "LONG"
+  },
+  {
+   "family": "FLOW_DIVERGENCE_REVERSAL",
+   "n": 0,
+   "side": "SHORT"
+  }
+ ],
+ "signals_today_list": [],
+ "warmup": {
+  "atr": true,
+  "basis_z": false,
+  "book_imb_1": true,
+  "cvd_slope_1h_z": true,
+  "fund_z": false,
+  "imbalance_1h_z": true,
+  "oi_chg_1h_z": false,
+  "prem_z": false,
+  "ret_1h_z": true,
+  "trend_4h": true,
+  "vol_1h_z": true
+ }
+}

@@ -122,6 +122,15 @@ def _messages() -> list[str]:
             },
         ),
         _row(
+            "orderbook.50.BTCUSDT",
+            T0 + MS_5M + 50,
+            {
+                "type": "delta",
+                "ts": T0 + MS_5M + 50,
+                "data": {"s": "BTCUSDT", "b": [], "a": [], "u": 3, "seq": 3},
+            },
+        ),
+        _row(
             "kline.5.BTCUSDT",
             T0 + MS_5M + 100,
             {
