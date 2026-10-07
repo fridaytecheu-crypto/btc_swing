@@ -13,9 +13,11 @@ increase by one between deltas; a snapshot resets), latency statistics, append-o
 from __future__ import annotations
 
 import asyncio
+import gzip
 import hashlib
 import json
 import logging
+import shutil
 import time
 from collections import OrderedDict, deque
 from dataclasses import dataclass, field
@@ -74,15 +76,36 @@ class CollectorStats:
         }
 
 
+def _read_text(f: Path) -> str:
+    if f.suffix == ".gz":
+        with gzip.open(f, "rt", encoding="utf-8") as fh:
+            return str(fh.read())
+    return f.read_text(encoding="utf-8")
+
+
 class RawStore:
     """Append-only hourly JSONL files + a small state file. Verifiable by re-hashing payloads."""
 
-    def __init__(self, root: Path, symbol: str) -> None:
+    def __init__(self, root: Path, symbol: str, compress_closed: bool = False) -> None:
         self.root = root / "btc" / "forward" / "bybit" / symbol
         self.root.mkdir(parents=True, exist_ok=True)
         self.state_path = self.root / "state.json"
         self._fh: Any = None
         self._fh_key = ""
+        self.compress_closed = compress_closed
+
+    @staticmethod
+    def _compress(path: Path) -> None:
+        """gzip a closed hourly file in place (content unchanged; a later verify re-hashes it).
+        Appends from a later restart in the same hour go to a fresh `.jsonl` next to the `.gz`."""
+        if not path.exists() or path.suffix != ".jsonl":
+            return
+        gz = path.with_suffix(".jsonl.gz")
+        if gz.exists():
+            gz = path.with_name(f"{path.stem}.{int(time.time())}.jsonl.gz")
+        with path.open("rb") as src, gzip.open(gz, "wb", compresslevel=6) as dst:
+            shutil.copyfileobj(src, dst)
+        path.unlink()
 
     def _file_for(self, ts_ms: int) -> Path:
         d = datetime.fromtimestamp(ts_ms / 1000, tz=UTC)
@@ -96,6 +119,8 @@ class RawStore:
         if key != self._fh_key:
             if self._fh is not None:
                 self._fh.close()
+                if self.compress_closed and self._fh_key:
+                    self._compress(Path(self._fh_key))
             self._fh = path.open("a", encoding="utf-8")
             self._fh_key = key
         line = json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n"
@@ -124,11 +149,11 @@ class RawStore:
 
     def verify(self) -> dict[str, Any]:
         """Re-read every stored line, re-hash payloads and count rows per channel."""
-        files = sorted(self.root.glob("*/*.jsonl"))
+        files = sorted(p for p in self.root.glob("*/*.jsonl*") if p.suffix in (".jsonl", ".gz"))
         n = bad = 0
         by_channel: dict[str, int] = {}
         for f in files:
-            for line in f.read_text(encoding="utf-8").splitlines():
+            for line in _read_text(f).splitlines():
                 if not line:
                     continue
                 n += 1
@@ -145,14 +170,22 @@ class RawStore:
 class BybitPublicCollector:
     def __init__(self, cfg: CollectorCfg, data_dir: Path) -> None:
         self.cfg = cfg
-        self.store = RawStore(data_dir, cfg.symbol)
+        self.store = RawStore(
+            data_dir, cfg.symbol, bool(getattr(cfg, "compress_closed_hours", False))
+        )
         self.stats = CollectorStats()
         self._seen: OrderedDict[str, None] = OrderedDict()
-        self._last_u: int | None = None
+        self._last_u: dict[
+            str, int
+        ] = {}  # per order-book topic (depth levels are independent streams)
         self._stop = asyncio.Event()
         self._force_reconnect = asyncio.Event()
         st = self.store.load_state()
-        self._last_u = st.get("last_orderbook_u")
+        lu = st.get("last_orderbook_u")
+        if isinstance(lu, dict):
+            self._last_u = {str(k): int(v) for k, v in lu.items()}
+        elif isinstance(lu, int):
+            self._last_u = {"orderbook.50." + cfg.symbol: lu}
         self._resumed_from = st
 
     # ------------------------------------------------------------------ dedupe / sequence
@@ -164,7 +197,9 @@ class BybitPublicCollector:
             uid = str(data.get("u", data.get("seq", "")))
         elif isinstance(data, list) and data:
             first = data[0] if isinstance(data[0], dict) else {}
-            uid = str(first.get("i", first.get("T", "")))
+            uid = str(first.get("i", first.get("start", first.get("T", ""))))
+            if len(data) > 1:
+                uid += f"|{len(data)}"
         return f"{topic}|{d.get('ts', '')}|{uid}"
 
     def _is_duplicate(self, key: str) -> bool:
@@ -176,19 +211,21 @@ class BybitPublicCollector:
         return False
 
     def _check_sequence(self, d: dict[str, Any]) -> None:
-        if not str(d.get("topic", "")).startswith("orderbook."):
+        topic = str(d.get("topic", ""))
+        if not topic.startswith("orderbook."):
             return
         data = d.get("data") or {}
         u = data.get("u")
         if u is None:
             return
         if d.get("type") == "snapshot":
-            self._last_u = int(u)
+            self._last_u[topic] = int(u)
             return
         self.stats.orderbook_deltas += 1
-        if self._last_u is not None and int(u) != self._last_u + 1:
+        last = self._last_u.get(topic)
+        if last is not None and int(u) != last + 1:
             self.stats.sequence_gaps += 1
-        self._last_u = int(u)
+        self._last_u[topic] = int(u)
 
     # ------------------------------------------------------------------ run
     async def run(

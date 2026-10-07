@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-06, V5 research done)
+# Handoff — state of work and next steps (2026-10-07, V5 research done; forward observation running)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -127,7 +127,15 @@
   report and two 12 h strength-tercile cells of family C (NaN-propagated means recomputed as
   NaN-aware means from the persisted `events.parquet`) were edited in the generated markdown by hand
   (cosmetic, disclosed here; the code fix is committed for reproduction).
-- No live or paper trading exists. 2022-01..2026-09 is development data for every generation.
+- V5 FORWARD OBSERVATION MODE (`btc_swing/v5/forward/`, `config/btc_swing_v5_forward.yaml`,
+  `docs/V5_FORWARD_OBSERVATION_RUNBOOK.md`, freeze `manifests/v5_forward_freeze.json`, CLI
+  `btc-swing v5 forward freeze|seed|run|cycle|status|report`, snapshots `reports/forward/`):
+  the frozen V5 strategy is recorded prospectively on live Bybit public data (trades, book,
+  tickers, liquidations, klines) with a virtual paper ledger; observation start 2026-10-07
+  14:59:22 UTC; seed = 46 Bybit archive days (2026-08-22..2026-10-06). OI/funding/basis z-scores
+  warm up forward (10 days / 30 days), so families A, C and D cannot fire before ~2026-10-17.
+  No orders, no credentials. The runner must live on a persistent host (see the runbook).
+- No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
   survives costs on this instrument at these horizons; the recurring finding is a small gross edge
@@ -155,6 +163,8 @@ uv run btc-swing v4 research --out data/btc/runs/v4_event_positioning_research #
 uv run btc-swing v5 ingest --start 2021-12-01 --end 2026-09-30            # V5 archive datasets (index klines, bookDepth, aggTrades -> 5m flow; ~1 h)
 uv run btc-swing v5 collect --duration 900 --reconnect-after 420            # Bybit PUBLIC collector verification run (no auth, no orders)
 uv run btc-swing v5 research --out data/btc/runs/v5_microstructure_research --collector-stats manifests/v5_bybit_collector_verification.json  # V5 Stage A + Stage B (~8 min)
+uv run btc-swing v5 forward freeze && uv run btc-swing v5 forward seed && nohup uv run btc-swing v5 forward run &   # forward observation (see docs/V5_FORWARD_OBSERVATION_RUNBOOK.md)
+uv run btc-swing v5 forward status                                          # live status
 bash scripts/check.sh
 ```
 

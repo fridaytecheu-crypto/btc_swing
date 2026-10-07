@@ -304,7 +304,7 @@ def test_collector_store_dedupe_and_sequence(tmp_path: Path) -> None:
     )
     # resumability: a new collector reads the last order-book update id from state
     col2 = BybitPublicCollector(cfg, tmp_path)
-    assert col2._last_u == 13 and col2._resumed_from
+    assert col2._last_u == {"orderbook.50.BTCUSDT": 13} and col2._resumed_from
 
 
 def test_execution_abstraction_not_activated() -> None:

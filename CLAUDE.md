@@ -18,6 +18,9 @@ V5 (microstructure & liquidation driven, `btc_swing/v5/`): `docs/BTC_SWING_V5_DE
 `btc_swing/v5/collector.py` is a PUBLIC-data Bybit collector (no auth); `btc_swing/v5/execution.py`
 is a Bybit Demo execution abstraction that is designed but NOT activated (never activate it inside a
 research phase; no credentials exist or are required).
+V5 FORWARD OBSERVATION MODE (`btc_swing/v5/forward/`, `docs/V5_FORWARD_OBSERVATION_RUNBOOK.md`): the
+frozen V5 strategy recorded prospectively on live Bybit public data; never change a V5 rule during
+the observation; snapshots in `reports/forward/` are immutable.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
@@ -43,5 +46,5 @@ See README.md. Config `config/btc_swing.default.yaml` (V1, frozen) and `config/b
 `config/btc_swing_v5.yaml` (V5, frozen); CLI
 `btc-swing` (`data probe`, `data ingest`, `backtest`, `phase2`, `phase21`, `phase22`, `phase23`,
 `phase24`, `phase3-freeze`, `phase3`, `v2 research`, `v3 research`, `v4 research`, `v5 ingest`,
-`v5 collect`, `v5 research`); tests `tests/` (+ `tests/v3/`, `tests/v4/`, `tests/v5/`); reproducibility manifests in
+`v5 collect`, `v5 research`, `v5 forward freeze|seed|run|cycle|status|report`); tests `tests/` (+ `tests/v3/`, `tests/v4/`, `tests/v5/`); reproducibility manifests in
 `manifests/`. Never modify a closed generation's modules, configs or reports for later work.

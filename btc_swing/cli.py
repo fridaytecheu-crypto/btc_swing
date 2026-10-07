@@ -754,5 +754,110 @@ def v5_research(
     )
 
 
+forward_app = typer.Typer(
+    help="V5 FORWARD OBSERVATION MODE: frozen V5 signals recorded prospectively on live Bybit "
+    "public data; virtual paper ledger; no orders, no credentials"
+)
+v5_app.add_typer(forward_app, name="forward")
+
+
+def _forward_ctx(forward_config: Path) -> Any:
+    from btc_swing.v5.forward.config import ForwardPaths, load_forward_config, load_frozen_v5
+    from btc_swing.v5.forward.freeze import check_freeze
+    from btc_swing.v5.forward.pipeline import ForwardContext
+
+    fcfg = load_forward_config(forward_config)
+    cfg = load_frozen_v5(fcfg)
+    rec = check_freeze(cfg)
+    return ForwardContext(
+        fcfg, cfg, ForwardPaths(_data_dir(), fcfg.symbol), int(rec["observation_start_ms"])
+    )
+
+
+@forward_app.command("freeze")
+def forward_freeze(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """Record the frozen V5 config hash, forward config hash, code commit and the observation
+    start timestamp (manifests/v5_forward_freeze.json). Idempotent; refuses a changed V5 hash."""
+    from btc_swing.v5.forward.config import load_forward_config, load_frozen_v5
+    from btc_swing.v5.forward.freeze import write_freeze
+
+    fcfg = load_forward_config(forward_config)
+    rec = write_freeze(load_frozen_v5(fcfg), fcfg)
+    console.print_json(json.dumps({k: v for k, v in rec.items() if not k.endswith("_yaml")}))
+
+
+@forward_app.command("seed")
+def forward_seed(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """Warm-up bars from the Bybit PUBLIC trading archive for the days before the observation
+    start (never on or after the collector's first day)."""
+    from btc_swing.v5.forward.pipeline import extend_seed
+    from btc_swing.v5.forward.seed import seed_summary
+
+    ctx = _forward_ctx(forward_config)
+    out = extend_seed(ctx, int(datetime.now(UTC).timestamp() * 1000))
+    console.print_json(
+        json.dumps({"ingest": out, "seed": seed_summary(ctx.paths.seed)}, default=str)
+    )
+
+
+@forward_app.command("cycle")
+def forward_cycle(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """One evaluation cycle (raw -> bars -> frozen signals -> paper ledger -> outcomes)."""
+    from btc_swing.v5.forward.pipeline import run_cycle
+
+    out = run_cycle(_forward_ctx(forward_config))
+    console.print_json(
+        json.dumps(
+            {k: v for k, v in out.items() if k != "paper"}
+            | {"paper": {k: v for k, v in out["paper"].items() if k != "open_position"}},
+            default=str,
+        )
+    )
+
+
+@forward_app.command("run")
+def forward_run(
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    duration: float | None = None,
+    reports_dir: Path = Path("reports/forward"),
+) -> None:
+    """Run the collector and the 5-minute cycle continuously (or for --duration seconds); the
+    previous UTC day's immutable report is written at 00:05 UTC. Ctrl-C / SIGTERM stops cleanly."""
+    from btc_swing.v5.forward.runner import run_forward
+
+    out = run_forward(_forward_ctx(forward_config), reports_dir, duration)
+    console.print_json(json.dumps(out, default=str))
+
+
+@forward_app.command("status")
+def forward_status(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """Live status: collector, last message, open paper position, signals/trades today, cumulative result."""
+    from btc_swing.v5.forward.report import status
+
+    console.print_json(json.dumps(status(_forward_ctx(forward_config)), default=str))
+
+
+@forward_app.command("report")
+def forward_report(
+    day: str | None = None,
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    reports_dir: Path = Path("reports/forward"),
+) -> None:
+    """Write the immutable daily snapshot for DAY (default: today, labelled PARTIAL while the day runs)."""
+    from btc_swing.v5.forward.report import write_day_report
+
+    d = day or datetime.now(UTC).strftime("%Y-%m-%d")
+    p = write_day_report(_forward_ctx(forward_config), d, reports_dir)
+    console.print_json(
+        json.dumps(
+            {
+                "day": d,
+                "written": str(p) if p else None,
+                "note": None if p else "already exists (immutable)",
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

@@ -1,0 +1,38 @@
+# BTC Swing V5 — FORWARD OBSERVATION MODE. Observational only: no orders, no credentials, no rule changes.
+# The strategy itself is the FROZEN V5 configuration (config/btc_swing_v5.yaml, hash recorded by
+# `btc-swing v5 forward freeze`); this file only configures collection, scheduling and reporting.
+v5_config: config/btc_swing_v5.yaml
+symbol: BTCUSDT
+venue: bybit_linear_perp
+
+collector:
+  url: wss://stream.bybit.com/v5/public/linear
+  symbol: BTCUSDT
+  topics: [publicTrade.BTCUSDT, orderbook.1.BTCUSDT, orderbook.50.BTCUSDT, tickers.BTCUSDT, allLiquidation.BTCUSDT, kline.5.BTCUSDT]
+  stale_seconds: 30
+  ping_seconds: 20
+  reconnect_backoff_seconds: [1, 2, 5, 10, 30]
+  dedupe_cache_size: 50000
+  compress_closed_hours: true     # closed hourly JSONL files are gzip-compressed in place (content unchanged, hashes verifiable)
+
+seed:
+  source: bybit_public_trading_archive      # https://public.bybit.com/trading/BTCUSDT/<SYMBOL><YYYY-MM-DD>.csv.gz
+  days_before_start: 45                     # bars + taker flow warm-up (ATR, EMA, 4H trend, flow z-scores); OI/funding/basis warm up forward only
+  big_trade_qty_btc: 1.0
+
+bars:
+  max_gap_fill_bars: 288          # collector gaps up to 24 h are carried as flagged zero-volume bars (previous close); longer gaps break the series
+  book_depth_pct: 1.0             # depth within +-1% of mid from the 50-level book (truncated when the book does not reach 1%)
+
+schedule:
+  cycle_seconds: 300              # signal evaluation every 5 minutes, at bar close + grace
+  cycle_grace_seconds: 20
+  daily_report_utc_minute: 5      # the previous UTC day's immutable report is written at 00:05 UTC
+
+paper:
+  risk_per_trade: 0.0025
+  initial_equity: 10000.0
+
+observation:
+  minimum_days: 14
+  preferred_days: 28
