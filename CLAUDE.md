@@ -20,7 +20,8 @@ is a Bybit Demo execution abstraction that is designed but NOT activated (never 
 research phase; no credentials exist or are required).
 V5 FORWARD OBSERVATION MODE (`btc_swing/v5/forward/`, `docs/V5_FORWARD_OBSERVATION_RUNBOOK.md`): the
 frozen V5 strategy recorded prospectively on live Bybit public data; never change a V5 rule during
-the observation; snapshots in `reports/forward/` are immutable.
+the observation; snapshots in `reports/forward/` are immutable. Deployment/migration: `deploy/`,
+`docs/V5_FORWARD_DEPLOYMENT.md` (`v5 forward status-text|health|integrity|export|verify`).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.

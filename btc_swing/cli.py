@@ -859,5 +859,112 @@ def forward_report(
     )
 
 
+@forward_app.command("health")
+def forward_health(
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    stale_seconds: float = 120.0,
+    bar_stale_seconds: float = 900.0,
+    min_free_gb: float = 5.0,
+) -> None:
+    """Monitoring check (exit 1 on a problem): runner alive, collector heartbeat, stale data,
+    bar lag, disk. Run it from a systemd timer or cron."""
+    from btc_swing.v5.forward.ops import health
+
+    out = health(
+        _forward_ctx(forward_config), _data_dir(), stale_seconds, bar_stale_seconds, min_free_gb
+    )
+    console.print_json(json.dumps(out, default=str))
+    if not out["ok"]:
+        raise typer.Exit(code=1)
+
+
+@forward_app.command("status-text")
+def forward_status_text(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """One-screen plain-text status (runner, collector, last message/bar, latency, gaps,
+    duplicates, signals, paper ledger, disk, observation start, frozen hash)."""
+    from btc_swing.v5.forward.ops import status_text
+
+    typer.echo(status_text(_forward_ctx(forward_config), _data_dir()))
+
+
+@forward_app.command("integrity")
+def forward_integrity(
+    out: Path | None = None,
+    compare: Path | None = None,
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Integrity snapshot of every stateful artefact (counts, uniqueness, hashes). With
+    --compare BEFORE.json, check that the current state is a faithful continuation."""
+    from btc_swing.v5.forward.ops import integrity_compare, integrity_snapshot
+
+    ctx = _forward_ctx(forward_config)
+    snap = integrity_snapshot(ctx)
+    if out:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(snap, indent=1, sort_keys=True, default=str))
+    if compare:
+        res = integrity_compare(json.loads(compare.read_text()), snap, ctx)
+        console.print_json(json.dumps(res, default=str))
+        if not res["ok"]:
+            raise typer.Exit(code=1)
+    else:
+        console.print_json(
+            json.dumps(
+                {k: v for k, v in snap.items() if k not in ("raw", "seed", "bars")}
+                | {
+                    "bars": {k: v for k, v in snap["bars"].items() if k != "partition_sha256"},
+                    "raw_files": snap["raw"]["files"],
+                    "seed_days": snap["seed"]["days"],
+                    "written": str(out) if out else None,
+                },
+                default=str,
+            )
+        )
+
+
+@forward_app.command("export")
+def forward_export(
+    out: Path = Path("data/btc/forward_export/v5_forward_state.tar.gz"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    include_seed_raw: bool = False,
+) -> None:
+    """Cold migration export: tar.gz of raw data, collector state, seed, derived bars, processor
+    offsets, signal/outcome journals, paper ledger, logs, freeze manifest and configs, plus a
+    sha256 manifest. Stop the runner first."""
+    from btc_swing.v5.forward.freeze import FREEZE_PATH
+    from btc_swing.v5.forward.ops import export_state
+
+    ctx = _forward_ctx(forward_config)
+    man = export_state(
+        ctx, out, FREEZE_PATH, [forward_config, Path(ctx.fcfg.v5_config)], include_seed_raw
+    )
+    console.print_json(
+        json.dumps(
+            {k: v for k, v in man.items() if k not in ("files", "integrity")}
+            | {
+                "integrity_bars": man["integrity"]["bars"]["rows"],
+                "integrity_signals": man["integrity"]["signals"]["lines"],
+            },
+            default=str,
+        )
+    )
+
+
+@forward_app.command("verify")
+def forward_verify(
+    manifest: Path = Path("data/btc/forward_export/v5_forward_state.manifest.json"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """On the target host after extraction: re-hash every migrated file against the manifest and
+    check the freeze hash. Exit 1 on any mismatch."""
+    from btc_swing.v5.forward.freeze import FREEZE_PATH
+    from btc_swing.v5.forward.ops import verify_state
+
+    res = verify_state(_data_dir(), manifest, FREEZE_PATH, forward_config.parent)
+    console.print_json(json.dumps(res, default=str))
+    if not res["ok"]:
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":
     app()

@@ -53,7 +53,14 @@ class CollectorStats:
         def q(p: float) -> float:
             return xs[min(len(xs) - 1, int(p * len(xs)))]
 
-        return {"p50": q(0.5), "p90": q(0.9), "p99": q(0.99), "max": xs[-1], "n": float(len(xs))}
+        return {
+            "p50": q(0.5),
+            "p90": q(0.9),
+            "p95": q(0.95),
+            "p99": q(0.99),
+            "max": xs[-1],
+            "n": float(len(xs)),
+        }
 
     def as_dict(self) -> dict[str, Any]:
         up = time.time() - self.started_at

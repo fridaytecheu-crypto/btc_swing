@@ -1,0 +1,14 @@
+# One-shot health check (runner alive, collector heartbeat, stale data, bar lag, disk). Exit 1 = problem.
+[Unit]
+Description=BTC V5 forward observation health check
+After=btc-v5-forward.service
+OnFailure=btc-v5-forward-alert.service
+
+[Service]
+Type=oneshot
+User=btcswing
+Group=btcswing
+WorkingDirectory=/opt/btc_swing
+EnvironmentFile=/etc/btc-v5-forward.env
+ExecStart=/opt/btc_swing/.venv/bin/btc-swing v5 forward health --stale-seconds ${HEALTH_STALE_SECONDS} --bar-stale-seconds ${HEALTH_BAR_STALE_SECONDS} --min-free-gb ${HEALTH_MIN_FREE_GB}
+SyslogIdentifier=btc-v5-forward-health

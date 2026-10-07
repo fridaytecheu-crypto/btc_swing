@@ -1,0 +1,12 @@
+# /etc/logrotate.d/btc-v5-forward — the runner keeps forward_run.log open, so copytruncate is used.
+# Raw market data files are compressed by the collector itself (hourly, gzip) and are NEVER rotated or deleted.
+/var/lib/btc_swing/btc/forward/logs/forward_run.log {
+    daily
+    rotate 60
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su btcswing btcswing
+}

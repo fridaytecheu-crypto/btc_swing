@@ -1,0 +1,12 @@
+# Triggered by OnFailure= of the health check. ALERT_CMD (in /etc/btc-v5-forward.env) receives the
+# status text on stdin; e.g. ALERT_CMD='mail -s "btc-v5-forward ALERT" you@example.com' or a curl to a webhook.
+[Unit]
+Description=BTC V5 forward observation alert
+
+[Service]
+Type=oneshot
+User=btcswing
+WorkingDirectory=/opt/btc_swing
+EnvironmentFile=/etc/btc-v5-forward.env
+ExecStart=/bin/sh -c '/opt/btc_swing/.venv/bin/btc-swing v5 forward status-text | ${ALERT_CMD:-logger -t btc-v5-forward-alert}'
+SyslogIdentifier=btc-v5-forward-alert

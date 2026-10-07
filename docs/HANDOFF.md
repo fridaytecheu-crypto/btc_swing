@@ -134,7 +134,13 @@
   tickers, liquidations, klines) with a virtual paper ledger; observation start 2026-10-07
   14:59:22 UTC; seed = 46 Bybit archive days (2026-08-22..2026-10-06). OI/funding/basis z-scores
   warm up forward (10 days / 30 days), so families A, C and D cannot fire before ~2026-10-17.
-  No orders, no credentials. The runner must live on a persistent host (see the runbook).
+  No orders, no credentials. The runner must live on a persistent host: deployment package in
+  `deploy/` (systemd service with restart/graceful stop, health timer + alert hook, logrotate,
+  journald), restart-safe cold migration (`v5 forward export|verify|integrity`, scripts
+  `deploy/migrate_export.sh` / `deploy/migrate_import.sh`) documented in
+  `docs/V5_FORWARD_DEPLOYMENT.md`; a local rehearsal (export, verify, cycle, integrity comparison)
+  passed. The cloud-container runner died once when the session restarted (15:25-15:58 UTC on
+  2026-10-07, carried as flagged gap bars) which is exactly why the persistent host is needed.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

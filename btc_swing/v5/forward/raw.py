@@ -308,9 +308,17 @@ class RawProcessor:
     def _files(self) -> list[Path]:
         return sorted(p for p in self.raw_dir.glob("*/*.jsonl*") if p.suffix in (".jsonl", ".gz"))
 
-    @staticmethod
-    def _key(p: Path) -> str:
-        return str(p).removesuffix(".gz")
+    def _key(self, p: Path) -> str:
+        """Offset key: path RELATIVE to the raw directory (host-independent), without `.gz`."""
+        return p.relative_to(self.raw_dir).as_posix().removesuffix(".gz")
+
+    def _legacy_key(self, key: str) -> str:
+        """Offsets written by an earlier build stored the path as given on that host; keep the
+        trailing `<day>/<HH>.jsonl` part so a migrated state resumes at the same line."""
+        if not key or "/" not in key:
+            return key
+        parts = key.replace("\\", "/").split("/")
+        return "/".join(parts[-2:]) if len(parts) >= 2 else key
 
     @staticmethod
     def _iter_lines(p: Path) -> Any:
@@ -431,7 +439,10 @@ class RawProcessor:
     def process(self, now_ms: int, grace_ms: int = 20_000) -> int:
         """Consume new raw lines; finalise bars proven complete by later messages or by the wall
         clock (now - grace past the bar close). Returns the number of bars written."""
-        start_file, start_line = str(self.state.get("file", "")), int(self.state.get("line", 0))
+        start_file, start_line = (
+            self._legacy_key(str(self.state.get("file", ""))),
+            int(self.state.get("line", 0)),
+        )
         self._cur = None
         self._pending_rows = []
         self._seen.pop(str(self.state.get("replay_sha", "")), None)

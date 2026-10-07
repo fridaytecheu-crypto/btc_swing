@@ -1,0 +1,41 @@
+# systemd unit for the BTC V5 forward observation runner (collector + 5-minute cycle + daily report).
+# Install: sudo cp deploy/btc-v5-forward.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#          sudo systemctl enable --now btc-v5-forward
+# Observational only: no orders, no credentials, no V5 rule changes.
+[Unit]
+Description=BTC V5 forward observation runner (Bybit public data, virtual paper ledger)
+Documentation=file:///opt/btc_swing/docs/V5_FORWARD_DEPLOYMENT.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=btcswing
+Group=btcswing
+WorkingDirectory=/opt/btc_swing
+EnvironmentFile=/etc/btc-v5-forward.env
+# The venv binary is used directly: no network access is needed to start.
+ExecStart=/opt/btc_swing/.venv/bin/btc-swing v5 forward run
+# Graceful shutdown: SIGTERM -> collector flushes and saves state, cycle loop stops.
+KillSignal=SIGTERM
+KillMode=mixed
+TimeoutStopSec=90
+# Always come back (crash, OOM, network loss): restart-safe by design (offsets, journals, state file).
+Restart=always
+RestartSec=30
+# Journal (persistent, see journald.conf) + the application's own file log under $BTC_DATA_DIR/btc/forward/logs.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=btc-v5-forward
+# Hardening (the runner only needs the repo (read), the data directory (write) and outbound HTTPS/WSS).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/btc_swing /opt/btc_swing/reports/forward
+LimitNOFILE=65536
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

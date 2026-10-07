@@ -44,6 +44,10 @@ nohup uv run btc-swing v5 forward run > forward_run.out 2>&1 &     # collector +
 uv run btc-swing v5 forward status           # collector status, last message, open paper position, signals/trades today, cumulative result
 uv run btc-swing v5 forward cycle            # one manual cycle (safe while the runner is stopped)
 uv run btc-swing v5 forward report [--day YYYY-MM-DD]   # immutable snapshot (PARTIAL while the day runs)
+uv run btc-swing v5 forward status-text      # one-screen status (runner, collector, last message/bar, latency, gaps, duplicates, signals, paper, disk, start, hash)
+uv run btc-swing v5 forward health           # monitoring check, exit 1 on a problem
+uv run btc-swing v5 forward integrity [--out f] [--compare before.json]   # integrity snapshot / continuation proof
+uv run btc-swing v5 forward export | verify  # cold migration bundle with sha256 manifest / re-hash on the target
 ```
 Stop: `kill -TERM $(cat data/btc/forward/forward_run.pid)`; the collector flushes and saves state.
 Restart: run the same `forward run` command. The processor replays raw files from its stored
@@ -100,6 +104,8 @@ and closed paper positions, daily and cumulative P&L, gross/net expectancy, fami
 matured outcomes, liquidation diagnostics.
 
 ## 9. Hosting note
+Deployment package and the restart-safe migration procedure (systemd units, health timer,
+logrotate, export/verify/integrity commands): `docs/V5_FORWARD_DEPLOYMENT.md` and `deploy/`.
 This repository's cloud session container is ephemeral; a 2-4 week run needs a persistent host
 (any Linux machine with Python 3.12, `uv sync --all-extras`, outbound access to
 `stream.bybit.com` and `public.bybit.com`, ~0.5 GB/day of compressed raw data). Copy the whole
