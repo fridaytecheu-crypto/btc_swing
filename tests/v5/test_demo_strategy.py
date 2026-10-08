@@ -34,7 +34,9 @@ def _dcfg(ref_equity: float = 5000.0) -> Any:
     return d.model_copy(update={"reference_equity_usdt": ref_equity})
 
 
-def _exec(tmp: Path, fake: FakeBybitDemo, ref_equity: float = 5000.0) -> StrategyDemoExecutor:
+def _exec(
+    tmp: Path, fake: FakeBybitDemo, ref_equity: float = 5000.0, activated_at_ms: int | None = 0
+) -> StrategyDemoExecutor:
     dcfg = _dcfg(ref_equity)
     j = HashChainJournal(tmp / "strategy_journal.jsonl", "strategy_demo", forbid_tags=(SMOKE_TAG,))
     cl = BybitDemoClient(
@@ -58,6 +60,7 @@ def _exec(tmp: Path, fake: FakeBybitDemo, ref_equity: float = 5000.0) -> Strateg
         {"status": "PASSED"},
         clock=lambda: fake.now_ms / 1000,
         sleep=lambda s: None,
+        activated_at_ms=activated_at_ms,
     )
 
 

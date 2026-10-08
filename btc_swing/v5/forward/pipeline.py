@@ -192,7 +192,10 @@ def _gap_fill(df: pl.DataFrame, max_gap: int) -> tuple[pl.DataFrame, list[dict[s
 def assemble(ctx: ForwardContext) -> Assembled:
     fwd = load_forward_bars(ctx.paths.bars_dir)
     fwd_first = int(fwd["open_time_ms"].min()) if fwd.height else None  # type: ignore[arg-type]
-    seed = load_seed_bars(ctx.paths.seed, before_ms=fwd_first)
+    # seed (archive) bars are warm-up only: never after the observation start
+    seed = load_seed_bars(
+        ctx.paths.seed, before_ms=min(fwd_first, ctx.start_ms) if fwd_first else ctx.start_ms
+    )
     # bars with no trades inside the collector window are kept but flagged (never invented)
     frames = [s for s in (seed, fwd) if not s.is_empty()]
     if not frames:
@@ -614,6 +617,9 @@ def extend_seed(ctx: ForwardContext, now_ms: int) -> dict[str, Any]:
         # warm-up series fixed once forward bars exist, so re-derived decisions never change)
         first_day = int(fwd["open_time_ms"].min()) // DAY_MS * DAY_MS  # type: ignore[arg-type]
         yesterday = min(yesterday, first_day - DAY_MS)
+    # archive days are warm-up only: never on or after the observation start day, so a host that
+    # starts without forward bars can never evaluate archive data as prospective observation
+    yesterday = min(yesterday, ctx.start_ms // DAY_MS * DAY_MS - DAY_MS)
     first_needed = ctx.start_ms - ctx.fcfg.seed.days_before_start * DAY_MS
     days = [
         d for d in seed_days(yesterday + DAY_MS, int((yesterday + DAY_MS - first_needed) // DAY_MS))

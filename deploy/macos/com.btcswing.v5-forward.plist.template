@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  BTC V5 forward observation runner (Bybit public collector + 5-minute frozen-V5 cycle + daily report
+  + STRATEGY_DEMO only while an active STRATEGY_DEMO_ACTIVATED event exists for this host).
+  LaunchAgent in the owner's GUI domain (gui/<uid>): starts at login, restarts whenever it exits,
+  SIGTERM on stop (graceful: collector flushes and saves state), SIGKILL only after 90 s.
+  Rendered by deploy/macos/install_macos.sh (__REPO__, __DATA__, __HOME__). No secrets in this file:
+  demo credentials are read by run_forward.sh from ~/.config/btc_swing/demo.env (mode 600).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.btcswing.v5-forward</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/deploy/macos/run_forward.sh</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>BTC_DATA_DIR</key><string>__DATA__</string>
+    <key>BTC_SWING_REPO</key><string>__REPO__</string>
+    <key>PYTHONUNBUFFERED</key><string>1</string>
+    <key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>ExitTimeOut</key><integer>90</integer>
+  <key>ProcessType</key><string>Standard</string>
+  <key>StandardOutPath</key><string>__DATA__/btc/forward/logs/launchd.forward.out.log</string>
+  <key>StandardErrorPath</key><string>__DATA__/btc/forward/logs/launchd.forward.err.log</string>
+</dict>
+</plist>

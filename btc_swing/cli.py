@@ -927,6 +927,7 @@ def forward_export(
     out: Path = Path("data/btc/forward_export/v5_forward_state.tar.gz"),
     forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
     include_seed_raw: bool = False,
+    exclude_dir: list[str] | None = None,
 ) -> None:
     """Cold migration export: tar.gz of raw data, collector state, seed, derived bars, processor
     offsets, signal/outcome journals, paper ledger, logs, freeze manifest and configs, plus a
@@ -936,7 +937,12 @@ def forward_export(
 
     ctx = _forward_ctx(forward_config)
     man = export_state(
-        ctx, out, FREEZE_PATH, [forward_config, Path(ctx.fcfg.v5_config)], include_seed_raw
+        ctx,
+        out,
+        FREEZE_PATH,
+        [forward_config, Path(ctx.fcfg.v5_config)],
+        include_seed_raw,
+        tuple(exclude_dir or ()),
     )
     console.print_json(
         json.dumps(
@@ -964,6 +970,144 @@ def forward_verify(
     console.print_json(json.dumps(res, default=str))
     if not res["ok"]:
         raise typer.Exit(code=1)
+
+
+@forward_app.command("coverage")
+def forward_coverage(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """What forward data exists since the observation start and every period WITHOUT live
+    collector data (explicitly missing; never backfilled), plus duplicate counts."""
+    from btc_swing.v5.forward.ops import coverage
+
+    console.print_json(json.dumps(coverage(_forward_ctx(forward_config)), default=str))
+
+
+@forward_app.command("claim-authority")
+def forward_claim_authority(
+    note: str = typer.Option(..., help="why this host becomes the authoritative forward host"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Make THIS host the single authoritative forward host (append-only lease). Refuses while a
+    runner holds this data directory, while another host holds the lease, or on duplicate
+    bars/signals/paper trades. Freeze and observation start are verified first."""
+    from btc_swing.v5.demo.preflight import (
+        EXPECTED_OBSERVATION_START_MS,
+        EXPECTED_V5_HASH,
+        _runner_pids,
+    )
+    from btc_swing.v5.forward.host import claim_authority, lock_held
+    from btc_swing.v5.forward.ops import coverage
+
+    ctx = _forward_ctx(forward_config)
+    problems = []
+    if ctx.cfg.config_hash != EXPECTED_V5_HASH:
+        problems.append("frozen V5 config hash differs")
+    if ctx.start_ms != EXPECTED_OBSERVATION_START_MS:
+        problems.append("observation start differs")
+    if lock_held(ctx.paths.root / "forward_run.lock") or _runner_pids():
+        problems.append("a forward runner is running on this host: stop it first")
+    cov = coverage(ctx)
+    if any(int(v) for v in cov["duplicates"].values()):
+        problems.append(f"duplicates present: {cov['duplicates']}")
+    if problems:
+        console.print_json(json.dumps({"status": "REFUSED", "problems": problems}))
+        raise typer.Exit(code=1)
+    rec = claim_authority(
+        ctx.paths.root,
+        note,
+        {
+            "frozen_v5_config_hash": ctx.cfg.config_hash,
+            "observation_start": cov["observation_start"],
+            "last_completed_bar_close": cov["last_completed_bar_close"],
+            "missing_periods_at_claim": cov["missing_periods"],
+        },
+    )
+    console.print_json(json.dumps({"status": "CLAIMED", "lease": rec}, default=str))
+
+
+@forward_app.command("release-authority")
+def forward_release_authority(
+    note: str = typer.Option(..., help="why authority is released (e.g. cold migration to NUC)"),
+    legacy: bool = typer.Option(
+        False, help="record the release of a pre-lease host (no prior claim exists)"
+    ),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Release the authority lease (runner must be stopped). Afterwards no runner starts on this
+    data directory until a host claims it again."""
+    from btc_swing.v5.demo.preflight import _runner_pids
+    from btc_swing.v5.forward.host import lock_held, release_authority
+    from btc_swing.v5.forward.ops import coverage
+
+    ctx = _forward_ctx(forward_config)
+    if lock_held(ctx.paths.root / "forward_run.lock") or _runner_pids():
+        console.print_json(json.dumps({"status": "REFUSED", "problems": ["runner still running"]}))
+        raise typer.Exit(code=1)
+    cov = coverage(ctx)
+    rec = release_authority(
+        ctx.paths.root,
+        note,
+        {"last_completed_bar_close": cov["last_completed_bar_close"]},
+        legacy=legacy,
+    )
+    console.print_json(json.dumps({"status": "RELEASED", "record": rec}, default=str))
+
+
+@forward_app.command("host-status")
+def forward_host_status(
+    live: bool = typer.Option(
+        False, help="also read the Bybit DEMO position and open orders (signed GET only)"
+    ),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+) -> None:
+    """Authoritative-host status: host, launchd/systemd, lease, collector, last message and bar,
+    sequence gaps, duplicates, freeze, observation start, STRATEGY_DEMO activation, mode,
+    reference equity, risk, latest signal, open position/orders, paper vs Demo PnL, missing data."""
+    from btc_swing.v5.forward.ops import host_status_text
+
+    ctx = _forward_ctx(forward_config)
+    live_rows: list[tuple[str, str]] = []
+    if live:
+        live_rows = _demo_live_rows(ctx, demo_config)
+    typer.echo(host_status_text(ctx, _data_dir(), live_rows))
+
+
+def _demo_live_rows(ctx: Any, demo_config: Path) -> list[tuple[str, str]]:
+    """Signed GET-only reads on the DEMO host (position, open orders); never a state change."""
+    from btc_swing.v5.demo.client import BybitDemoClient, DemoApiError, DemoTransportError
+    from btc_swing.v5.demo.config import ExecutionMode, load_demo_config
+    from btc_swing.v5.demo.credentials import DemoCredentialsMissingError
+    from btc_swing.v5.demo.journal import HashChainJournal
+    from btc_swing.v5.demo.runtime import DemoPaths
+
+    dcfg = load_demo_config(demo_config)
+    try:
+        cl = BybitDemoClient(
+            dcfg,
+            ExecutionMode.DISABLED,
+            HashChainJournal(DemoPaths(ctx.paths.root).root / "status_reads.jsonl", "status"),
+            "STATUS_READ_ONLY",
+            read_only=True,
+        )
+        pos = cl.position()
+        oo = cl.open_orders()
+        cl.close()
+    except (DemoApiError, DemoTransportError, DemoCredentialsMissingError) as e:
+        return [("Bybit DEMO live read", f"failed: {type(e).__name__}: {e}"[:160])]
+    return [
+        (
+            "Bybit DEMO position (live)",
+            "flat"
+            if not pos.get("size")
+            else f"{pos.get('side')} {pos.get('size')} @ {pos.get('avg_price')}",
+        ),
+        (
+            "Bybit DEMO open orders (live)",
+            "none"
+            if not oo
+            else ", ".join(f"{o.get('orderLinkId')} {o.get('side')} {o.get('qty')}" for o in oo),
+        ),
+    ]
 
 
 demo_app = typer.Typer(
@@ -1136,7 +1280,8 @@ def demo_preflight(
     """Two separated gates, mode stays DISABLED. DEMO_EXECUTION_PREFLIGHT (needed for
     EXECUTION_SMOKE): demo-only allowlist, credentials, Bybit DEMO reachable, then READ-ONLY signed
     checks (GET only) and private DEMO WebSocket auth. FORWARD_HOST_PREFLIGHT (needed only for
-    STRATEGY_DEMO): runner on this host, exactly one runner, systemd, freeze and observation start.
+    STRATEGY_DEMO): runner on this host, exactly one runner, LINUX+systemd or MACOS+launchd managing
+    the runner, runner lock, authority lease, freeze and observation start.
     Writes reports/forward/demo_preflight/<run>.md|.json; exit 1 unless the DEMO gate PASSED."""
     from btc_swing.v5.demo.config import load_demo_config
     from btc_swing.v5.demo.journal import HashChainJournal
@@ -1169,7 +1314,11 @@ def demo_preflight(
                 "DEMO_EXECUTION_PREFLIGHT": g["DEMO_EXECUTION_PREFLIGHT"]["status"],
                 "FORWARD_HOST_PREFLIGHT": g["FORWARD_HOST_PREFLIGHT"]["status"],
                 "EXECUTION_SMOKE_allowed": g["DEMO_EXECUTION_PREFLIGHT"]["status"] == "PASSED",
-                "STRATEGY_DEMO_allowed": False,
+                "STRATEGY_DEMO_activation_possible": all(
+                    g[k]["status"] == "PASSED"
+                    for k in ("DEMO_EXECUTION_PREFLIGHT", "FORWARD_HOST_PREFLIGHT")
+                ),
+                "STRATEGY_DEMO_note": "both gates must PASS; then the owner runs `btc-swing v5 demo activate` (which re-runs tests and both gates)",
                 "report": str(md),
                 "demo_execution_checks": [
                     (c["check"], c["ok"]) for c in g["DEMO_EXECUTION_PREFLIGHT"]["checks"]
@@ -1186,6 +1335,126 @@ def demo_preflight(
     )
     if g["DEMO_EXECUTION_PREFLIGHT"]["status"] != "PASSED":
         raise typer.Exit(code=1)
+
+
+@demo_app.command("activate")
+def demo_activate(
+    note: str = typer.Option(..., help="owner's activation note"),
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Owner-only switch to STRATEGY_DEMO on THIS authoritative host. Runs the full test suite and
+    a fresh preflight (DEMO_EXECUTION_PREFLIGHT and FORWARD_HOST_PREFLIGHT), then checks the PASSED
+    real smoke, freeze hash, observation start, integrity, reconciliation and sizing config. Only if
+    EVERY gate passes is an immutable STRATEGY_DEMO_ACTIVATED event (exact UTC timestamp) appended
+    to the strategy journal; otherwise nothing is written and the exit code is 1."""
+    import subprocess
+    import sys
+
+    from btc_swing.v5.demo.activation import activation_gates, record_activation
+    from btc_swing.v5.demo.config import load_demo_config
+    from btc_swing.v5.demo.journal import HashChainJournal, verify_chain
+    from btc_swing.v5.demo.preflight import (
+        EXPECTED_OBSERVATION_START_MS,
+        EXPECTED_V5_HASH,
+        run_preflight,
+        write_preflight,
+    )
+    from btc_swing.v5.demo.runtime import DemoPaths, latest_passed_smoke
+    from btc_swing.v5.forward.freeze import load_freeze
+    from btc_swing.v5.forward.ops import coverage
+    from btc_swing.v5.forward.raw import load_forward_bars
+
+    ctx = _forward_ctx(forward_config)
+    dcfg = load_demo_config(demo_config)
+    dp = DemoPaths(ctx.paths.root)
+    typer.echo("== test suite (before activation)")
+    r = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-o", "addopts=", "-p", "no:cacheprovider"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    tests = {
+        "ok": r.returncode == 0,
+        "summary": (r.stdout.strip().splitlines() or ["(no output)"])[-1],
+    }
+    typer.echo(f"   {tests['summary']}")
+    typer.echo("== fresh preflight (DEMO_EXECUTION_PREFLIGHT + FORWARD_HOST_PREFLIGHT)")
+    bars = load_forward_bars(ctx.paths.bars_dir)
+    px = float(bars["close"].drop_nans()[-1]) if bars.height else None
+    pf = run_preflight(
+        dcfg,
+        ctx.cfg.config_hash,
+        load_freeze(),
+        ctx.paths.run_pid,
+        HashChainJournal(dp.root / "preflight_journal.jsonl", "preflight_read_only"),
+        px,
+    )
+    md = write_preflight(pf)
+    typer.echo(f"   report {md}")
+    state = json.loads(dp.state.read_text()) if dp.state.exists() else {}
+    gates = activation_gates(
+        tests=tests,
+        preflight=pf,
+        smoke=latest_passed_smoke(),
+        v5_hash=ctx.cfg.config_hash,
+        freeze=load_freeze(),
+        start_ms=ctx.start_ms,
+        coverage=coverage(ctx),
+        chains={
+            "strategy_journal": verify_chain(dp.strategy_journal),
+            "smoke_journal": verify_chain(dp.smoke_journal),
+            "authority": verify_chain(ctx.paths.root / "host" / "authority.jsonl"),
+        },
+        demo_state=state,
+        reference_equity=dcfg.reference_equity_usdt,
+        risk_per_trade=dcfg.risk_per_trade,
+        frozen_risk=ctx.cfg.risk.risk_per_trade,
+        config_mode=dcfg.mode.value,
+        expected_v5_hash=EXPECTED_V5_HASH,
+        expected_start_ms=EXPECTED_OBSERVATION_START_MS,
+    )
+    failed = [k for k, v in gates.items() if not v["ok"]]
+    for k, v in gates.items():
+        typer.echo(
+            f"   [{'PASS' if v['ok'] else 'FAIL'}] {k}: {json.dumps(v['detail'], default=str)[:200]}"
+        )
+    if failed:
+        console.print_json(
+            json.dumps({"status": "NOT ACTIVATED", "failed_gates": failed, "mode": "DISABLED"})
+        )
+        raise typer.Exit(code=1)
+    rec = record_activation(ctx.paths.root, gates, note)
+    console.print_json(
+        json.dumps(
+            {
+                "status": "STRATEGY_DEMO_ACTIVATED",
+                "activated_at": rec["activated_at"],
+                "host": rec["hostname"],
+                "reference_equity_usdt": dcfg.reference_equity_usdt,
+                "risk_per_trade": dcfg.risk_per_trade,
+                "rule": rec["rule"],
+            },
+            default=str,
+        )
+    )
+
+
+@demo_app.command("deactivate")
+def demo_deactivate(
+    note: str = typer.Option(..., help="why STRATEGY_DEMO is switched off"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Append STRATEGY_DEMO_DEACTIVATED (refused while a strategy position is open)."""
+    from btc_swing.v5.demo.activation import record_deactivation
+    from btc_swing.v5.demo.runtime import DemoPaths
+
+    ctx = _forward_ctx(forward_config)
+    dp = DemoPaths(ctx.paths.root)
+    st = json.loads(dp.state.read_text()) if dp.state.exists() else {}
+    rec = record_deactivation(ctx.paths.root, note, st.get("position") is not None)
+    console.print_json(json.dumps({"status": "STRATEGY_DEMO_DEACTIVATED", **rec}, default=str))
 
 
 @demo_app.command("status")

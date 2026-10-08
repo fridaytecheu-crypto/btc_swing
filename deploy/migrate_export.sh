@@ -14,8 +14,12 @@ elif [ -f "$PIDF" ] && kill -0 "$(cat "$PIDF")" 2>/dev/null; then
   for i in $(seq 1 90); do kill -0 "$P" 2>/dev/null || break; sleep 1; done
   kill -0 "$P" 2>/dev/null && { echo "runner did not stop"; exit 1; }
 fi
+sudo systemctl disable btc-v5-forward 2>/dev/null || true
+# release the authority lease so the target can claim it (the release is part of the export)
+uv run btc-swing v5 forward release-authority --note "cold migration export" \
+  || echo "no authority lease held by this host (pre-lease state): nothing to release"
 uv run btc-swing v5 forward integrity --out "$OUT/integrity_before.json" >/dev/null
 uv run btc-swing v5 forward export --out "$OUT/v5_forward_state.tar.gz"
-sha256sum "$OUT/v5_forward_state.tar.gz" > "$OUT/v5_forward_state.tar.gz.sha256"
+(cd "$OUT" && sha256sum v5_forward_state.tar.gz > v5_forward_state.tar.gz.sha256)
 echo "export ready in $OUT: v5_forward_state.tar.gz, .manifest.json, .sha256, integrity_before.json"
 echo "copy all four files to the target host (e.g. rsync -av $OUT/ target:/var/lib/btc_swing/import/)"

@@ -9,12 +9,15 @@ rules, private DEMO WebSocket authentication, and proof that no production endpo
 
 FORWARD_HOST_PREFLIGHT (required, together with a PASSED smoke, before STRATEGY_DEMO; never for
 EXECUTION_SMOKE): persistent host, forward runner running on this host, exactly one forward runner,
-systemd service active, forward freeze V5 hash and observation start unchanged. These checks are
-local (no network) and are re-evaluated live whenever a STRATEGY_DEMO executor is built.
+a healthy service-manager deployment (LINUX + systemd or MACOS + launchd) whose managed process IS
+the runner, the single-runner lock held, the authority lease held by this host, forward freeze V5
+hash and observation start unchanged. These checks are local (no network) and are re-evaluated
+live whenever a STRATEGY_DEMO executor is built.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import subprocess
@@ -45,6 +48,14 @@ from btc_swing.v5.demo.credentials import (
 from btc_swing.v5.demo.journal import HashChainJournal
 from btc_swing.v5.demo.requirements import reference_equity_report
 from btc_swing.v5.demo.ws import private_ws_auth
+from btc_swing.v5.forward.host import (
+    authority_state,
+    host_identity,
+    lock_held,
+    service_manager_status,
+)
+
+RUNNER_LOCK_NAME = "forward_run.lock"
 
 EXPECTED_V5_HASH = "d18ebf19bd0cde67be1c27683d3e7ad0385d2456a6edaa1fe55146f013096177"
 EXPECTED_OBSERVATION_START_MS = 1791385162972  # 2026-10-07T14:59:22.972Z
@@ -52,7 +63,6 @@ PREFLIGHT_DIR = Path("reports/forward/demo_preflight")
 PREFLIGHT_TAG = "PREFLIGHT_READ_ONLY"
 DEMO_GATE = "DEMO_EXECUTION_PREFLIGHT"
 HOST_GATE = "FORWARD_HOST_PREFLIGHT"
-SERVICE = "btc-v5-forward"
 
 
 def is_cloud_session_container() -> bool:
@@ -93,17 +103,8 @@ def _runner_pids() -> list[int]:
     return pids
 
 
-def _systemd_service_active() -> tuple[bool, str]:
-    if not Path("/run/systemd/system").exists():
-        return False, "systemd not running on this machine"
-    try:
-        r = subprocess.run(
-            ["systemctl", "is-active", SERVICE], capture_output=True, text=True, check=False
-        )
-    except FileNotFoundError:
-        return False, "systemctl not found"
-    state = r.stdout.strip() or r.stderr.strip()
-    return state == "active", f"{SERVICE}: {state}"
+def _service_manager() -> dict[str, Any]:
+    return service_manager_status()
 
 
 def _check(name: str, ok: bool, detail: Any) -> dict[str, Any]:
@@ -197,8 +198,35 @@ def forward_host_checks(
     checks.append(
         _check("exactly one forward runner", len(pids) == 1, f"{len(pids)} runner process(es)")
     )
-    sd_ok, sd_detail = _systemd_service_active()
-    checks.append(_check("systemd deployment active", sd_ok, sd_detail))
+    sm = _service_manager()
+    checks.append(
+        _check(
+            "service-manager deployment healthy (LINUX + systemd or MACOS + launchd)",
+            bool(sm.get("ok")) and sm.get("os") in ("LINUX", "MACOS"),
+            f"{sm.get('os')} / {sm.get('manager')}: {sm.get('detail')}",
+        )
+    )
+    file_pid = None
+    with contextlib.suppress(OSError, ValueError):
+        file_pid = int(pid_file.read_text().strip())
+    checks.append(
+        _check(
+            "forward runner is the service-managed process",
+            sm.get("pid") is not None and sm.get("pid") == file_pid and file_pid in pids,
+            f"managed pid {sm.get('pid')}; pid file {file_pid}; runner processes {pids}",
+        )
+    )
+    held = lock_held(pid_file.parent / RUNNER_LOCK_NAME)
+    checks.append(_check("single-runner lock held", held, "held" if held else "not held"))
+    auth = authority_state(pid_file.parent)
+    me = host_identity()
+    checks.append(
+        _check(
+            "authority lease held by this host",
+            auth["status"] == "CLAIMED" and auth["host_id"] == me["host_id"],
+            f"lease {auth['status']} by {auth['hostname']} ({auth['host_id']}); this host {me['hostname']} ({me['host_id']})",
+        )
+    )
     fz: dict[str, Any] = freeze or {}
     checks.append(
         _check(

@@ -13,12 +13,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from btc_swing.v5.demo.journal import verify_chain
 from btc_swing.v5.forward.config import ForwardContextLike
 from btc_swing.v5.forward.pipeline import _f, _iso, _read_jsonl
 from btc_swing.v5.forward.raw import load_forward_bars
 from btc_swing.v5.forward.report import status as status_dict
 
-STATE_DIRS = ("bybit", "seed", "derived", "signals", "paper", "logs")
+STATE_DIRS = ("bybit", "seed", "derived", "signals", "paper", "logs", "demo", "host")
+MS_5M = 300_000
 
 
 def _sha(path: Path) -> str:
@@ -246,7 +248,26 @@ def integrity_snapshot(ctx: ForwardContextLike) -> dict[str, Any]:
         if paths.paper_state.exists()
         else {},
         "cycles": _journal(paths.cycle_log),
+        "hash_chained": {
+            name: {**_journal(path), "chain_ok": verify_chain(path)["ok"]}
+            for name, path in _chained_journals(paths.root).items()
+        },
+        "demo_trades": _demo_trades(paths.root / "demo" / "demo_trades.jsonl"),
     }
+
+
+def _chained_journals(root: Path) -> dict[str, Path]:
+    return {
+        "demo_smoke_journal": root / "demo" / "smoke_journal.jsonl",
+        "demo_strategy_journal": root / "demo" / "strategy_journal.jsonl",
+        "host_authority": root / "host" / "authority.jsonl",
+    }
+
+
+def _demo_trades(path: Path) -> dict[str, Any]:
+    rows = _read_jsonl(path)
+    ids = [str(r.get("signal_id")) for r in rows]
+    return {**_journal(path), "unique_ids": len(set(ids)), "duplicates": len(ids) - len(set(ids))}
 
 
 def integrity_compare(
@@ -291,6 +312,28 @@ def integrity_compare(
             )
         if "duplicates" in a:
             chk(f"{name}: no duplicates", a["duplicates"] == 0, f"{a['duplicates']} duplicate(s)")
+    for name, path in _chained_journals(paths.root).items():
+        b = (before.get("hash_chained") or {}).get(name)
+        a = (after.get("hash_chained") or {}).get(name) or {}
+        if not b or not b.get("lines"):
+            continue
+        chk(f"{name}: hash chain valid", bool(a.get("chain_ok")), str(a.get("lines")))
+        chk(
+            f"{name}: earlier records intact (prefix identity)",
+            _prefix_sha(path, b["lines"]) == b.get("prefix_sha256"),
+            f"prefix of {b['lines']} records",
+        )
+    bt = before.get("demo_trades") or {}
+    at = after.get("demo_trades") or {}
+    if bt.get("lines"):
+        chk(
+            "demo trades: earlier lines intact",
+            _prefix_sha(paths.root / "demo" / "demo_trades.jsonl", bt["lines"])
+            == bt.get("prefix_sha256"),
+            f"prefix of {bt['lines']} lines",
+        )
+    if at:
+        chk("demo trades: no duplicates", at.get("duplicates", 0) == 0, str(at.get("duplicates")))
     chk(
         "outcomes reference known signals",
         after["outcomes"].get("without_signal", 0) == 0,
@@ -357,9 +400,14 @@ def export_state(
     freeze_path: Path,
     config_paths: list[Path],
     include_seed_raw: bool = False,
+    exclude_dirs: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Tarball of every stateful forward artefact + freeze + configs, with a sha256 manifest of
     every file. Take it with the runner STOPPED (cold export) so journals and raw files are final."""
+    from btc_swing.v5.forward.host import lock_held
+
+    if lock_held(ctx.paths.root / "forward_run.lock"):
+        raise RuntimeError("a forward runner holds the runner lock: stop it before a cold export")
     paths = ctx.paths
     alive, _ = _pid_alive(paths.run_pid)
     manifest: dict[str, Any] = {
@@ -370,7 +418,10 @@ def export_state(
         "files": {},
     }
     members: list[tuple[Path, str]] = []
+    manifest["excluded_dirs"] = list(exclude_dirs)
     for d in STATE_DIRS:
+        if d in exclude_dirs:
+            continue
         root = paths.root / d
         if not root.exists():
             continue
@@ -442,6 +493,12 @@ def verify_state(
 
 # ----------------------------------------------------------------------------- status text
 def status_text(ctx: ForwardContextLike, data_dir: Path) -> str:
+    rows = status_rows(ctx, data_dir)
+    w = max(len(k) for k, _ in rows)
+    return "\n".join(f"{k.ljust(w)}  {v}" for k, v in rows)
+
+
+def status_rows(ctx: ForwardContextLike, data_dir: Path) -> list[tuple[str, str]]:
     s = status_dict(ctx)
     h = health(ctx, data_dir)
     c = s["collector"]
@@ -500,5 +557,117 @@ def status_text(ctx: ForwardContextLike, data_dir: Path) -> str:
             rows += demo_status_lines(demo_status(ctx, load_demo_config(DEFAULT_DEMO_CONFIG_PATH)))
     except Exception as e:
         rows.append(("demo execution", f"status unavailable: {type(e).__name__}: {e}"[:120]))
+    return rows
+
+
+# ----------------------------------------------------------------------------- coverage
+def _intervals(slots: list[int]) -> list[tuple[int, int]]:
+    out: list[tuple[int, int]] = []
+    for t in slots:
+        if out and t == out[-1][1]:
+            out[-1] = (out[-1][0], t + MS_5M)
+        else:
+            out.append((t, t + MS_5M))
+    return out
+
+
+def coverage(ctx: ForwardContextLike, now_ms: int | None = None) -> dict[str, Any]:
+    """What forward data exists since the observation start, and every period WITHOUT live
+    collector data. A 5-minute slot is live only if the public collector recorded trades in it;
+    slots without trades (collector down: the processor writes them as zero-trade rows, which the
+    pipeline flags `gap_filled`) and slots with no row at all are MISSING. Nothing is backfilled."""
+    now = now_ms if now_ms is not None else int(time.time() * 1000)
+    bars = load_forward_bars(ctx.paths.bars_dir)
+    first_slot = -(-ctx.start_ms // MS_5M) * MS_5M  # first complete 5m slot after the start
+    live: set[int] = set()
+    present: set[int] = set()
+    if bars.height:
+        for t, n in zip(bars["open_time_ms"].to_list(), bars["trades"].to_list(), strict=True):
+            present.add(int(t))
+            if n and int(n) > 0:
+                live.add(int(t))
+    last_close = (max(present) + MS_5M) if present else first_slot
+    horizon = max(last_close, (now // MS_5M) * MS_5M)
+    slots = range(first_slot, horizon, MS_5M)
+    missing = [t for t in slots if t not in live]
+    gaps = []
+    for a, b in _intervals(missing):
+        kind = (
+            "since_last_bar (no runner)"
+            if a >= last_close
+            else "before_first_forward_bar"
+            if not present or b <= min(present)
+            else "collector_down (zero-trade rows, flagged gap_filled)"
+        )
+        gaps.append({"from": _iso(a), "to": _iso(b), "bars": (b - a) // MS_5M, "kind": kind})
+    ids = [s["signal_id"] for s in _read_jsonl(ctx.paths.signals_file)]
+    trades = _read_jsonl(ctx.paths.paper_trades)
+    tkeys = [(t["family"], t["side"], int(t["entry_ms"])) for t in trades]
+    return {
+        "observation_start": _iso(ctx.start_ms),
+        "checked_at": _iso(now),
+        "forward_rows": bars.height,
+        "live_bars": len(live),
+        "expected_bars_to_now": len(slots),
+        "missing_bars_to_now": len(missing),
+        "first_forward_bar": _iso(min(present)) if present else None,
+        "last_completed_bar_close": _iso(last_close) if present else None,
+        "missing_periods": gaps,
+        "duplicates": {
+            "bars": bars.height - (int(bars["open_time_ms"].n_unique()) if bars.height else 0),
+            "signals": len(ids) - len(set(ids)),
+            "paper_trades": len(tkeys) - len(set(tkeys)),
+        },
+        "signals": len(ids),
+        "paper_trades": len(trades),
+    }
+
+
+def host_status_text(
+    ctx: ForwardContextLike, data_dir: Path, extra_rows: list[tuple[str, str]] | None = None
+) -> str:
+    """Authoritative-host status: host and service manager rows, the forward/demo status and
+    every period without live collector data since the observation start."""
+    from btc_swing.v5.forward.host import (
+        authority_state,
+        host_identity,
+        lock_held,
+        service_manager_status,
+    )
+
+    me = host_identity()
+    sm = service_manager_status()
+    lease = authority_state(ctx.paths.root)
+    cov = coverage(ctx)
+    head = [
+        ("host", f"{me['os']} {me['hostname']} (host id {me['host_id']})"),
+        (
+            f"{sm.get('manager') or 'service manager'} status",
+            ("HEALTHY " if sm.get("ok") else "NOT HEALTHY ") + str(sm.get("detail")),
+        ),
+        (
+            "authority lease",
+            f"{lease['status']} by {lease['hostname'] or 'n/a'} at {lease['at'] or 'n/a'}"
+            + (" (THIS host)" if lease["host_id"] == me["host_id"] else ""),
+        ),
+        (
+            "single-runner lock",
+            "held" if lock_held(ctx.paths.root / "forward_run.lock") else "not held",
+        ),
+    ]
+    tail = [
+        (
+            "forward coverage",
+            f"{cov['live_bars']} live bars of {cov['expected_bars_to_now']} since the start; "
+            f"{cov['missing_bars_to_now']} missing (never backfilled)",
+        ),
+        *[
+            (f"  missing {g['kind']}", f"{g['from']} -> {g['to']} ({g['bars']} bars)")
+            for g in cov["missing_periods"]
+        ],
+        ("duplicates (bars / signals / paper trades)", json.dumps(cov["duplicates"])),
+        *(extra_rows or []),
+    ]
+    rows = head + status_rows(ctx, data_dir) + tail
     w = max(len(k) for k, _ in rows)
     return "\n".join(f"{k.ljust(w)}  {v}" for k, v in rows)

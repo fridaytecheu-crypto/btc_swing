@@ -13,7 +13,7 @@ http_timeout_s: 10.0
 credentials_env:
   api_key: BYBIT_DEMO_API_KEY
   api_secret: BYBIT_DEMO_API_SECRET
-reference_equity_usdt: 2000.0             # owner decision 2026-10-08: demo sizing/performance as if the account were 2000 USDT
+reference_equity_usdt: 5000.0             # owner decision 2026-10-08 (STRATEGY_DEMO on the Mac): demo sizing/performance as if the account were 5000 USDT
                                           # (execution-validation sizing only; NOT a real-money capital recommendation)
 risk_per_trade: 0.0025                    # must equal the frozen V5 risk_per_trade (checked at load)
 stop_trigger_by: LastPrice                # the frozen engine stops on traded prices (liquidation on mark)

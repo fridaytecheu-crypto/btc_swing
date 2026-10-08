@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from btc_swing.v5.collector import BybitPublicCollector
+from btc_swing.v5.forward.host import RunnerLock, runner_may_start
 from btc_swing.v5.forward.pipeline import ForwardContext, run_cycle
 from btc_swing.v5.forward.report import write_day_report
 
@@ -27,24 +28,44 @@ def _next_cycle_at(now: float, cycle_s: int, grace_s: int) -> float:
 
 
 def _demo_hook(ctx: ForwardContext) -> Any:
-    """None unless config/btc_swing_v5_demo.yaml says STRATEGY_DEMO (default DISABLED)."""
+    """Per-cycle demo hook. STRATEGY_DEMO is in effect only while this host holds an active
+    STRATEGY_DEMO_ACTIVATED event (checked every cycle, so activation needs no restart); the
+    executor is built lazily and every refusal fails closed while the observation continues."""
+    from btc_swing.v5.demo.activation import effective_activation
     from btc_swing.v5.demo.config import DEFAULT_DEMO_CONFIG_PATH, ExecutionMode, load_demo_config
+
+    held: dict[str, Any] = {"ex": None, "at": None, "refused": None}
+
+    def hook(a: Any, b: Any, res: Any) -> Any:
+        act = effective_activation(ctx.paths.root)
+        if act is None:
+            if held["ex"] is not None:
+                log.warning("STRATEGY_DEMO no longer active on this host: executor released")
+            held.update(ex=None, at=None)
+            return {"mode": "DISABLED", "note": "no active STRATEGY_DEMO_ACTIVATED for this host"}
+        from btc_swing.v5.demo.runtime import build_executor, demo_cycle
+
+        if held["ex"] is None or held["at"] != act["activated_at_ms"]:
+            dcfg = load_demo_config(DEFAULT_DEMO_CONFIG_PATH, ExecutionMode.STRATEGY_DEMO)
+            try:
+                ex = build_executor(ctx, dcfg)
+            except Exception as e:
+                msg = f"{type(e).__name__}: {e}"[:300]
+                if msg != held["refused"]:
+                    log.error(
+                        "STRATEGY_DEMO refused (fails closed, observation continues): %s", msg
+                    )
+                held["refused"] = msg
+                return {"mode": "STRATEGY_DEMO", "refused": msg}
+            log.info(
+                "STRATEGY_DEMO active since %s: recovery %s", act["activated_at"], ex.recover()
+            )
+            held.update(ex=ex, at=act["activated_at_ms"], refused=None)
+        return demo_cycle(held["ex"], ctx, a, b, res)
 
     if not DEFAULT_DEMO_CONFIG_PATH.exists():
         return None
-    dcfg = load_demo_config(DEFAULT_DEMO_CONFIG_PATH)
-    if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
-        log.info("demo execution mode %s: no authenticated request", dcfg.mode.value)
-        return None
-    from btc_swing.v5.demo.runtime import build_executor, demo_cycle
-
-    try:
-        ex = build_executor(ctx, dcfg)
-    except Exception as e:
-        log.error("STRATEGY_DEMO refused (fails closed, observation continues): %s", e)
-        return None
-    log.info("STRATEGY_DEMO active: recovery %s", ex.recover())
-    return lambda a, b, res: demo_cycle(ex, ctx, a, b, res)
+    return hook
 
 
 async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Event) -> None:
@@ -115,12 +136,22 @@ def run_forward(
     fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
     logging.getLogger().addHandler(fh)
     logging.getLogger().setLevel(logging.INFO)
+    ok, why = runner_may_start(ctx.paths.root)
+    if not ok:
+        log.error("forward runner refused: %s", why)
+        raise RuntimeError(f"forward runner refused: {why}")
+    lock = RunnerLock(ctx.paths.root / "forward_run.lock")
+    lock.acquire()  # a second runner on this data directory exits here (RunnerLockedError)
     log.info(
-        "forward observation runner started (pid %s, frozen V5 %s)",
+        "forward observation runner started (pid %s, frozen V5 %s; %s)",
         os.getpid(),
         ctx.cfg.config_hash[:12],
+        why,
     )
-    out = asyncio.run(_main(ctx, reports_dir, duration_s))
+    try:
+        out = asyncio.run(_main(ctx, reports_dir, duration_s))
+    finally:
+        lock.release()
     (
         ctx.paths.logs / f"collector_stats_{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}.json"
     ).write_text(json.dumps(out, indent=1, sort_keys=True))

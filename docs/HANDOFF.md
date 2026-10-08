@@ -179,6 +179,19 @@
   append-only `EXECUTION_CONFIRMED` event; own net = gross - entry fees - exit fees vs Bybit closed
   PnL within 0.001 USDT; wallet change = USDT wallet delta (`docs/V5_DEMO_EXECUTION.md` section 4).
   Next: rerun the real smoke on the Mac (preflight, then `demo smoke --mode EXECUTION_SMOKE`).
+- 2026-10-08 (night): real DEMO smoke PASSED on the owner's Mac. Owner decision: the Mac is the
+  temporary SINGLE authoritative forward + STRATEGY_DEMO host until the Windows NUC (~3 days).
+  Added: macOS launchd support in FORWARD_HOST_PREFLIGHT (LINUX+systemd or MACOS+launchd, managed pid
+  = runner), single-runner flock, host-bound authority lease (`v5 forward claim-/release-authority`),
+  `v5 forward coverage` (missing periods, never backfilled; archive warm-up never after the start
+  day), `v5 forward host-status`, `v5 demo activate|deactivate` (immutable host-bound
+  `STRATEGY_DEMO_ACTIVATED` after tests + both gates + smoke + freeze + integrity + reconciliation +
+  sizing; pre-activation triggers refused), reference equity 5,000 USDT, `deploy/macos/` (LaunchAgents,
+  caffeinate wrapper, 5-minute health, install/import/start/stop/migrate scripts), runbook
+  `docs/V5_MAC_AUTHORITATIVE_HOST.md` incl. the Mac -> NUC/WSL cold migration (NOT run yet).
+  The cloud collector's state (17 live bars; last bar 2026-10-08 19:30 UTC) was cold-exported with
+  its authority released and published on branch `v5-forward-state-cloud-20261008` for the Mac.
+  Activation itself must be done by the owner ON THE MAC; it was not (and cannot be) done from here.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

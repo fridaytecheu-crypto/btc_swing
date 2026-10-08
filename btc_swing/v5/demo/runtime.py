@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from btc_swing.v5.demo.activation import activation_state, effective_activation
 from btc_swing.v5.demo.client import BybitDemoClient
 from btc_swing.v5.demo.config import SMOKE_TAG, STRATEGY_TAG, DemoExecConfig, ExecutionMode
 from btc_swing.v5.demo.credentials import credentials_present
@@ -58,6 +59,9 @@ def build_executor(
         raise RuntimeError("build_executor called while mode is not STRATEGY_DEMO")
     # FORWARD_HOST_PREFLIGHT re-evaluated live: STRATEGY_DEMO fails closed off the authoritative host
     require_forward_host(load_freeze(), ctx.cfg.config_hash, ctx.paths.run_pid)
+    act = effective_activation(ctx.paths.root)
+    if act is None:
+        raise RuntimeError("no STRATEGY_DEMO_ACTIVATED event for this host: STRATEGY_DEMO refused")
     dp = DemoPaths(ctx.paths.root)
     journal = HashChainJournal(dp.strategy_journal, "strategy_demo", forbid_tags=(SMOKE_TAG,))
     client = BybitDemoClient(dcfg, dcfg.mode, journal, STRATEGY_TAG)
@@ -71,6 +75,7 @@ def build_executor(
         ctx.paths.signals_file,
         ctx.paths.paper_trades,
         latest_passed_smoke(reports_dir),
+        activated_at_ms=int(act["activated_at_ms"]),
     )
 
 
@@ -147,16 +152,30 @@ def demo_status(ctx: ForwardContextLike, dcfg: DemoExecConfig) -> dict[str, Any]
     demo_pnl = float(st.get("demo_cum_net_pnl") or 0.0)
     last_ok = st.get("last_api_ok_ms")
     connected = (
-        dcfg.mode is not ExecutionMode.DISABLED
+        (
+            dcfg.mode is not ExecutionMode.DISABLED
+            or effective_activation(ctx.paths.root) is not None
+        )
         and last_ok is not None
         and time.time() * 1000 - float(last_ok) < 600_000
     )
     p = st.get("position")
     xp = st.get("last_exchange_position") or {}
     smoke = latest_smoke_report()
+    act = effective_activation(ctx.paths.root)
+    ast = activation_state(ctx.paths.root)
+    mode = ExecutionMode.STRATEGY_DEMO.value if act is not None else dcfg.mode.value
     return {
         "frozen_v5_config_hash": ctx.cfg.config_hash,
-        "execution_mode": dcfg.mode.value,
+        "execution_mode": mode,
+        "activation": {
+            "status": ast["status"],
+            "activated_at": (ast["last"] or {}).get("activated_at"),
+            "host": (ast["last"] or {}).get("hostname"),
+            "effective_on_this_host": act is not None,
+        },
+        "reference_equity_usdt": dcfg.reference_equity_usdt,
+        "risk_per_trade": dcfg.risk_per_trade,
         "demo_endpoint": dcfg.rest_base,
         "credentials_present": credentials_present(dcfg),
         "demo_api_connected": connected,
@@ -202,8 +221,18 @@ def demo_status(ctx: ForwardContextLike, dcfg: DemoExecConfig) -> dict[str, Any]
 def demo_status_lines(d: dict[str, Any]) -> list[tuple[str, str]]:
     p = d["open_strategy_position"]
     errs = d["execution_errors"]
+    a = d["activation"]
     return [
         ("execution mode", d["execution_mode"] + f" (endpoint {d['demo_endpoint']})"),
+        (
+            "STRATEGY_DEMO activation",
+            f"{a['status']} at {a['activated_at'] or 'n/a'} by {a['host'] or 'n/a'}"
+            + (" (effective on this host)" if a["effective_on_this_host"] else ""),
+        ),
+        (
+            "reference equity / risk per trade",
+            f"{d['reference_equity_usdt']:,.0f} USDT (virtual) / {d['risk_per_trade']:.2%}",
+        ),
         (
             "Demo API connected",
             "yes"

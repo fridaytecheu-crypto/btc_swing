@@ -56,11 +56,11 @@ def _connect(reply: dict[str, Any], seen: list[str]) -> Any:
     return c
 
 
-def test_config_reference_equity_2000_and_ws_allowlist() -> None:
+def test_config_reference_equity_5000_and_ws_allowlist() -> None:
     d = load_demo_config(CFG)
     assert (
         d.mode is ExecutionMode.DISABLED
-        and d.reference_equity_usdt == 2000.0
+        and d.reference_equity_usdt == 5000.0
         and d.risk_per_trade == 0.0025
     )
     assert d.ws_private == "wss://stream-demo.bybit.com/v5/private"
@@ -81,7 +81,11 @@ def _mac_today(monkeypatch: pytest.MonkeyPatch, fake: FakeBybitDemo) -> None:
     """Owner's Mac today: persistent machine, demo creds in env, NO forward runner, no systemd."""
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
     monkeypatch.setattr(pf, "_runner_pids", lambda: [])
-    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (False, "systemd not running"))
+    monkeypatch.setattr(
+        pf,
+        "_service_manager",
+        lambda: {"os": "MACOS", "manager": "launchd", "ok": False, "pid": None},
+    )
     monkeypatch.setenv("BYBIT_DEMO_API_KEY", fake.api_key)
     monkeypatch.setenv("BYBIT_DEMO_API_SECRET", fake.api_secret)
     monkeypatch.delenv("BYBIT_EXECUTION_MODE", raising=False)
@@ -238,13 +242,29 @@ def test_forward_host_gate_detects_changed_freeze_and_extra_runner(
 ) -> None:
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
     monkeypatch.setattr(pf, "_runner_pids", lambda: [111, 222])
-    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (True, "active"))
+    monkeypatch.setattr(
+        pf,
+        "_service_manager",
+        lambda: {
+            "os": "LINUX",
+            "manager": "systemd",
+            "ok": True,
+            "pid": os.getpid(),
+            "detail": "x",
+        },
+    )
     pid = tmp_path / "run.pid"
     pid.write_text(str(os.getpid()))
+    from btc_swing.v5.forward.host import RunnerLock, claim_authority
+
+    lock = RunnerLock(tmp_path / pf.RUNNER_LOCK_NAME)
+    lock.acquire()
+    claim_authority(tmp_path, "test", {})
     bad = {**FREEZE, "observation_start_ms": 1}
     ok = {c["check"]: c["ok"] for c in pf.forward_host_checks(bad, "x" * 64, pid)}
     assert ok["persistent host (not an ephemeral cloud-session container)"]
-    assert ok["forward runner running on this host"] and ok["systemd deployment active"]
+    assert ok["forward runner running on this host"]
+    assert ok["service-manager deployment healthy (LINUX + systemd or MACOS + launchd)"]
     assert (
         not ok["exactly one forward runner"]
         and not ok["observation start unchanged"]
@@ -256,6 +276,9 @@ def test_forward_host_gate_detects_changed_freeze_and_extra_runner(
     monkeypatch.setattr(pf, "_runner_pids", lambda: [os.getpid()])
     checks = pf.require_forward_host(FREEZE, pf.EXPECTED_V5_HASH, pid)
     assert all(c["ok"] for c in checks)
+    lock.release()
+    with pytest.raises(RuntimeError, match="single-runner lock held"):
+        pf.require_forward_host(FREEZE, pf.EXPECTED_V5_HASH, pid)
 
 
 def test_strategy_demo_executor_fails_closed_off_the_forward_host(
@@ -267,7 +290,11 @@ def test_strategy_demo_executor_fails_closed_off_the_forward_host(
 
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
     monkeypatch.setattr(pf, "_runner_pids", lambda: [])
-    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (False, "systemd not running"))
+    monkeypatch.setattr(
+        pf,
+        "_service_manager",
+        lambda: {"os": "MACOS", "manager": "launchd", "ok": False, "pid": None},
+    )
     monkeypatch.setattr(runtime, "load_freeze", lambda: FREEZE)
     built: list[Any] = []
     monkeypatch.setattr(runtime, "BybitDemoClient", lambda *a, **k: built.append(a))

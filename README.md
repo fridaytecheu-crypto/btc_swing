@@ -60,7 +60,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 127 tests, no database needed
+uv run pytest -q                                            # 156 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

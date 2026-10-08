@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Health check every 5 minutes (runner alive, collector heartbeat, stale data, bar lag, disk).
+     On a problem: macOS notification + syslog line + append to health.log. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.btcswing.v5-forward-health</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/deploy/macos/health.sh</string>
+  </array>
+  <key>WorkingDirectory</key><string>__REPO__</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>BTC_DATA_DIR</key><string>__DATA__</string>
+    <key>BTC_SWING_REPO</key><string>__REPO__</string>
+    <key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin</string>
+  </dict>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>__DATA__/btc/forward/logs/launchd.health.out.log</string>
+  <key>StandardErrorPath</key><string>__DATA__/btc/forward/logs/launchd.health.err.log</string>
+</dict>
+</plist>

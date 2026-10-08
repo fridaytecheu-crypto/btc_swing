@@ -18,5 +18,7 @@ chown -R btcswing:btcswing "$DATA/btc/forward"
 echo "== verify hashes"; sudo -u btcswing -E "$REPO/.venv/bin/btc-swing" v5 forward verify --manifest "$IMP/v5_forward_state.manifest.json"
 echo "== one cycle (resumes from the migrated processor offsets)"; sudo -u btcswing -E "$REPO/.venv/bin/btc-swing" v5 forward cycle >/dev/null
 echo "== integrity comparison vs the source snapshot"; sudo -u btcswing -E "$REPO/.venv/bin/btc-swing" v5 forward integrity --out "$DATA/btc/forward/integrity_after_import.json" --compare "$IMP/integrity_before.json"
-echo "== start"; systemctl start btc-v5-forward; systemctl start btc-v5-forward-health.timer; sleep 20
+echo "== claim authority (refused if another host still holds the lease)"
+sudo -u btcswing -E "$REPO/.venv/bin/btc-swing" v5 forward claim-authority --note "cold migration import on $(hostname)"
+echo "== start"; systemctl enable btc-v5-forward; systemctl start btc-v5-forward; systemctl start btc-v5-forward-health.timer; sleep 20
 sudo -u btcswing -E "$REPO/.venv/bin/btc-swing" v5 forward status-text

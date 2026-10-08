@@ -155,7 +155,11 @@ class StrategyDemoExecutor:
         smoke_report: dict[str, Any] | None,
         clock: Any = time.time,
         sleep: Any = time.sleep,
+        activated_at_ms: int | None = None,
     ) -> None:
+        """`activated_at_ms`: the STRATEGY_DEMO_ACTIVATED timestamp. Only triggers whose bar closed
+        strictly after it can be traded; without it nothing is ever entered (fails closed)."""
+        self.activated_at_ms = activated_at_ms
         if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
             raise RuntimeError("StrategyDemoExecutor requires mode STRATEGY_DEMO")
         if not smoke_report or smoke_report.get("status") != "PASSED":
@@ -314,6 +318,15 @@ class StrategyDemoExecutor:
         if sid in self.state["processed_signals"]:
             self.alert("DUPLICATE_SIGNAL", {"signal_id": sid})
             return decision | {"action": "SKIPPED_DUPLICATE_SIGNAL"}
+        if self.activated_at_ms is None or int(trig.t_ms) <= int(self.activated_at_ms):
+            # only genuine prospective signals produced after STRATEGY_DEMO_ACTIVATED
+            self.state["processed_signals"] = [*self.state["processed_signals"], sid][-2000:]
+            self._j(
+                "PRE_ACTIVATION_SIGNAL_REFUSED",
+                decision | {"activated_at": _iso(self.activated_at_ms)},
+            )
+            self.save()
+            return decision | {"action": "REFUSED_BEFORE_ACTIVATION"}
         self.state["processed_signals"] = [*self.state["processed_signals"], sid][-2000:]
         if blockers:
             self._j("ENTRY_BLOCKED", decision | {"blockers": blockers})
