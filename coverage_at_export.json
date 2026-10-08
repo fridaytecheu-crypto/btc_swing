@@ -1,0 +1,37 @@
+{
+  "observation_start": "2026-10-07T14:59:22.972000+00:00",
+  "checked_at": "2026-10-08T21:38:34.135000+00:00",
+  "forward_rows": 343,
+  "live_bars": 17,
+  "expected_bars_to_now": 367,
+  "missing_bars_to_now": 351,
+  "first_forward_bar": "2026-10-07T14:55:00+00:00",
+  "last_completed_bar_close": "2026-10-08T19:30:00+00:00",
+  "missing_periods": [
+    {
+      "from": "2026-10-07T15:30:00+00:00",
+      "to": "2026-10-07T15:55:00+00:00",
+      "bars": 5,
+      "kind": "collector_down (zero-trade rows, flagged gap_filled)"
+    },
+    {
+      "from": "2026-10-07T16:20:00+00:00",
+      "to": "2026-10-08T19:05:00+00:00",
+      "bars": 321,
+      "kind": "collector_down (zero-trade rows, flagged gap_filled)"
+    },
+    {
+      "from": "2026-10-08T19:30:00+00:00",
+      "to": "2026-10-08T21:35:00+00:00",
+      "bars": 25,
+      "kind": "since_last_bar (no runner)"
+    }
+  ],
+  "duplicates": {
+    "bars": 0,
+    "signals": 0,
+    "paper_trades": 0
+  },
+  "signals": 0,
+  "paper_trades": 0
+}

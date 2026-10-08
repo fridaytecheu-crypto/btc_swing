@@ -1,0 +1,166 @@
+{
+ "bars": {
+  "first": "2026-10-07T14:55:00+00:00",
+  "last_close": "2026-10-08T19:30:00+00:00",
+  "partition_sha256": {
+   "2026-10-07.parquet": "c8a5799dc193a9e0e6d4e6c5bec6df88d3855e1116cd5bbfa5607c269d5d4025",
+   "2026-10-08.parquet": "e5eef8aaebe6d48e2d5834a2996833ce47a9c5aa15ecbc34bad78b49eca188d7"
+  },
+  "partitions": 2,
+  "rows": 343,
+  "unique_open_times": 343
+ },
+ "collector_state": {
+  "last_orderbook_u": {
+   "orderbook.1.BTCUSDT": 115450300,
+   "orderbook.50.BTCUSDT": 220491169
+  },
+  "saved_at": "2026-10-08T19:31:48.673107+00:00"
+ },
+ "cycles": {
+  "exists": true,
+  "lines": 14,
+  "prefix_sha256": "ede2212cd296b24c2ace0f47e70358869e58294783b7a319d7f6d89ff80b2938",
+  "sha256": "afd16e840fc071edd2cef1f6cf1cf65db88704b1d3863c1e741be8f3b8b318e6"
+ },
+ "demo_trades": {
+  "duplicates": 0,
+  "exists": false,
+  "lines": 0,
+  "sha256": null,
+  "unique_ids": 0
+ },
+ "frozen_v5_config_hash": "d18ebf19bd0cde67be1c27683d3e7ad0385d2456a6edaa1fe55146f013096177",
+ "hash_chained": {
+  "demo_smoke_journal": {
+   "chain_ok": true,
+   "exists": true,
+   "lines": 6,
+   "prefix_sha256": "3bb094ad96bae253f9ea90dabd7955c80b04df54d95d9bf2c2f41a5bfefaaebe",
+   "sha256": "c4960b204d48e363f7df59025d99c95a23639df394a4d9976bdee915a7632077"
+  },
+  "demo_strategy_journal": {
+   "chain_ok": true,
+   "exists": false,
+   "lines": 0,
+   "sha256": null
+  },
+  "host_authority": {
+   "chain_ok": true,
+   "exists": true,
+   "lines": 1,
+   "prefix_sha256": "b7f6de1f2faadaeb570896cf7ceb2c63324dbec4c61f572a41cdf9b88bcb6a01",
+   "sha256": "c52b56e2dc5e03bc95887568e5e02f4829dfb5af1a31563f1e8677195ce6d701"
+  }
+ },
+ "observation_start": "2026-10-07T14:59:22.972000+00:00",
+ "outcomes": {
+  "duplicates": 0,
+  "exists": false,
+  "lines": 0,
+  "sha256": null,
+  "unique_ids": 0,
+  "without_signal": 0
+ },
+ "paper_state": {
+  "closed_trades": 0,
+  "cumulative_net_pnl": 0,
+  "equity_mtm": 10000.0,
+  "equity_realised": 10000.0,
+  "initial_equity": 10000.0,
+  "integrity_errors": [],
+  "last_bar_close": "2026-10-08T19:30:00+00:00",
+  "last_close": 81658.7,
+  "max_drawdown_frac": 0.0,
+  "max_drawdown_usdt": 0.0,
+  "mean_gross_R": null,
+  "mean_net_R": null,
+  "new_closed_this_cycle": 0,
+  "open_position": null,
+  "unrealised_pnl": 0.0,
+  "updated_at": "2026-10-08T19:30:21.943183+00:00",
+  "win_rate": null
+ },
+ "paper_trades": {
+  "duplicates": 0,
+  "exists": false,
+  "lines": 0,
+  "sha256": null,
+  "unique_keys": 0
+ },
+ "processor": {
+  "bars": 343,
+  "file": "2026-10-08/19.jsonl",
+  "last_bar_close": "2026-10-08T19:30:00+00:00",
+  "line": 106968
+ },
+ "raw": {
+  "bytes": 162641810,
+  "closed_files_sha256": {
+   "2026-10-07/14.jsonl.gz": "bd70961421a27f4ceda7070eb3410b5400c6f567acd96b64cae43404655de2aa",
+   "2026-10-07/15.jsonl.gz": "7d866b57ddee8623176065a9dac8cc1bf7ad391586c84758c9c3814f79e5e2cd"
+  },
+  "files": 5,
+  "last_file": "2026-10-08/19.jsonl"
+ },
+ "seed": {
+  "days": 46,
+  "days_sha256": {
+   "2026-08-22.parquet": "3df35bf50554d97df9b34be2708d342aaa2a10162f1ca8233d666a4c822380a8",
+   "2026-08-23.parquet": "20495b078d442e3832a503f909e8595c47fcbcbceca6b60f9e0f33c2cae25a43",
+   "2026-08-24.parquet": "94206b60d9f19a3f7c7fdf1b38078b7f578747f52c39acbac028faf0d13f3d7f",
+   "2026-08-25.parquet": "79c9017fa7c953e6309b51b75904309c665d2f3af3efd78cb9b3f6b6ab9739d1",
+   "2026-08-26.parquet": "32059a0913546a8747958d782f94bc41547fd10947b65979192107bf81ecf025",
+   "2026-08-27.parquet": "e15bac9e68c81ad3573c98ffba9737e75a36a4f4bdab1b96a1ab18a9dcb0c3a0",
+   "2026-08-28.parquet": "fbe5ee1996383ba003b96b0bcaa131867dcda8d02541479621b6a5b08fa735ed",
+   "2026-08-29.parquet": "357be983c43c0f1928bdf01e0ace8399c8929f8fb847a6b698c4569caa2e4d26",
+   "2026-08-30.parquet": "715a4e7dded143d64e5edac99be491e39d31094ec3ffeab9f99285cd80151c74",
+   "2026-08-31.parquet": "a85990a4f79d758291064aa9eb0da3d0ba49863997123f93651ffdb942c9fa5d",
+   "2026-09-01.parquet": "abf7e8529bac625acff33eb962c0137dc1395161279196b7d4a2d0d95e4e192b",
+   "2026-09-02.parquet": "a056b9792bc2843f913bcb405a17d2fcc04ee653a1da28fc025aa60c97dc827f",
+   "2026-09-03.parquet": "6589bd2b2ef05fd7a36a795c2652320fff6bc69d378a17cd2112254a3d9fd622",
+   "2026-09-04.parquet": "d7f712065c470e152b94fe3774ebb455786212d29b4bf25560d8d192baa0abdd",
+   "2026-09-05.parquet": "52c05b0b1c494befe8ec5f958d118b502a88045529501ec74121cb177d8d310a",
+   "2026-09-06.parquet": "e8437619e3da58cb9824556d2d64225e16d8656208b64b9b8194b2dabee3610b",
+   "2026-09-07.parquet": "5edeeb41a44a898182a897c135bc9fa2783a8f318b7b63b697ab48218c8d4774",
+   "2026-09-08.parquet": "737c8116083dab5ad792af6de6d48b273b73323c46df2615be5df60b7365258c",
+   "2026-09-09.parquet": "4694722287570147ce653f78a14c5bca11bb0e60ed4c158a39987dc7f17c9e00",
+   "2026-09-10.parquet": "2399e5e4fb6f8717d154780407f3a7d6c06e4da65ce4e23d7517416d3b964ea5",
+   "2026-09-11.parquet": "81e196eee927dc059435f695f4e4793dada920e4f344b1052d6964f2058c47d8",
+   "2026-09-12.parquet": "afb2b19d0039a5877e95147a82f76bb528278e7e98ebffb33df9007300c45126",
+   "2026-09-13.parquet": "1327119c79fbd82b7e8c884b8c969a619edd7b100a3ad62ef9e48e0f349696ac",
+   "2026-09-14.parquet": "4ece947b305a277366f58531d946744f1733c76d506a5f9205a3f1385d3fd7b7",
+   "2026-09-15.parquet": "2c933688ca6e3cf6ba683f369c1951d4575d5ebae21782cb78a7a0696938ea73",
+   "2026-09-16.parquet": "a5c06df24d4b956276b590f73a6cd23677b1a14eccd9e454b39ef12f580d4be4",
+   "2026-09-17.parquet": "4f0edbbe58144f7f7309e6912b6e65d162ba27459d5655d29342feaebf486d91",
+   "2026-09-18.parquet": "e460f8ba0046f06b5e6824186c991ed90c8effa4b53713101976954c48a2da86",
+   "2026-09-19.parquet": "a719ba25aa99ce7f25ac1c18c9c340024b2b7c345c0ef7f9fec3a8e50b9a75be",
+   "2026-09-20.parquet": "d3b544a0e54f0df47c1d6ad3e15c48b3860ee0fe3faef8b1c7caaab44646b3f2",
+   "2026-09-21.parquet": "00c8ddd1a05bbbf63a624344631bd94ce9d1f07e80b1f9f5272f6d70881e3621",
+   "2026-09-22.parquet": "3eb77a6d79a0eff4ee8871432674d03e202dde7e234e2d6c5bd2f988ef784306",
+   "2026-09-23.parquet": "94e128a2f700cb0325ce30dfb8e09c0ba6e4ae6064479b4ce781a10128598d2f",
+   "2026-09-24.parquet": "2e71396da8ed564d078ed3818aac3475b10b2080abad340de79be15debd51f50",
+   "2026-09-25.parquet": "4969ae1e6c7463c27abab71bc43194982b8485838d2c9cb3f78de0bf8a921f71",
+   "2026-09-26.parquet": "ee438a87965fdb66b5b0e8136c9c6db830b1f81ab487ef7f3ed0e778d88d839e",
+   "2026-09-27.parquet": "8cbf3b42f015a41f3351d9b72d95548a71563b15e7965bd4a2d7fb1ab57fa3c4",
+   "2026-09-28.parquet": "3e77f6b3403830bf1b59295ea20978202f62b07bf6d6f3689ecc662332c06502",
+   "2026-09-29.parquet": "0f5146650ed1f7171205c6922c63c7cfc28a781dd298f50c82a577bc6629fb83",
+   "2026-09-30.parquet": "e5cb834a51f64b3dbfdf03fce4034742fa0f99ce24a064d92970899d62cb0cf1",
+   "2026-10-01.parquet": "fb9b21e583e4050fe308a9aeb65ebbdef265027659a42708a96a84c9dbe6bd9a",
+   "2026-10-02.parquet": "9c61216f620e58aab008de8d7cc0232969265eaaf492fccd5c29914a43031d6f",
+   "2026-10-03.parquet": "c9e8877fc04a068fac379d4848be5ba7222a863d15a2e8ee186a6c1788727df7",
+   "2026-10-04.parquet": "e9ee0ff6a74ea878ecf9f22890e51bf8d88ae89cf29878bf85c11b8e6c1175fd",
+   "2026-10-05.parquet": "62ff81b791c84dc05542692a86c4aca77d99a946ecba1a8551f7da0b3e35bfc8",
+   "2026-10-06.parquet": "0c57425cc9d32509344961af7a7d48a090ac31fa80e387d149bc1f4e0bd54959"
+  },
+  "manifest_sha256": "a54bfd6ffe90baab5ca4e33b3bdd96df7af9216ff2682d45d8d0318861679a4b"
+ },
+ "signals": {
+  "duplicates": 0,
+  "exists": false,
+  "lines": 0,
+  "sha256": null,
+  "unique_ids": 0
+ },
+ "taken_at": "2026-10-08T21:37:22.013207+00:00"
+}
