@@ -154,6 +154,15 @@
   for nearly every V5 trade (~480 USDT needed at the median stop; ~1,700 USDT to place both TP legs).
   The forward runner in the container died again on 2026-10-07 16:17 UTC and was restarted
   2026-10-08 19:08 UTC (a 27 h gap in this copy of the observation).
+- 2026-10-08 (later): owner set the demo reference equity to 2000 USDT and asked for the real DEMO
+  validation on the persistent host. This session ran again in the ephemeral cloud container (no
+  systemd, no deployed service, runner not running, Bybit still country-blocked), so the new
+  read-only preflight (`btc-swing v5 demo preflight`, report `reports/forward/demo_preflight/261008194142`)
+  stopped at the environment gate with 0 authenticated requests; the smoke command now refuses to
+  run without a PASSED preflight. Freeze hash and observation start verified unchanged. The real
+  validation must be run from a Claude Code session on the persistent host
+  (`docs/V5_DEMO_EXECUTION.md` section 7). The container's forward runner was NOT restarted to avoid
+  a second runner beside the persistent host's.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

@@ -37,6 +37,10 @@ ROOT = Path(__file__).resolve().parents[2]
 CFG_PATH = ROOT / "config" / "btc_swing_v5_demo.yaml"
 
 
+def _ws_ok() -> dict[str, object]:
+    return {"ok": True, "conn_id": "fake"}
+
+
 def _client(
     tmp: Path,
     fake: FakeBybitDemo,
@@ -126,9 +130,12 @@ def test_ids_and_formatting() -> None:
 def test_smoke_passes_on_fake_demo_and_never_leaves_demo_host(tmp_path: Path) -> None:
     fake = FakeBybitDemo()
     cl = _client(tmp_path, fake)
-    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None)
+    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None, ws_auth=_ws_ok)
     assert res.status == "PASSED", res.steps[-1]
-    assert [s["step"] for s in res.steps][-1] == "reconcile" and all(s["ok"] for s in res.steps)
+    assert [s["step"] for s in res.steps][-1] == "recovery" and all(s["ok"] for s in res.steps)
+    rec = res.steps[-1]["detail"]
+    assert rec["duplicate_order_link_id_rejected"] and rec["position_flat"]
+    assert all(v["match"] for v in rec["journal_vs_executions"].values())
     assert fake.hosts() == {"api-demo.bybit.com"}
     assert fake.position["size"] == 0 and not [
         o for o in fake.orders.values() if o["orderStatus"] in ("New", "PartiallyFilled")
@@ -143,13 +150,27 @@ def test_smoke_passes_on_fake_demo_and_never_leaves_demo_host(tmp_path: Path) ->
         for r in HashChainJournal(tmp_path / "journal.jsonl", "smoke").records()
     )
     md = render_smoke(res.as_dict() | {"journal": "j", "journal_chain": chain})
-    assert "| authentication passed | PASSED |" in md and "| reconciliation passed | PASSED |" in md
+    for label in (
+        "DEMO AUTH",
+        "DEMO ACCOUNT CONFIRMED",
+        "WALLET",
+        "INSTRUMENT RULES",
+        "PRIVATE WS",
+        "LIMIT CREATE/CANCEL",
+        "MARKET FILL",
+        "STOP",
+        "TAKE PROFIT",
+        "CLOSE POSITION",
+        "FEES/FILLS RETRIEVED",
+        "RECOVERY/RECONCILIATION",
+    ):
+        assert f"| {label} | PASS |" in md, label
 
 
 def test_smoke_blocked_by_geo_restriction_sends_no_authenticated_request(tmp_path: Path) -> None:
     fake = FakeBybitDemo(geo_blocked=True)
     cl = _client(tmp_path, fake)
-    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None)
+    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None, ws_auth=_ws_ok)
     assert res.status == "BLOCKED" and res.steps[0]["geo_blocked"] and len(res.steps) == 1
     assert all(
         "X-BAPI-SIGN" not in {k.upper(): v for k, v in r["headers"].items()}
@@ -163,7 +184,7 @@ def test_smoke_aborts_untouched_on_foreign_position(tmp_path: Path) -> None:
     fake = FakeBybitDemo()
     fake.position.update({"side": "Buy", "size": 0.01, "avg": 59000.0})
     cl = _client(tmp_path, fake)
-    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None)
+    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None, ws_auth=_ws_ok)
     assert res.status == "FAILED" and res.steps[-1]["step"] == "position_before"
     assert fake.position["size"] == 0.01 and res.cleanup == [] and not fake.orders
 
@@ -172,7 +193,7 @@ def test_smoke_failure_mid_run_cleans_up_position(tmp_path: Path) -> None:
     fake = FakeBybitDemo()
     fake.fail_next["/v5/position/trading-stop"] = 10001
     cl = _client(tmp_path, fake)
-    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None)
+    res = run_execution_smoke(cl, cl.cfg, sleep=lambda s: None, ws_auth=_ws_ok)
     assert res.status == "FAILED" and res.steps[-1]["step"] == "attach_stop"
     assert fake.position["size"] == 0 and any(c["action"] == "close" for c in res.cleanup)
 

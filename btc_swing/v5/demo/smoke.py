@@ -30,11 +30,14 @@ from btc_swing.v5.demo.ids import smoke_link_id
 STEPS = [
     ("connectivity", "public server time (no authentication)"),
     ("authentication", "signed account query"),
+    ("account_confirmed", "API key information on the DEMO host (account is DEMO)"),
+    ("private_ws", "private DEMO WebSocket authentication"),
     ("wallet", "wallet balance"),
     ("instrument", "instrument information"),
     ("ticker", "current price"),
     ("position_before", "current position (must be flat)"),
-    ("set_leverage", "set leverage"),
+    ("leverage_query", "query current leverage"),
+    ("set_leverage", "set a safe demo leverage if required"),
     ("limit_create", "place a far-from-market limit order"),
     ("limit_cancel", "cancel the limit order"),
     ("market_fill", "place the minimum-size market order and confirm the fill"),
@@ -42,8 +45,12 @@ STEPS = [
     ("attach_tp", "attach a take profit (position TP and a reduce-only limit TP)"),
     ("position_read", "read position state with stop and TP"),
     ("close", "close the demo position (reduce-only market)"),
-    ("closed_pnl", "verify flat position and closed PnL"),
+    ("closed_pnl", "verify flat position; retrieve executions, fees and closed PnL"),
     ("reconcile", "reconcile journal fills with exchange executions"),
+    (
+        "recovery",
+        "restart reconciliation: duplicate orderLinkId rejected, no open smoke order, flat, journal = executions",
+    ),
 ]
 
 
@@ -68,7 +75,10 @@ def _now() -> str:
 
 
 def run_execution_smoke(
-    client: BybitDemoClient, cfg: DemoExecConfig, sleep: Callable[[float], None] = time.sleep
+    client: BybitDemoClient,
+    cfg: DemoExecConfig,
+    sleep: Callable[[float], None] = time.sleep,
+    ws_auth: Callable[[], dict[str, Any]] | None = None,
 ) -> SmokeResult:
     run_id = datetime.now(UTC).strftime("%y%m%d%H%M%S")
     res = SmokeResult(run_id, _now())
@@ -278,13 +288,97 @@ def run_execution_smoke(
             "wallet_change": w["total_equity"] - ctx["wallet_before"]["total_equity"],
         }
 
+    def s_account() -> dict[str, Any]:
+        info = client.api_key_info()
+        return {
+            "host": cfg.rest_base,
+            "key_info": info,
+            "note": "the key authenticates on the DEMO host; production keys are rejected there",
+        }
+
+    def s_ws() -> dict[str, Any]:
+        if ws_auth is None:
+            raise RuntimeError("no private WebSocket check configured")
+        r = ws_auth()
+        if not r.get("ok"):
+            raise RuntimeError(f"private WS auth failed: {r.get('ret_msg')}")
+        return r
+
+    def s_leverage_query() -> dict[str, Any]:
+        p = client.position()
+        ctx["lev_before"] = p.get("leverage")
+        return {"leverage": p.get("leverage")}
+
+    def s_recovery() -> dict[str, Any]:
+        it, t = ctx["inst"], client.ticker()
+        dup_rejected = False
+        try:
+            client.create_order(
+                "Buy",
+                fmt_qty(it["min_qty"], it["qty_step"]),
+                "Limit",
+                ctx["limit_link"],
+                price=fmt_price(t["last"] * (1 - sc.limit_offset_frac), it["tick"], -1),
+                tif="PostOnly",
+            )
+        except DemoApiError as e:
+            dup_rejected = e.ret_code == 110072
+            if not dup_rejected:
+                raise
+        if not dup_rejected:
+            client.cancel_order(ctx["limit_link"])
+            raise RuntimeError(
+                "a reused orderLinkId was ACCEPTED (deterministic ids would not prevent duplicates)"
+            )
+        open_smoke = [
+            o.get("orderLinkId")
+            for o in client.open_orders()
+            if str(o.get("orderLinkId", "")).startswith(f"SMOKE-{run_id}")
+        ]
+        if open_smoke:
+            raise RuntimeError(f"open smoke orders remain: {open_smoke}")
+        p = client.position()
+        if p["size"] > 0:
+            raise RuntimeError(f"position not flat: {p}")
+        checks = {}
+        for leg in ("entry", "exit"):
+            rec = ctx[leg]
+            ex = client.executions(link_id=rec["link"])
+            q = sum(float(e.get("execQty") or 0) for e in ex)
+            v = sum(float(e.get("execQty") or 0) * float(e.get("execPrice") or 0) for e in ex)
+            fee = sum(float(e.get("execFee") or 0) for e in ex)
+            ok = (
+                abs(q - rec["qty"]) < 1e-9
+                and q > 0
+                and abs(v / q - rec["avg_price"]) <= max(1e-6, rec["avg_price"] * 1e-6)
+                and abs(fee - rec["fee"]) < 1e-9
+            )
+            checks[leg] = {
+                "exec_qty": q,
+                "exec_avg": v / q if q else None,
+                "exec_fee": fee,
+                "journal": rec,
+                "match": ok,
+            }
+            if not ok:
+                raise RuntimeError(f"journal and executions differ for {leg}: {checks[leg]}")
+        return {
+            "duplicate_order_link_id_rejected": True,
+            "open_smoke_orders": 0,
+            "position_flat": True,
+            "journal_vs_executions": checks,
+        }
+
     funcs: dict[str, Callable[[], dict[str, Any]]] = {
         "connectivity": s_connectivity,
         "authentication": s_auth,
+        "account_confirmed": s_account,
+        "private_ws": s_ws,
         "wallet": s_wallet,
         "instrument": s_instrument,
         "ticker": s_ticker,
         "position_before": s_pos_before,
+        "leverage_query": s_leverage_query,
         "set_leverage": s_leverage,
         "limit_create": s_limit_create,
         "limit_cancel": s_limit_cancel,
@@ -295,6 +389,7 @@ def run_execution_smoke(
         "close": s_close,
         "closed_pnl": s_closed_pnl,
         "reconcile": s_reconcile,
+        "recovery": s_recovery,
     }
     client.journal.append(
         "smoke_start",
@@ -410,29 +505,30 @@ def render_smoke(d: dict[str, Any]) -> str:
         s = by.get(name)
         return "PASSED" if s and s["ok"] else ("FAILED" if s else "NOT RUN")
 
+    def both(*names: str) -> str:
+        marks = [mark(n) for n in names]
+        return (
+            "PASS"
+            if all(m == "PASSED" for m in marks)
+            else ("FAIL" if any(m == "FAILED" for m in marks) else "NOT RUN")
+        )
+
+    def one(name: str) -> str:
+        return {"PASSED": "PASS", "FAILED": "FAIL"}.get(mark(name), "NOT RUN")
+
     checks = [
-        ("authentication passed", mark("authentication")),
-        ("wallet query passed", mark("wallet")),
-        (
-            "order create/cancel passed",
-            "PASSED"
-            if mark("limit_create") == mark("limit_cancel") == "PASSED"
-            else ("FAILED" if "limit_create" in by else "NOT RUN"),
-        ),
-        ("market fill passed", mark("market_fill")),
-        (
-            "stop/TP passed",
-            "PASSED"
-            if mark("attach_stop") == mark("attach_tp") == mark("position_read") == "PASSED"
-            else ("FAILED" if "attach_stop" in by else "NOT RUN"),
-        ),
-        ("close passed", mark("close")),
-        (
-            "reconciliation passed",
-            "PASSED"
-            if mark("closed_pnl") == mark("reconcile") == "PASSED"
-            else ("FAILED" if "closed_pnl" in by else "NOT RUN"),
-        ),
+        ("DEMO AUTH", one("authentication")),
+        ("DEMO ACCOUNT CONFIRMED", one("account_confirmed")),
+        ("WALLET", one("wallet")),
+        ("INSTRUMENT RULES", one("instrument")),
+        ("PRIVATE WS", one("private_ws")),
+        ("LIMIT CREATE/CANCEL", both("limit_create", "limit_cancel")),
+        ("MARKET FILL", one("market_fill")),
+        ("STOP", both("attach_stop", "position_read")),
+        ("TAKE PROFIT", both("attach_tp", "position_read")),
+        ("CLOSE POSITION", one("close")),
+        ("FEES/FILLS RETRIEVED", one("closed_pnl")),
+        ("RECOVERY/RECONCILIATION", both("reconcile", "recovery")),
     ]
     lines = [
         "# BTC V5 — Bybit DEMO execution smoke test",
@@ -446,10 +542,12 @@ def render_smoke(d: dict[str, Any]) -> str:
         "| check | result |",
         "|---|---|",
         *[f"| {k} | {v} |" for k, v in checks],
-        f"| restart recovery tests | {d.get('restart_recovery_tests', 'see test suite')} |",
-        f"| production endpoint used | {d.get('production_endpoint_used', 'no')} |",
-        f"| real order placed | {d.get('real_order_placed', 'no')} |",
+        f"| PRODUCTION AUTH ENDPOINT USED | {d.get('production_endpoint_used', 'NO')} |",
+        f"| REAL-MONEY ORDER PLACED | {d.get('real_order_placed', 'NO')} |",
+        f"| offline restart-recovery tests | {d.get('restart_recovery_tests', 'see test suite')} |",
         f"| mode after the run | {d.get('mode_after', 'DISABLED')} |",
+        f"| live BTCUSDT min qty / qty step / min notional | {d.get('live_rules', 'not retrieved')} |",
+        f"| minimum reference equity for the frozen TP1/TP2 structure at 0.25% risk | {d.get('min_reference_equity', 'not computed (no live rules)')} |",
         "",
         "## Steps",
         "",

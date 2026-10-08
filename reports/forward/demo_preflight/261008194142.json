@@ -1,0 +1,42 @@
+{
+ "authenticated_requests": 0,
+ "environment": [
+  {
+   "check": "persistent host (not an ephemeral cloud-session container)",
+   "detail": "cloud-session container detected (CLAUDE_CODE_REMOTE / agent proxy)",
+   "ok": false
+  },
+  {
+   "check": "forward runner running on this host",
+   "detail": "pid file alive=False; runner processes=[]",
+   "ok": false
+  },
+  {
+   "check": "exactly one forward runner",
+   "detail": "0 runner process(es)",
+   "ok": false
+  },
+  {
+   "check": "forward freeze present and V5 hash unchanged",
+   "detail": "freeze d18ebf19bd0c / config d18ebf19bd0c / expected d18ebf19bd0c",
+   "ok": true
+  },
+  {
+   "check": "observation start unchanged",
+   "detail": "2026-10-07T14:59:22.972000+00:00",
+   "ok": true
+  },
+  {
+   "check": "api-demo.bybit.com reachable (unauthenticated probe)",
+   "detail": "HTTP 403 (Bybit country restriction)",
+   "ok": false
+  }
+ ],
+ "finished_at": "2026-10-08T19:41:42.793918+00:00",
+ "mode": "DISABLED",
+ "read_only": null,
+ "requirements": null,
+ "run_id": "261008194142",
+ "started_at": "2026-10-08T19:41:42.052787+00:00",
+ "status": "BLOCKED_ENVIRONMENT"
+}

@@ -81,11 +81,15 @@ class BybitDemoClient:
         credentials: DemoCredentials | None = None,
         transport: httpx.BaseTransport | None = None,
         clock: Callable[[], float] = time.time,
+        read_only: bool = False,
     ) -> None:
-        if mode is ExecutionMode.DISABLED:
+        """`read_only=True` (preflight): only GET requests can be sent; allowed while DISABLED.
+        Otherwise DISABLED refuses to construct a client at all."""
+        if mode is ExecutionMode.DISABLED and not read_only:
             raise ExecutionDisabledError(
-                "execution mode is DISABLED: no authenticated request is allowed"
+                "execution mode is DISABLED: no state-changing request is allowed"
             )
+        self.read_only = read_only
         assert_demo_url(cfg.rest_base)
         self.cfg, self.mode, self.journal, self.tag = cfg, mode, journal, tag
         self.creds = credentials if credentials is not None else load_demo_credentials(cfg)
@@ -128,6 +132,8 @@ class BybitDemoClient:
         body: dict[str, Any] | None = None,
         auth: bool = True,
     ) -> dict[str, Any]:
+        if self.read_only and method != "GET":
+            raise ExecutionDisabledError(f"read-only client: {method} {path} refused")
         qs = urlencode({k: v for k, v in (params or {}).items() if v is not None})
         url = path + (f"?{qs}" if qs else "")
         assert_demo_url(str(self._http.base_url.join(url)))
@@ -232,6 +238,25 @@ class BybitDemoClient:
     def account_info(self) -> dict[str, Any]:
         return dict(self._request("GET", "/v5/account/info")["result"])
 
+    def api_key_info(self) -> dict[str, Any]:
+        """GET /v5/user/query-api, reduced to non-secret fields (the key string itself is dropped)."""
+        r = self._request("GET", "/v5/user/query-api")["result"]
+        keep = (
+            "readOnly",
+            "permissions",
+            "type",
+            "isMaster",
+            "uta",
+            "unified",
+            "vipLevel",
+            "expiredAt",
+            "createdAt",
+            "deadlineDay",
+            "kycLevel",
+            "kycRegion",
+        )
+        return {k: r.get(k) for k in keep if k in r}
+
     def wallet_balance(self) -> dict[str, Any]:
         r = self._request(
             "GET", "/v5/account/wallet-balance", {"accountType": self.cfg.account_type}
@@ -264,11 +289,16 @@ class BybitDemoClient:
         return {
             "symbol": it.get("symbol"),
             "status": it.get("status"),
+            "contract_type": it.get("contractType"),
             "min_qty": _f(lot.get("minOrderQty")),
             "qty_step": _f(lot.get("qtyStep")),
             "max_qty": _f(lot.get("maxOrderQty")),
+            "max_mkt_qty": _f(lot.get("maxMktOrderQty")),
+            "min_notional": _f(lot.get("minNotionalValue")),
             "tick": _f(pf.get("tickSize")),
+            "min_leverage": _f(lev.get("minLeverage")),
             "max_leverage": _f(lev.get("maxLeverage")),
+            "leverage_step": _f(lev.get("leverageStep")),
         }
 
     def ticker(self) -> dict[str, Any]:

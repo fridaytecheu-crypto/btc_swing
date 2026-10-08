@@ -96,6 +96,17 @@ class FakeBybitDemo:
                 {"unifiedMarginStatus": 5, "marginMode": "REGULAR_MARGIN"}
             ),
             "/v5/account/wallet-balance": self._wallet,
+            "/v5/user/query-api": lambda p, b: self._ok(
+                {
+                    "id": "1",
+                    "apiKey": self.api_key,
+                    "readOnly": 0,
+                    "permissions": {"ContractTrade": ["Order", "Position"]},
+                    "type": 1,
+                    "isMaster": True,
+                    "uta": 1,
+                }
+            ),
             "/v5/market/instruments-info": self._instrument,
             "/v5/market/tickers": self._ticker,
             "/v5/position/list": self._position,
@@ -158,9 +169,15 @@ class FakeBybitDemo:
                             "minOrderQty": str(self.min_qty),
                             "qtyStep": str(self.qty_step),
                             "maxOrderQty": "100",
+                            "maxMktOrderQty": "50",
+                            "minNotionalValue": "5",
                         },
                         "priceFilter": {"tickSize": str(self.tick)},
-                        "leverageFilter": {"maxLeverage": "100"},
+                        "leverageFilter": {
+                            "minLeverage": "1",
+                            "maxLeverage": "100",
+                            "leverageStep": "0.01",
+                        },
                     }
                 ]
             }

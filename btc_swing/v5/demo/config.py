@@ -15,6 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DEMO_REST_HOST = "api-demo.bybit.com"
 DEMO_REST_BASE = f"https://{DEMO_REST_HOST}"
+DEMO_WS_PRIVATE_HOST = "stream-demo.bybit.com"
+DEMO_WS_PRIVATE = f"wss://{DEMO_WS_PRIVATE_HOST}/v5/private"
 SMOKE_TAG = "EXECUTION_SMOKE"
 STRATEGY_TAG = "STRATEGY_DEMO"
 
@@ -55,6 +57,7 @@ class FailsafeCfg(_Strict):
 class DemoExecConfig(_Strict):
     mode: ExecutionMode = ExecutionMode.DISABLED
     rest_base: str = DEMO_REST_BASE
+    ws_private: str = DEMO_WS_PRIVATE
     category: str
     symbol: str
     account_type: str
@@ -72,6 +75,25 @@ class DemoExecConfig(_Strict):
     def _demo_only(cls, v: str) -> str:
         assert_demo_url(v)
         return v.rstrip("/")
+
+    @field_validator("ws_private")
+    @classmethod
+    def _demo_ws_only(cls, v: str) -> str:
+        assert_demo_ws_url(v)
+        return v
+
+
+def assert_demo_ws_url(url: str) -> None:
+    """Raise unless `url` is the Bybit DEMO private WebSocket (wss://stream-demo.bybit.com)."""
+    u = urlparse(url)
+    if (
+        u.scheme != "wss"
+        or (u.hostname or "").lower() != DEMO_WS_PRIVATE_HOST
+        or u.port not in (None, 443)
+    ):
+        raise EndpointNotAllowedError(
+            f"only wss://{DEMO_WS_PRIVATE_HOST} is allowed for private streams (got {u.scheme}://{u.hostname})"
+        )
 
 
 def assert_demo_url(url: str) -> None:

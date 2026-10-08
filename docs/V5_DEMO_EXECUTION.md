@@ -18,20 +18,38 @@ parallel and is the reference every demo trade is compared with.
 | Every journal is append-only, fsync'ed and hash-chained (`btc-swing v5 demo verify-journal`) | `journal.py` |
 
 ## 2. Modes
-- `DISABLED` (default): nothing demo-related is constructed; the forward observation runs as before.
-- `EXECUTION_SMOKE`: only via `btc-swing v5 demo smoke --mode EXECUTION_SMOKE` (per-invocation opt-in; the config file stays `DISABLED`).
+- `DISABLED` (default): no state-changing request is possible; the forward observation runs as before. The only authenticated traffic allowed in this mode is the explicit read-only preflight (`btc-swing v5 demo preflight`): a GET-only client (POST refused in code) plus the private DEMO WebSocket auth.
+- `EXECUTION_SMOKE`: only via `btc-swing v5 demo smoke --mode EXECUTION_SMOKE` (per-invocation opt-in; the config file stays `DISABLED`), and only when a PASSED preflight from the last 24 h exists.
 - `STRATEGY_DEMO`: only when the owner edits `mode: STRATEGY_DEMO` in `config/btc_swing_v5_demo.yaml` AND a PASSED smoke report exists; the forward runner then builds the executor, runs restart recovery and calls it after every 5-minute cycle. It never starts automatically.
 
-## 3. EXECUTION_SMOKE sequence
-connectivity (public time, unauthenticated) -> authentication (signed account query) -> wallet ->
+## 3. Preflight (mode stays DISABLED)
+`btc-swing v5 demo preflight` first checks the environment without any authenticated request:
+persistent host (not an ephemeral cloud-session container), forward runner alive on this host,
+exactly one runner, forward freeze V5 hash `d18ebf19bd0c…` and observation start
+2026-10-07T14:59:22.972Z unchanged, `api-demo.bybit.com` reachable (unauthenticated probe). Only
+if all pass: signed GET checks (account info = API key authentication, API key information, UNIFIED
+wallet, BTCUSDT position, BTCUSDT open orders, live instrument rules incl. minimum quantity,
+quantity step, minimum notional, tick and leverage filter, ticker), DEMO account confirmation (the
+key authenticates on the demo host, where production keys are rejected; no other host is ever
+contacted), private DEMO WebSocket authentication (`wss://stream-demo.bybit.com/v5/private`), flat
+position and no open orders. It then computes, from the LIVE rules and price, whether the
+reference equity represents the frozen TP1/TP2/remainder structure. Reports:
+`reports/forward/demo_preflight/<run>.md|.json`.
+
+## 4. EXECUTION_SMOKE sequence
+connectivity (public time, unauthenticated) -> authentication (signed account query) -> account
+confirmation (API key information on the demo host) -> private DEMO WebSocket auth -> wallet ->
 instrument -> ticker -> position must be flat (a foreign position aborts without being touched) ->
-set leverage -> far limit order create -> cancel -> minimum-size market order and fill -> stop loss
--> position TP and a reduce-only limit TP -> position read (stop/TP match) -> close (reduce-only
-market) -> flat + closed-PnL record -> reconciliation of Bybit's closed PnL with the journaled fills.
+leverage query -> set leverage if required -> far limit order create -> cancel -> minimum-size
+market order and fill -> stop loss -> position TP and a reduce-only limit TP -> position read
+(stop/TP match) -> close (reduce-only market) -> flat + executions, fees and closed PnL ->
+reconciliation of Bybit's closed PnL with the journaled fills -> recovery check (re-submitting a
+used orderLinkId must be rejected by Bybit as a duplicate, no open smoke order, flat position,
+journal fills equal Bybit executions).
 It aborts at the first failure and always closes a smoke position it opened. Reports: summary
 `reports/forward/BYBIT_DEMO_EXECUTION_SMOKE.md`, immutable per run `reports/forward/demo_smoke/<run>.md|.json`.
 
-## 4. STRATEGY_DEMO behaviour
+## 5. STRATEGY_DEMO behaviour
 - Trigger source: a subclass of the frozen engine records each trigger the frozen `_size` accepts; its result hash must equal the paper engine's (else no new trade). A demo entry is sent only for a trigger on the bar that just closed (frozen fill = next 5m open), within 120 s, whose signal id is in the immutable forward signal journal. No V5 signal -> no strategy order.
 - Sizing: frozen `size_position` (same leverage ladder, margin cap, liquidation constraints) on the reference equity (`reference_equity_usdt`, 100 USDT), never on the demo wallet; quantity floored to the exchange step; never rounded up.
 - Orders: deterministic `orderLinkId = V5D-<sha256(signal_id)[:20]>-<EN|T1|T2|TC|XC>`; write-ahead state before every order; Bybit rejects a duplicate id, so a restart can find but never re-create an order.
@@ -40,13 +58,26 @@ It aborts at the first failure and always closes a smoke position it opened. Rep
 - Restart recovery (`recover()`, also run at runner start): queries the position and open orders; SUBMITTING with no order on Bybit -> abandoned, never resubmitted; order found -> adopted; fill resolved from the order and executions (partial fills adopted at the real size); stop and TP legs re-attached only if missing (looked up by id); unexpected position or strategy orders -> reconciliation required, never touched.
 - Reconciliation per closed trade (`data/btc/forward/demo/demo_trades.jsonl`): SIGNAL (time, expected entry, stop, targets), PAPER (fill, costs, P&L scaled to the reference equity, R), DEMO (submitted price, fill, fill latency, fees, funding, exit fills, net P&L, R on actual risk and on planned risk) and the differences: entry fill (bps), fees (R), R, P&L.
 
-## 5. Findings the owner must decide on (nothing was changed)
-1. **100 USDT reference equity is below Bybit's minimum order size for almost every V5 trade.** At 0.25% risk the risk budget is 0.25 USDT; with the V5 median stop of 1.40% of price and BTC near 86,000 USDT, the frozen size is about 0.0002 BTC, while Bybit's BTCUSDT minimum order is 0.001 BTC (documented value; read at runtime from `instruments-info`, not confirmed live from the cloud container). Rounding up would raise the risk to about 1.2% per trade, so the executor journals `SKIPPED_BELOW_MIN_QTY` with the reference equity that would be needed instead. Needed for one minimum lot at 0.25% risk: about 260 USDT (p10 stop 0.75%), 480 USDT (median 1.40%), 870 USDT (p90 2.53%). With 100 USDT, STRATEGY_DEMO would place no order at all.
-2. **Partial take-profits need at least 3-4 minimum lots.** TP1 (40%) and TP2 (30%) are separate reduce-only orders; a leg smaller than the minimum lot is not placed (journaled `TP_LEG_NOT_PLACED`) and that quantity stays under stop, breakeven/trail and the time cap. Representing both legs at the median stop needs about 1,700 USDT reference equity.
+## 6. Reference equity and other findings
+1. **Reference equity is 2000 USDT** (owner decision 2026-10-08, `reference_equity_usdt` in `config/btc_swing_v5_demo.yaml`; 0.25% risk = 5 USDT per trade). It is execution-validation sizing only, not a real-money capital recommendation. The preflight recomputes the table below from LIVE rules; the figures here use Bybit's documented BTCUSDT rules (minimum 0.001 BTC, step 0.001 BTC, minimum notional 5 USDT), not confirmed live because Bybit blocks the cloud container, and the last collected mainnet price 81,659 USDT:
+
+| V5 stop (research distribution) | frozen qty at 2000 USDT | TP1 / TP2 / remainder at the exchange step | all legs placeable | min equity: one lot | min equity: all three legs | min equity: exact 40/30/30 |
+|---|---|---|---|---|---|---|
+| p10 0.75% | 0.0082 -> 0.008 BTC | 0.003 / 0.002 / 0.003 | yes | ~245 | ~975 | ~2,440 |
+| median 1.40% | 0.0044 -> 0.004 BTC | 0.001 / 0.001 / 0.002 | yes (25/25/50, not 40/30/30) | ~460 | ~1,830 | ~4,575 |
+| p90 2.53% | 0.0024 -> 0.002 BTC | 0.000 / 0.000 / 0.002 | no (TP legs below minimum) | ~830 | ~3,310 | ~8,270 |
+
+   The frozen fractions are never changed: a TP leg below the minimum is not placed (`TP_LEG_NOT_PLACED`) and flooring shifts quantity into the trailing remainder. Exact reproduction of 40/30/30 needs 10 lots (0.010 BTC), i.e. about 4,600 USDT at the median stop and about 8,300 USDT at the p90 stop at this price; all three legs at the p90 stop need about 3,300 USDT.
+2. **Partial take-profits** are separate reduce-only orders; see the table for when they are representable.
 3. **Bybit blocks this cloud container by country** (CloudFront 403 for `api-demo`, `stream-demo`, `api-testnet` and `api.bybit.com`). The smoke test must run on the persistent host, in a jurisdiction where Bybit permits access; do not route around the restriction.
 
-## 6. Running on the persistent host
+## 7. Running on the persistent host
 ```
+# 1) read-only preflight (mode stays DISABLED); it must report PASSED
+sudo systemd-run --pipe --wait --uid=btcswing -p WorkingDirectory=/opt/btc_swing \
+  -p EnvironmentFile=/etc/btc-v5-demo.env -p Environment=BTC_DATA_DIR=/var/lib/btc_swing \
+  /opt/btc_swing/.venv/bin/btc-swing v5 demo preflight
+# 2) only then the smoke run below
 sudo install -m 600 -o root -g root deploy/btc-v5-demo.env.example /etc/btc-v5-demo.env   # then put the DEMO key/secret in it
 # the service unit already reads EnvironmentFile=-/etc/btc-v5-demo.env (unused while the mode is DISABLED)
 # one-off smoke as the service user, with the two variables taken from that file:

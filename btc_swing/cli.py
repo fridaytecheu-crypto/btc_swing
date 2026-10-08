@@ -999,6 +999,21 @@ def demo_smoke(
 
     if mode != ExecutionMode.EXECUTION_SMOKE.value:
         raise typer.BadParameter("smoke requires --mode EXECUTION_SMOKE")
+    from btc_swing.v5.demo.preflight import latest_preflight
+    from btc_swing.v5.demo.ws import private_ws_auth
+
+    pf = latest_preflight()
+    if pf is None or pf.get("status") != "PASSED":
+        console.print_json(
+            json.dumps(
+                {
+                    "status": "REFUSED",
+                    "reason": "no PASSED read-only preflight in the last 24 h: run `btc-swing v5 demo preflight` first",
+                    "latest_preflight": pf and pf.get("status"),
+                }
+            )
+        )
+        raise typer.Exit(code=1)
     dcfg = load_demo_config(demo_config, ExecutionMode.EXECUTION_SMOKE)
     fcfg = load_forward_config(forward_config)
     dp = DemoPaths(ForwardPaths(_data_dir(), fcfg.symbol).root)
@@ -1027,7 +1042,7 @@ def demo_smoke(
         ) + f" (tests/v5/test_demo_strategy.py: {tail})"
     try:
         client = BybitDemoClient(dcfg, dcfg.mode, journal, SMOKE_TAG)
-        res = run_execution_smoke(client, dcfg)
+        res = run_execution_smoke(client, dcfg, ws_auth=lambda: private_ws_auth(dcfg, client.creds))
         client.close()
     except Exception as e:
         from datetime import UTC, datetime
@@ -1056,12 +1071,24 @@ def demo_smoke(
     )
     extra = {
         "restart_recovery_tests": rec_tests,
-        "production_endpoint_used": "no (every request is checked against api-demo.bybit.com before it is sent)",
-        "real_order_placed": "no",
+        "production_endpoint_used": "NO (every request is checked against api-demo.bybit.com / stream-demo.bybit.com before it is sent)",
+        "real_order_placed": "NO",
         "mode_after": load_demo_config(demo_config).mode.value,
         "paths_requested": hosts,
         "notes": list(note or []),
     }
+    req = pf.get("requirements") or {}
+    if req:
+        extra["live_rules"] = (
+            f"{req['min_qty']} BTC / {req['qty_step']} BTC / {req['min_notional']} USDT (preflight {pf['run_id']})"
+        )
+        med = req["by_stop"].get("median", {})
+        extra["min_reference_equity"] = (
+            f"all three legs at the median V5 stop ({med.get('stop_pct', 0):.2f}%): {med.get('min_equity_all_legs', {}).get('equity', float('nan')):,.0f} USDT; "
+            f"exact 40/30/30 fractions: {med.get('min_equity_exact_fractions', {}).get('equity', float('nan')):,.0f} USDT; "
+            f"configured reference equity {req['reference_equity']:,.0f} USDT represents all legs: "
+            + ", ".join(f"{k} stop {v['all_legs_ok']}" for k, v in req["by_stop"].items())
+        )
     path = write_smoke_report(
         res, dp.smoke_journal, verify_chain(dp.smoke_journal), SMOKE_REPORTS, SMOKE_SUMMARY, extra
     )
@@ -1078,6 +1105,57 @@ def demo_smoke(
             }
         )
     )
+
+
+@demo_app.command("preflight")
+def demo_preflight(
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Environment gate (persistent host, runner, freeze, observation start, single runner,
+    api-demo reachable) and, only if it passes, READ-ONLY authenticated DEMO checks (GET only) and
+    private DEMO WebSocket auth, plus the reference-equity requirement from LIVE instrument rules.
+    The mode stays DISABLED. Writes reports/forward/demo_preflight/<run>.md|.json; exit 1 unless PASSED."""
+    from btc_swing.v5.demo.config import load_demo_config
+    from btc_swing.v5.demo.journal import HashChainJournal
+    from btc_swing.v5.demo.preflight import run_preflight, write_preflight
+    from btc_swing.v5.demo.runtime import DemoPaths
+    from btc_swing.v5.forward.config import ForwardPaths, load_forward_config, load_frozen_v5
+    from btc_swing.v5.forward.freeze import load_freeze
+    from btc_swing.v5.forward.raw import load_forward_bars
+
+    dcfg = load_demo_config(demo_config)
+    fcfg = load_forward_config(forward_config)
+    cfg = load_frozen_v5(fcfg)
+    paths = ForwardPaths(_data_dir(), fcfg.symbol)
+    dp = DemoPaths(paths.root)
+    bars = load_forward_bars(paths.bars_dir)
+    px = float(bars["close"].drop_nans()[-1]) if bars.height else None
+    out = run_preflight(
+        dcfg,
+        cfg.config_hash,
+        load_freeze(),
+        paths.run_pid,
+        HashChainJournal(dp.root / "preflight_journal.jsonl", "preflight_read_only"),
+        px,
+    )
+    md = write_preflight(out)
+    console.print_json(
+        json.dumps(
+            {
+                "status": out["status"],
+                "report": str(md),
+                "environment": [(c["check"], c["ok"], c["detail"]) for c in out["environment"]],
+                "read_only": [
+                    (c["check"], c["ok"]) for c in (out["read_only"] or {}).get("checks", [])
+                ],
+                "authenticated_requests": out["authenticated_requests"],
+            },
+            default=str,
+        )
+    )
+    if out["status"] != "PASSED":
+        raise typer.Exit(code=1)
 
 
 @demo_app.command("status")

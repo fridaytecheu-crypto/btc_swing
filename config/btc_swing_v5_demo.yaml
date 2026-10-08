@@ -4,6 +4,7 @@
 # invocation (`--mode`); this file is never rewritten by the program, so it stays DISABLED.
 mode: DISABLED
 rest_base: https://api-demo.bybit.com     # the ONLY host authenticated requests may reach (enforced in code)
+ws_private: wss://stream-demo.bybit.com/v5/private   # the ONLY private stream host (enforced in code)
 category: linear
 symbol: BTCUSDT
 account_type: UNIFIED
@@ -12,7 +13,8 @@ http_timeout_s: 10.0
 credentials_env:
   api_key: BYBIT_DEMO_API_KEY
   api_secret: BYBIT_DEMO_API_SECRET
-reference_equity_usdt: 100.0              # all strategy sizing/performance as if the account were 100 USDT
+reference_equity_usdt: 2000.0             # owner decision 2026-10-08: demo sizing/performance as if the account were 2000 USDT
+                                          # (execution-validation sizing only; NOT a real-money capital recommendation)
 risk_per_trade: 0.0025                    # must equal the frozen V5 risk_per_trade (checked at load)
 stop_trigger_by: LastPrice                # the frozen engine stops on traded prices (liquidation on mark)
 smoke:
