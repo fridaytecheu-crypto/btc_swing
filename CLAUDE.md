@@ -24,7 +24,13 @@ the observation; snapshots in `reports/forward/` are immutable. Deployment/migra
 `docs/V5_FORWARD_DEPLOYMENT.md` (`v5 forward status-text|health|integrity|export|verify`).
 
 ## Non-negotiables (owner's specification)
-- No live trading, no exchange API keys, no order placement, no real money.
+- No live trading, no real money, no production exchange endpoints. Owner authorization
+  (2026-10-08): a SEPARATE execution-validation phase may use Bybit DEMO only — authenticated REST
+  only to `https://api-demo.bybit.com`, private streams only to `wss://stream-demo.bybit.com`,
+  credentials only from `BYBIT_DEMO_API_KEY` / `BYBIT_DEMO_API_SECRET` (never printed or persisted),
+  mode only from `BYBIT_EXECUTION_MODE` (default DISABLED; DISABLED allows read-only GETs only).
+  Code: `btc_swing/v5/demo/`, CLI `btc-swing v5 demo ...`. It never changes a V5 rule, the forward
+  journals or the paper ledger; EXECUTION_SMOKE / STRATEGY_DEMO need explicit owner instructions.
 - No parameter search/optimisation; defaults are pre-registered. A rule change needs owner approval
   and a single pre-registered run.
 - PIT discipline: a decision at T may only use bars with `close_time <= T` and auxiliary rows with

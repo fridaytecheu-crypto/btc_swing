@@ -968,3 +968,37 @@ def forward_verify(
 
 if __name__ == "__main__":
     app()
+
+
+# ----------------------------------------------------------------------------- Bybit DEMO execution
+demo_app = typer.Typer(
+    help="BTC V5 — Bybit DEMO execution validation (separate from the forward observation; "
+    "authenticated REST only to api-demo.bybit.com; mode from BYBIT_EXECUTION_MODE, default DISABLED)"
+)
+v5_app.add_typer(demo_app, name="demo")
+
+
+@demo_app.command("verify-readonly")
+def demo_verify_readonly(reports_dir: Path = Path("reports/forward")) -> None:
+    """READ-ONLY connectivity verification (API key info, UNIFIED wallet, BTCUSDT position, open
+    orders). Sends GET requests only; fails closed without BYBIT_DEMO_API_KEY / BYBIT_DEMO_API_SECRET.
+    Writes a hash-chained journal and an immutable report; exit 1 when any check fails."""
+    from btc_swing.v5.demo.readonly import render_readonly_report, run_readonly_verification
+
+    journal = _data_dir() / "btc" / "demo_execution" / "readonly_verification.jsonl"
+    r = run_readonly_verification(journal)
+    md = render_readonly_report(r)
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    out = reports_dir / f"BYBIT_DEMO_READONLY_VERIFICATION_{stamp}.md"
+    out.write_text(md)
+    for name in ("DEMO AUTH", "WALLET QUERY", "POSITION QUERY", "OPEN ORDERS QUERY"):
+        typer.echo(f"{name} {r.line(name)}")
+    typer.echo(
+        f"PRODUCTION AUTH ENDPOINT USED: {'YES' if r.production_auth_endpoint_used else 'NO'}"
+    )
+    if r.blocker:
+        typer.echo(f"blocker: {r.blocker}")
+    typer.echo(f"report: {out}")
+    if not all(c.passed for c in r.checks):
+        raise typer.Exit(code=1)
