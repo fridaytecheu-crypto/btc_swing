@@ -47,6 +47,14 @@ from btc_swing.v5.demo.client import (
     fmt_qty,
 )
 from btc_swing.v5.demo.config import STRATEGY_TAG, DemoExecConfig, ExecutionMode
+from btc_swing.v5.demo.fills import (
+    QTY_EPS,
+    ExecutionConfirmationTimeoutError,
+    backoff_schedule,
+    confirm_executions,
+    confirmed_record,
+    dedupe_executions,
+)
 from btc_swing.v5.demo.ids import is_smoke_link_id, is_strategy_link_id, strategy_link_id
 from btc_swing.v5.demo.journal import HashChainJournal
 from btc_swing.v5.engine import V5Engine
@@ -486,16 +494,57 @@ class StrategyDemoExecutor:
             self._j("ENTRY_NOT_FILLED", {"signal_id": p["signal_id"], "order": o})
             self._close_local(p, reason=f"NO_FILL_{o.get('orderStatus')}")
             return
-        ex = self.client.executions(link_id=p["link_entry"])
+        # Filled is provisional until the executions are visible (Bybit creates orders
+        # asynchronously): journal it, then wait (bounded) for definitive execution accounting.
+        oid = str(o.get("orderId") or "") or None
+        prov = {
+            "signal_id": p["signal_id"],
+            "leg": "entry",
+            "orderLinkId": p["link_entry"],
+            "orderId": oid,
+            "orderStatus": o.get("orderStatus"),
+            "cumExecQty": qty,
+            "avgPrice": _f(o.get("avgPrice")),
+            "cumExecFee": o.get("cumExecFee"),
+        }
+        self._j("ORDER_FILLED_PROVISIONAL", prov)
+        try:
+            agg = confirm_executions(
+                lambda: self.client.executions(link_id=p["link_entry"]),
+                qty,
+                oid,
+                p["link_entry"],
+                self.dcfg.failsafe.exec_confirm_timeout_s,
+                sleep=self._sleep,
+                clock=self._clock,
+            )
+            rec = confirmed_record(agg, p["link_entry"], oid, "entry")
+            self._j("EXECUTION_CONFIRMED", rec | {"signal_id": p["signal_id"]})
+            price, fee, fill_ms, confirmed = (
+                float(rec["avg_price"]),
+                float(rec["total_fee"]),
+                int(rec["last_exec_ms"]),
+                True,
+            )
+        except ExecutionConfirmationTimeoutError as e:
+            # the position exists on the exchange and must still be protected: keep the provisional
+            # order values, flag them, and require an operator reconciliation (no new entries)
+            self._j("EXECUTION_CONFIRMATION_TIMEOUT", prov | {"last": e.last})
+            self.alert("ENTRY_EXECUTION_UNCONFIRMED", prov, reconcile=True)
+            price, fee, fill_ms, confirmed = (
+                _f(o.get("avgPrice")),
+                math.nan,
+                self.client.now_ms(),
+                False,
+            )
         p.update(
             {
                 "status": "ACTIVE",
                 "filled_qty": qty,
-                "entry_price": _f(o.get("avgPrice")),
-                "entry_fee": sum(_f(e.get("execFee")) for e in ex),
-                "fill_ms": max(
-                    (int(e.get("execTime", 0)) for e in ex), default=self.client.now_ms()
-                ),
+                "entry_price": price,
+                "entry_fee": fee,
+                "execution_confirmed": confirmed,
+                "fill_ms": fill_ms,
                 "partial": o.get("orderStatus") == "PartiallyFilledCanceled",
             }
         )
@@ -513,6 +562,7 @@ class StrategyDemoExecutor:
                 "qty": qty,
                 "avg_price": p["entry_price"],
                 "fee": p["entry_fee"],
+                "execution_confirmed": p["execution_confirmed"],
                 "partial": p["partial"],
                 "fill_latency_ms": p["fill_latency_ms"],
             },
@@ -771,17 +821,49 @@ class StrategyDemoExecutor:
     def _finalize(self, p: dict[str, Any]) -> dict[str, Any]:
         """Exchange position is flat: collect fills, fees, funding and PnL; compare with paper."""
         start = int(p["submitted_ms"]) - 1000
-        ex = [
-            e
-            for e in self.client.executions(start_ms=start)
-            if not is_smoke_link_id(e.get("orderLinkId"))
-        ]
         s = 1.0 if p["side"] == "LONG" else -1.0
         bside = _bybit_side(p["side"])
+        # flat is not enough: wait (bounded) until every entry and exit execution, with its fee,
+        # is visible; otherwise do not finalise in this cycle (retried next cycle)
+        ex: list[dict[str, Any]] = []
+        q_in = q_out = 0.0
+        dups = 0
+        complete = False
+        for wait in [*backoff_schedule(self.dcfg.failsafe.exec_confirm_timeout_s), None]:
+            ex, dups = dedupe_executions(
+                [
+                    e
+                    for e in self.client.executions(start_ms=start)
+                    if not is_smoke_link_id(e.get("orderLinkId"))
+                    and e.get("execType", "Trade") not in ("Funding", "Settle", "Delivery")
+                ]
+            )
+            q_in = sum(_f(e["execQty"]) for e in ex if e.get("side") == bside)
+            q_out = sum(_f(e["execQty"]) for e in ex if e.get("side") != bside)
+            complete = (
+                abs(q_in - float(p["filled_qty"])) <= QTY_EPS
+                and abs(q_out - q_in) <= QTY_EPS
+                and all(e.get("execFee") not in (None, "") for e in ex)
+            )
+            if complete or wait is None:
+                break
+            self._sleep(wait)
+        if not complete:
+            if not p.get("finalize_pending_alerted"):
+                p["finalize_pending_alerted"] = True
+                self.alert(
+                    "FLAT_EXECUTIONS_INCOMPLETE",
+                    {
+                        "signal_id": p["signal_id"],
+                        "filled_qty": p["filled_qty"],
+                        "exec_qty_in": q_in,
+                        "exec_qty_out": q_out,
+                    },
+                )
+                self.save()
+            return {"action": "finalize_pending", "exec_qty_in": q_in, "exec_qty_out": q_out}
         buys = [e for e in ex if e.get("side") == bside]
         sells = [e for e in ex if e.get("side") != bside]
-        q_in = sum(_f(e["execQty"]) for e in buys)
-        q_out = sum(_f(e["execQty"]) for e in sells)
         v_in = sum(_f(e["execQty"]) * _f(e["execPrice"]) for e in buys)
         v_out = sum(_f(e["execQty"]) * _f(e["execPrice"]) for e in sells)
         fees = sum(_f(e.get("execFee")) for e in ex)
@@ -821,6 +903,8 @@ class StrategyDemoExecutor:
             "exit_price_avg": v_out / q_out if q_out else None,
             "exits": exits,
             "fees": fees,
+            "execution_ids": sorted(str(e.get("execId")) for e in ex if e.get("execId")),
+            "duplicate_executions_dropped": dups,
             "funding": funding,
             "gross_pnl": gross,
             "net_pnl": net,

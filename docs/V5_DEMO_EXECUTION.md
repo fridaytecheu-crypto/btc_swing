@@ -61,6 +61,36 @@ journal fills equal Bybit executions).
 It aborts at the first failure and always closes a smoke position it opened. Reports: summary
 `reports/forward/BYBIT_DEMO_EXECUTION_SMOKE.md`, immutable per run `reports/forward/demo_smoke/<run>.md|.json`.
 
+### Fill confirmation (fix after the real DEMO run 261008210024)
+In that run the entry market order reported `Filled` (0.001 @ 81775.0) while `/v5/execution/list`
+was still empty (n_exec 0, fee 0); the execution (fee 0.04497625) appeared only later, so the
+recovery check found a mismatch, and own net PnL (-0.0171) lacked both fees against Bybit's closed
+PnL (-0.1070431). Bybit creates orders asynchronously, so `Filled` is now only PROVISIONAL
+(`fills.py`), for every filled market order (smoke ENTRY and CLOSE, STRATEGY_DEMO entry):
+1. The `Filled` state is journaled as `ORDER_FILLED_PROVISIONAL` (never rewritten).
+2. Executions are then awaited: preferably from the authenticated private `execution.linear`
+   WebSocket stream (`ws.ExecutionStream`, fail-soft), otherwise by polling `/v5/execution/list` by
+   orderLinkId/orderId with a bounded backoff (0.25 s doubling to 2 s, `exec_confirm_timeout_s`
+   20 s). They are definitive when at least one execution exists, the summed `execQty` equals the
+   filled quantity, a weighted average price can be computed and every execution has its fee and id.
+3. Aggregation: `total_qty = sum(execQty)`, `avg_price = sum(execPrice * execQty) / total_qty`,
+   `total_fee = sum(execFee)`; rows are de-duplicated by `execId`.
+4. An append-only `EXECUTION_CONFIRMED` event records orderLinkId, orderId, execIds, total qty,
+   weighted average price, total fee and first/last execution times. On timeout an
+   `EXECUTION_CONFIRMATION_TIMEOUT` event is journaled and the smoke fails closed (cleanup closes
+   the position); STRATEGY_DEMO keeps protecting the position with the provisional values and
+   requires an operator reconciliation.
+5. Smoke PnL: `own_net = gross - entry_fees - exit_fees`, compared with the Bybit closed-PnL record
+   of the close order (matched by orderId, also awaited) within `pnl_tolerance_usdt` 0.001 USDT, far
+   below one fee (~0.045 USDT at the minimum size), so a missing fee always fails.
+6. Recovery compares Bybit executions with the LATEST `EXECUTION_CONFIRMED` record (qty, average
+   price, fee and execId set), never with the provisional record.
+7. Wallet: the reported `wallet_change` is the USDT wallet balance delta (BTCUSDT is
+   USDT-margined). The demo account's total equity spans several coins and moves with their prices
+   (the +470 USDT seen in that run); it is reported for information only.
+8. STRATEGY_DEMO finalisation after the position is flat also waits (bounded) until the entry and
+   exit executions cover the filled quantity; otherwise it retries in the next cycle.
+
 ## 5. STRATEGY_DEMO behaviour
 - Trigger source: a subclass of the frozen engine records each trigger the frozen `_size` accepts; its result hash must equal the paper engine's (else no new trade). A demo entry is sent only for a trigger on the bar that just closed (frozen fill = next 5m open), within 120 s, whose signal id is in the immutable forward signal journal. No V5 signal -> no strategy order.
 - Sizing: frozen `size_position` (same leverage ladder, margin cap, liquidation constraints) on the reference equity (`reference_equity_usdt`, 100 USDT), never on the demo wallet; quantity floored to the exchange step; never rounded up.

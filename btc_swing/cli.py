@@ -1032,6 +1032,7 @@ def demo_smoke(
                 "-p",
                 "no:cacheprovider",
                 "tests/v5/test_demo_strategy.py",
+                "tests/v5/test_demo_fills.py",
             ],
             capture_output=True,
             text=True,
@@ -1040,10 +1041,22 @@ def demo_smoke(
         tail = (r.stdout.strip().splitlines() or ["(no output)"])[-1]
         rec_tests = (
             "PASSED" if r.returncode == 0 else "FAILED"
-        ) + f" (tests/v5/test_demo_strategy.py: {tail})"
+        ) + f" (tests/v5/test_demo_strategy.py + test_demo_fills.py: {tail})"
+    from btc_swing.v5.demo.ws import ExecutionStream
+
+    stream: ExecutionStream | None = None
+    stream_status: dict[str, Any] = {"available": False}
     try:
         client = BybitDemoClient(dcfg, dcfg.mode, journal, SMOKE_TAG)
-        res = run_execution_smoke(client, dcfg, ws_auth=lambda: private_ws_auth(dcfg, client.creds))
+        # preferred fill-confirmation source: private execution stream (fail-soft; REST fallback)
+        stream = ExecutionStream(dcfg, client.creds)
+        stream_status = stream.start()
+        res = run_execution_smoke(
+            client,
+            dcfg,
+            ws_auth=lambda: private_ws_auth(dcfg, client.creds),
+            exec_rows=stream.rows,
+        )
         client.close()
     except Exception as e:
         from datetime import UTC, datetime
@@ -1063,6 +1076,9 @@ def demo_smoke(
                 "elapsed_s": 0.0,
             }
         )
+    finally:
+        if stream is not None:
+            stream.stop()
     hosts = sorted(
         {
             str(r["data"].get("request", {}).get("path"))
@@ -1071,6 +1087,9 @@ def demo_smoke(
         }
     )
     extra = {
+        "execution_stream": {
+            k: stream_status.get(k) for k in ("available", "topic", "endpoint", "error")
+        },
         "restart_recovery_tests": rec_tests,
         "production_endpoint_used": "NO (every request is checked against api-demo.bybit.com / stream-demo.bybit.com before it is sent)",
         "real_order_placed": "NO",

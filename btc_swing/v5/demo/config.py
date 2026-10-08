@@ -43,6 +43,11 @@ class SmokeCfg(_Strict):
     tp_offset_frac: float = Field(gt=0, lt=0.2)
     fill_timeout_s: float = Field(gt=0)
     poll_interval_s: float = Field(gt=0)
+    # Filled is provisional until /v5/execution/list (or the private execution stream) shows the
+    # executions; bounded wait, then fail closed
+    exec_confirm_timeout_s: float = Field(default=20.0, gt=0, le=120)
+    # own net PnL (gross - entry fees - exit fees) vs Bybit closed PnL; must stay far below one fee
+    pnl_tolerance_usdt: float = Field(default=0.001, gt=0, le=0.01)
 
 
 class FailsafeCfg(_Strict):
@@ -52,6 +57,7 @@ class FailsafeCfg(_Strict):
     gap_lookback_bars: int = Field(ge=0)
     ack_timeout_s: float = Field(gt=0)
     fill_timeout_s: float = Field(gt=0)
+    exec_confirm_timeout_s: float = Field(default=20.0, gt=0, le=120)
 
 
 class DemoExecConfig(_Strict):

@@ -170,6 +170,15 @@
   (runner on this host, exactly one runner, systemd, freeze; needed additionally for STRATEGY_DEMO,
   re-checked live by `build_executor`, which fails closed while the observation continues). Next:
   on the Mac, `btc-swing v5 demo preflight`, then `btc-swing v5 demo smoke --mode EXECUTION_SMOKE`.
+- 2026-10-08 (real DEMO smoke 261008210024 from the owner's Mac, report not in this repo): the
+  execution lifecycle succeeded, but recovery failed on an execution-confirmation race: the entry
+  order reported Filled before `/v5/execution/list` showed its execution, so fees were recorded as 0
+  (own net -0.0171 vs Bybit closed PnL -0.1070431 = both fees missing). Fixed without weakening
+  reconciliation: Filled is provisional; executions are awaited (private execution WebSocket preferred,
+  bounded REST polling fallback), aggregated and de-duplicated by execId, and journaled as an
+  append-only `EXECUTION_CONFIRMED` event; own net = gross - entry fees - exit fees vs Bybit closed
+  PnL within 0.001 USDT; wallet change = USDT wallet delta (`docs/V5_DEMO_EXECUTION.md` section 4).
+  Next: rerun the real smoke on the Mac (preflight, then `demo smoke --mode EXECUTION_SMOKE`).
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

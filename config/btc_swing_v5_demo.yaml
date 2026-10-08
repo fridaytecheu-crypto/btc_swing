@@ -24,6 +24,8 @@ smoke:
   tp_offset_frac: 0.03
   fill_timeout_s: 15.0
   poll_interval_s: 1.0
+  exec_confirm_timeout_s: 20.0            # Filled is provisional until executions (qty, price, fee) are visible; bounded
+  pnl_tolerance_usdt: 0.001               # own net (gross - entry fees - exit fees) vs Bybit closed PnL
 failsafe:
   collector_stale_s: 120                  # raw data older than this -> no new trade
   bar_stale_s: 900                        # last completed bar older than this -> no new trade
@@ -31,3 +33,4 @@ failsafe:
   gap_lookback_bars: 12                   # gap-filled bar among the last N -> no new trade
   ack_timeout_s: 15.0
   fill_timeout_s: 20.0
+  exec_confirm_timeout_s: 20.0

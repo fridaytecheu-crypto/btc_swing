@@ -34,6 +34,15 @@ class FakeBybitDemo:
     partial_fill_frac: float | None = None  # next market order fills only this fraction
     drop_ack_next_create: bool = False  # next create is processed but the client sees a timeout
     fail_next: dict[str, int] = field(default_factory=dict)  # path -> retCode
+    # Bybit order creation is asynchronous: an order can be Filled before /v5/execution/list shows
+    # its executions. New executions stay invisible for this many execution-list queries.
+    exec_lag_queries: int = 0
+    exec_split_next: int | None = None  # next fill is reported as this many partial executions
+    duplicate_exec_rows: bool = False  # execution list repeats every row (same execId)
+    closed_pnl_lag_queries: int = 0  # closed-PnL records stay invisible for this many queries
+    # multi-asset demo account: other coins' equity (in USDT) drifts by this much per wallet query
+    other_assets_drift_per_query: float = 0.0
+    _other_assets: float = 0.0
     orders: dict[str, dict[str, Any]] = field(default_factory=dict)
     position: dict[str, Any] = field(
         default_factory=lambda: {
@@ -49,6 +58,7 @@ class FakeBybitDemo:
     closed: list[dict[str, Any]] = field(default_factory=list)
     requests: list[dict[str, Any]] = field(default_factory=list)
     _oid: int = 0
+    _xid: int = 0
     _realised: float = 0.0
     _fees_open: float = 0.0
 
@@ -146,11 +156,12 @@ class FakeBybitDemo:
 
     def _wallet(self, p: dict[str, Any], b: dict[str, Any]) -> httpx.Response:
         eq = self.equity + self._realised
+        self._other_assets += self.other_assets_drift_per_query
         return self._ok(
             {
                 "list": [
                     {
-                        "totalEquity": str(eq),
+                        "totalEquity": str(eq + self._other_assets),
                         "totalAvailableBalance": str(eq),
                         "coin": [{"coin": "USDT", "walletBalance": str(eq), "equity": str(eq)}],
                     }
@@ -310,15 +321,15 @@ class FakeBybitDemo:
     def _exec_list(self, p: dict[str, Any], b: dict[str, Any]) -> httpx.Response:
         link = p.get("orderLinkId")
         start = int(p.get("startTime") or 0)
-        return self._ok(
-            {
-                "list": [
-                    e
-                    for e in self.executions
-                    if (link is None or e["orderLinkId"] == link) and int(e["execTime"]) >= start
-                ]
-            }
-        )
+        out = []
+        for e in self.executions:
+            if e["_hidden"] > 0:
+                e["_hidden"] -= 1
+                continue
+            if (link is None or e["orderLinkId"] == link) and int(e["execTime"]) >= start:
+                row = {k: v for k, v in e.items() if not k.startswith("_")}
+                out += [row, dict(row)] if self.duplicate_exec_rows else [row]
+        return self._ok({"list": out})
 
     def _trading_stop(self, p: dict[str, Any], b: dict[str, Any]) -> httpx.Response:
         if self.position["size"] <= 0:
@@ -333,31 +344,51 @@ class FakeBybitDemo:
 
     def _closed_pnl(self, p: dict[str, Any], b: dict[str, Any]) -> httpx.Response:
         start = int(p.get("startTime") or 0)
-        return self._ok(
-            {"list": [c for c in reversed(self.closed) if int(c["createdTime"]) >= start]}
-        )
+        out = []
+        for c in reversed(self.closed):
+            if c["_hidden"] > 0:
+                c["_hidden"] -= 1
+                continue
+            if int(c["createdTime"]) >= start:
+                out.append({k: v for k, v in c.items() if not k.startswith("_")})
+        return self._ok({"list": out})
 
     # ------------------------------------------------------------------ matching
     def _fill(self, o: dict[str, Any], qty: float, price: float, fee_rate: float) -> None:
         if qty <= 0:
             return
         ps = self.position
-        fee = qty * price * fee_rate
-        o["avgPrice"] = (o["avgPrice"] * o["cumExecQty"] + price * qty) / (o["cumExecQty"] + qty)
+        n = self.exec_split_next or 1
+        self.exec_split_next = None
+        lots = round(qty / self.qty_step)
+        parts = [lots // n + (1 if i < lots % n else 0) for i in range(n)]
+        parts = [x for x in parts if x > 0]
+        fee = 0.0
+        for i, lot in enumerate(parts):
+            pq = lot * self.qty_step
+            px = price + i * self.tick  # partial executions at successive ticks
+            pf = pq * px * fee_rate
+            fee += pf
+            self._xid += 1
+            self.executions.append(
+                {
+                    "execId": f"x{self._xid:06d}",
+                    "orderLinkId": o["orderLinkId"],
+                    "orderId": o["orderId"],
+                    "execPrice": str(px),
+                    "execQty": f"{pq:.3f}",
+                    "execFee": str(pf),
+                    "execTime": str(self.now_ms + i),
+                    "execType": "Trade",
+                    "side": o["side"],
+                    "_hidden": self.exec_lag_queries,
+                }
+            )
+        vwap = sum(x * self.qty_step * (price + i * self.tick) for i, x in enumerate(parts)) / qty
+        o["avgPrice"] = (o["avgPrice"] * o["cumExecQty"] + vwap * qty) / (o["cumExecQty"] + qty)
         o["cumExecQty"] += qty
         o["cumExecFee"] += fee
-        self.executions.append(
-            {
-                "orderLinkId": o["orderLinkId"],
-                "orderId": o["orderId"],
-                "execPrice": str(price),
-                "execQty": f"{qty:.3f}",
-                "execFee": str(fee),
-                "execTime": str(self.now_ms),
-                "execType": "Trade",
-                "side": o["side"],
-            }
-        )
+        price = vwap
         same = ps["size"] == 0 or (ps["side"] == o["side"])
         if same and not o["reduceOnly"]:
             ps["avg"] = (ps["avg"] * ps["size"] + price * qty) / (ps["size"] + qty)
@@ -381,6 +412,7 @@ class FakeBybitDemo:
                     "avgExitPrice": str(price),
                     "closedPnl": str(pnl - fee - open_fee_part),
                     "createdTime": str(self.now_ms),
+                    "_hidden": self.closed_pnl_lag_queries,
                 }
             )
             if ps["size"] <= 1e-12:

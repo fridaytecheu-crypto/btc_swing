@@ -25,6 +25,14 @@ from btc_swing.v5.demo.client import (
     fmt_qty,
 )
 from btc_swing.v5.demo.config import DEMO_REST_BASE, SMOKE_TAG, DemoExecConfig
+from btc_swing.v5.demo.fills import (
+    ExecutionConfirmationTimeoutError,
+    aggregate_executions,
+    backoff_schedule,
+    confirm_executions,
+    confirmed_record,
+    latest_confirmed,
+)
 from btc_swing.v5.demo.ids import smoke_link_id
 
 STEPS = [
@@ -40,16 +48,25 @@ STEPS = [
     ("set_leverage", "set a safe demo leverage if required"),
     ("limit_create", "place a far-from-market limit order"),
     ("limit_cancel", "cancel the limit order"),
-    ("market_fill", "place the minimum-size market order and confirm the fill"),
+    (
+        "market_fill",
+        "place the minimum-size market order; confirm the fill from its executions (qty, price, fee)",
+    ),
     ("attach_stop", "attach a stop loss"),
     ("attach_tp", "attach a take profit (position TP and a reduce-only limit TP)"),
     ("position_read", "read position state with stop and TP"),
-    ("close", "close the demo position (reduce-only market)"),
-    ("closed_pnl", "verify flat position; retrieve executions, fees and closed PnL"),
-    ("reconcile", "reconcile journal fills with exchange executions"),
+    (
+        "close",
+        "close the demo position (reduce-only market); confirm the close from its executions",
+    ),
+    ("closed_pnl", "verify flat position; closed PnL of the close order; own net after fees"),
+    (
+        "reconcile",
+        "own net (gross - entry fees - exit fees) vs Bybit closed PnL; USDT wallet delta",
+    ),
     (
         "recovery",
-        "restart reconciliation: duplicate orderLinkId rejected, no open smoke order, flat, journal = executions",
+        "restart reconciliation: duplicate orderLinkId rejected, no open smoke order, flat, latest EXECUTION_CONFIRMED = executions",
     ),
 ]
 
@@ -79,7 +96,10 @@ def run_execution_smoke(
     cfg: DemoExecConfig,
     sleep: Callable[[float], None] = time.sleep,
     ws_auth: Callable[[], dict[str, Any]] | None = None,
+    exec_rows: Callable[[], list[dict[str, Any]] | None] | None = None,
 ) -> SmokeResult:
+    """`exec_rows` serves rows of a running private execution WebSocket stream (preferred source
+    for fill confirmation); without it, `/v5/execution/list` is polled (bounded)."""
     run_id = datetime.now(UTC).strftime("%y%m%d%H%M%S")
     res = SmokeResult(run_id, _now())
     ctx: dict[str, Any] = {"position_opened": False}
@@ -96,6 +116,62 @@ def run_execution_smoke(
         raise TimeoutError(
             f"order {link} not in {sorted(final)} after {sc.fill_timeout_s}s (last {last and last.get('orderStatus')})"
         )
+
+    def confirm_fill(leg: str, link: str, o: dict[str, Any]) -> dict[str, Any]:
+        """`Filled` is provisional: journal it, then wait (bounded) for definitive executions and
+        append EXECUTION_CONFIRMED. Never rewrites the provisional record; fails closed on timeout."""
+        qty = float(o.get("cumExecQty") or 0)
+        if qty <= 0:
+            raise RuntimeError(f"{leg} order reported Filled with zero quantity")
+        oid = str(o.get("orderId") or "") or None
+        prov = {
+            "leg": leg,
+            "orderLinkId": link,
+            "orderId": oid,
+            "orderStatus": o.get("orderStatus"),
+            "cumExecQty": qty,
+            "avgPrice": float(o.get("avgPrice") or 0),
+            "cumExecFee": o.get("cumExecFee"),
+        }
+        client.journal.append("ORDER_FILLED_PROVISIONAL", prov, SMOKE_TAG)
+
+        def rows() -> list[dict[str, Any]] | None:
+            if exec_rows is None:
+                return None
+            r = exec_rows()
+            return None if r is None else [x for x in r if x.get("orderLinkId") == link]
+
+        try:
+            agg = confirm_executions(
+                lambda: client.executions(link_id=link),
+                qty,
+                oid,
+                link,
+                sc.exec_confirm_timeout_s,
+                sleep=sleep,
+                ws_rows=rows,
+            )
+        except ExecutionConfirmationTimeoutError as e:
+            client.journal.append(
+                "EXECUTION_CONFIRMATION_TIMEOUT", {**prov, "last": e.last}, SMOKE_TAG
+            )
+            raise
+        rec = confirmed_record(agg, link, oid, leg)
+        client.journal.append("EXECUTION_CONFIRMED", rec, SMOKE_TAG)
+        return {
+            "link": link,
+            "order_id": rec["orderId"],
+            "qty": rec["total_qty"],
+            "avg_price": rec["avg_price"],
+            "fee": rec["total_fee"],
+            "n_exec": rec["n_exec"],
+            "exec_ids": rec["execIds"],
+            "first_exec_ms": rec["first_exec_ms"],
+            "fill_ms": rec["last_exec_ms"],
+            "confirm_source": rec["source"],
+            "confirm_attempts": rec["attempts"],
+            "provisional": {k: prov[k] for k in ("cumExecQty", "avgPrice", "cumExecFee")},
+        }
 
     def s_connectivity() -> dict[str, Any]:
         return client.sync_time()
@@ -175,19 +251,8 @@ def run_execution_smoke(
         res.orders_sent.append(link)
         ctx["position_opened"] = True
         o = wait_order(link, {"Filled"})
-        ex = client.executions(link_id=link)
-        fill_ms = max((int(e.get("execTime", 0)) for e in ex), default=0)
-        ctx["entry"] = {
-            "link": link,
-            "avg_price": float(o.get("avgPrice") or 0),
-            "qty": float(o.get("cumExecQty") or 0),
-            "fee": sum(float(e.get("execFee") or 0) for e in ex),
-            "n_exec": len(ex),
-            "submitted_ms": t_sub,
-            "fill_ms": fill_ms,
-        }
-        if ctx["entry"]["qty"] <= 0:
-            raise RuntimeError("market order reported Filled with zero quantity")
+        ctx["entry"] = {**confirm_fill("entry", link, o), "submitted_ms": t_sub}
+        fill_ms = ctx["entry"]["fill_ms"]
         return {
             **ctx["entry"],
             "fill_latency_ms": (fill_ms - t_sub) if fill_ms else None,
@@ -242,29 +307,33 @@ def run_execution_smoke(
         )
         res.orders_sent.append(link)
         o = wait_order(link, {"Filled"})
-        ex = client.executions(link_id=link)
-        ctx["exit"] = {
-            "link": link,
-            "avg_price": float(o.get("avgPrice") or 0),
-            "qty": float(o.get("cumExecQty") or 0),
-            "fee": sum(float(e.get("execFee") or 0) for e in ex),
-        }
         ctx["position_opened"] = False
+        ctx["exit"] = confirm_fill("exit", link, o)
         return ctx["exit"]
 
     def s_closed_pnl() -> dict[str, Any]:
         p = client.position()
         if p["size"] > 0:
             raise RuntimeError(f"position still open after close: {p}")
-        rows = client.closed_pnl(start_ms=ctx["entry"]["submitted_ms"] - 60_000)
-        if not rows:
-            raise RuntimeError("no closed-PnL record after the close")
         e, x = ctx["entry"], ctx["exit"]
+        # the closed-PnL record of THE close order (by orderId); it can lag like executions do
+        mine: list[dict[str, Any]] = []
+        for wait in [*backoff_schedule(sc.exec_confirm_timeout_s), None]:
+            rows = client.closed_pnl(start_ms=e["submitted_ms"] - 60_000)
+            mine = [r for r in rows if str(r.get("orderId") or "") == str(x["order_id"])]
+            if mine or wait is None:
+                break
+            sleep(wait)
+        if not mine:
+            raise RuntimeError(f"no closed-PnL record for close order {x['order_id']}")
         gross = (x["avg_price"] - e["avg_price"]) * x["qty"]
         own_net = gross - e["fee"] - x["fee"]
         ctx["closed"] = {
-            "bybit_closed_pnl": float(rows[0].get("closedPnl") or 0),
+            "bybit_closed_pnl": sum(float(r.get("closedPnl") or 0) for r in mine),
+            "closed_pnl_records": len(mine),
             "own_gross": gross,
+            "entry_fees": e["fee"],
+            "exit_fees": x["fee"],
             "own_fees": e["fee"] + x["fee"],
             "own_net": own_net,
         }
@@ -273,19 +342,29 @@ def run_execution_smoke(
     def s_reconcile() -> dict[str, Any]:
         e, x, c = ctx["entry"], ctx["exit"], ctx["closed"]
         diff = abs(c["bybit_closed_pnl"] - c["own_net"])
-        tol = max(0.01, 0.002 * abs(e["avg_price"] * e["qty"]))
+        tol = sc.pnl_tolerance_usdt  # numerical only: far below a single entry/exit fee
         if abs(e["qty"] - x["qty"]) > 1e-12:
             raise RuntimeError("entry and exit quantities differ")
         if diff > tol:
             raise RuntimeError(
-                f"closed PnL differs from journal fills by {diff:.6f} USDT (tolerance {tol:.4f})"
+                f"Bybit closed PnL {c['bybit_closed_pnl']:.7f} differs from own net "
+                f"{c['own_net']:.7f} (gross {c['own_gross']:.7f} - entry fees {c['entry_fees']:.8f} "
+                f"- exit fees {c['exit_fees']:.8f}) by {diff:.7f} USDT (tolerance {tol})"
             )
-        w = client.wallet_balance()
+        w, wb = client.wallet_balance(), ctx["wallet_before"]
+        usdt_change = w["usdt_wallet"] - wb["usdt_wallet"]
         return {
-            "closed_pnl_vs_fills_diff_usdt": diff,
+            "closed_pnl_vs_own_net_diff_usdt": diff,
             "tolerance_usdt": tol,
             "wallet_after": w,
-            "wallet_change": w["total_equity"] - ctx["wallet_before"]["total_equity"],
+            # BTCUSDT is USDT-margined: the relevant delta is the USDT wallet balance (realised PnL
+            # and fees). totalEquity covers every coin of the multi-asset demo account and moves
+            # with their prices, so it is reported for information only.
+            "wallet_change": usdt_change,
+            "wallet_change_basis": "USDT walletBalance",
+            "usdt_equity_change": w["usdt_equity"] - wb["usdt_equity"],
+            "total_equity_change_all_assets_info_only": w["total_equity"] - wb["total_equity"],
+            "usdt_wallet_change_minus_closed_pnl": usdt_change - c["bybit_closed_pnl"],
         }
 
     def s_account() -> dict[str, Any]:
@@ -341,27 +420,38 @@ def run_execution_smoke(
         if p["size"] > 0:
             raise RuntimeError(f"position not flat: {p}")
         checks = {}
+        records = client.journal.records()
         for leg in ("entry", "exit"):
-            rec = ctx[leg]
-            ex = client.executions(link_id=rec["link"])
-            q = sum(float(e.get("execQty") or 0) for e in ex)
-            v = sum(float(e.get("execQty") or 0) * float(e.get("execPrice") or 0) for e in ex)
-            fee = sum(float(e.get("execFee") or 0) for e in ex)
+            link = ctx[leg]["link"]
+            # compare Bybit with the latest DEFINITIVE record, never with the provisional fill
+            rec = latest_confirmed(records, link, SMOKE_TAG)
+            if rec is None:
+                raise RuntimeError(f"no EXECUTION_CONFIRMED record for {leg} ({link})")
+            agg = aggregate_executions(client.executions(link_id=link), rec["orderId"], link)
+            q, avg, fee = agg["total_qty"], agg["avg_price"], agg["total_fee"]
             ok = (
-                abs(q - rec["qty"]) < 1e-9
-                and q > 0
-                and abs(v / q - rec["avg_price"]) <= max(1e-6, rec["avg_price"] * 1e-6)
-                and abs(fee - rec["fee"]) < 1e-9
+                q > 0
+                and abs(q - rec["total_qty"]) < 1e-9
+                and avg is not None
+                and abs(avg - rec["avg_price"]) <= max(1e-9, rec["avg_price"] * 1e-9)
+                and abs(fee - rec["total_fee"]) < 1e-9
+                and sorted(agg["exec_ids"]) == sorted(rec["execIds"])
             )
             checks[leg] = {
                 "exec_qty": q,
-                "exec_avg": v / q if q else None,
+                "exec_avg": avg,
                 "exec_fee": fee,
-                "journal": rec,
+                "exec_ids": agg["exec_ids"],
+                "duplicates_dropped": agg["duplicates_dropped"],
+                "confirmed": {
+                    k: rec[k] for k in ("total_qty", "avg_price", "total_fee", "execIds")
+                },
                 "match": ok,
             }
             if not ok:
-                raise RuntimeError(f"journal and executions differ for {leg}: {checks[leg]}")
+                raise RuntimeError(
+                    f"latest EXECUTION_CONFIRMED and Bybit executions differ for {leg}: {checks[leg]}"
+                )
         return {
             "duplicate_order_link_id_rejected": True,
             "open_smoke_orders": 0,
@@ -413,6 +503,7 @@ def run_execution_smoke(
             DemoApiError,
             DemoTransportError,
             TimeoutError,
+            ExecutionConfirmationTimeoutError,
             RuntimeError,
             KeyError,
             ValueError,
@@ -560,6 +651,9 @@ def render_smoke(d: dict[str, Any]) -> str:
         lines.append(
             f"| {i} | {s['step']} ({s['description']}) | {'ok' if s['ok'] else 'FAILED'} | {txt} | {s['elapsed_s']} |"
         )
+    acct = _accounting_lines(by, d.get("execution_stream"))
+    if acct:
+        lines += ["", "## Execution accounting (definitive, from executions)", "", *acct]
     if d.get("cleanup"):
         lines += ["", "Cleanup actions: " + json.dumps(d["cleanup"], default=str)]
     lines += [
@@ -572,3 +666,38 @@ def render_smoke(d: dict[str, Any]) -> str:
     if d.get("notes"):
         lines += ["", "## Notes", "", *[f"- {n}" for n in d["notes"]]]
     return "\n".join(lines) + "\n"
+
+
+def _accounting_lines(by: dict[str, dict[str, Any]], stream: dict[str, Any] | None) -> list[str]:
+    out: list[str] = []
+    if stream is not None:
+        src = "private execution WebSocket" if stream.get("available") else "REST polling only"
+        out.append(f"- Confirmation source preference: {src} ({stream.get('error') or 'ok'}).")
+    for step, leg in (("market_fill", "ENTRY"), ("close", "CLOSE")):
+        s = by.get(step)
+        det = (s or {}).get("detail") or {}
+        if not s or not s["ok"] or "fee" not in det:
+            continue
+        prov = det.get("provisional") or {}
+        out.append(
+            f"- {leg} `{det['link']}`: qty {det['qty']} @ {det['avg_price']} · fee {det['fee']:.8f} USDT"
+            f" · {det['n_exec']} execution(s) {det['exec_ids']} · confirmed via {det['confirm_source']}"
+            f" after {det['confirm_attempts']} attempt(s) · provisional Filled record: qty"
+            f" {prov.get('cumExecQty')} @ {prov.get('avgPrice')}, cumExecFee {prov.get('cumExecFee')}"
+        )
+    c = (by.get("closed_pnl") or {}).get("detail") or {}
+    if "own_net" in c:
+        out.append(
+            f"- gross {c['own_gross']:.7f} - entry fees {c['entry_fees']:.8f} - exit fees"
+            f" {c['exit_fees']:.8f} = own net {c['own_net']:.7f} USDT; Bybit closed PnL"
+            f" {c['bybit_closed_pnl']:.7f} USDT"
+        )
+    r = (by.get("reconcile") or {}).get("detail") or {}
+    if "wallet_change" in r:
+        out.append(
+            f"- difference {r['closed_pnl_vs_own_net_diff_usdt']:.7f} USDT (tolerance"
+            f" {r['tolerance_usdt']}); USDT wallet change {r['wallet_change']:.7f} USDT"
+            f" (total multi-asset equity change {r['total_equity_change_all_assets_info_only']:.4f},"
+            " information only: it moves with the prices of the other demo coins)"
+        )
+    return out
