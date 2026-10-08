@@ -19,21 +19,33 @@ parallel and is the reference every demo trade is compared with.
 
 ## 2. Modes
 - `DISABLED` (default): no state-changing request is possible; the forward observation runs as before. The only authenticated traffic allowed in this mode is the explicit read-only preflight (`btc-swing v5 demo preflight`): a GET-only client (POST refused in code) plus the private DEMO WebSocket auth.
-- `EXECUTION_SMOKE`: only via `btc-swing v5 demo smoke --mode EXECUTION_SMOKE` (per-invocation opt-in; the config file stays `DISABLED`), and only when a PASSED preflight from the last 24 h exists.
-- `STRATEGY_DEMO`: only when the owner edits `mode: STRATEGY_DEMO` in `config/btc_swing_v5_demo.yaml` AND a PASSED smoke report exists; the forward runner then builds the executor, runs restart recovery and calls it after every 5-minute cycle. It never starts automatically.
+- `EXECUTION_SMOKE`: only via `btc-swing v5 demo smoke --mode EXECUTION_SMOKE` (per-invocation opt-in; the config file stays `DISABLED`), and only when the last preflight (within 24 h) has `DEMO_EXECUTION_PREFLIGHT` PASSED. The forward-host gate is NOT required for the smoke.
+- `STRATEGY_DEMO`: only when the owner edits `mode: STRATEGY_DEMO` in `config/btc_swing_v5_demo.yaml` AND a PASSED smoke report exists; `FORWARD_HOST_PREFLIGHT` is re-evaluated live when the executor is built and STRATEGY_DEMO fails closed (the observation continues) unless it passes; the forward runner then builds the executor, runs restart recovery and calls it after every 5-minute cycle. It never starts automatically.
 
-## 3. Preflight (mode stays DISABLED)
-`btc-swing v5 demo preflight` first checks the environment without any authenticated request:
-persistent host (not an ephemeral cloud-session container), forward runner alive on this host,
-exactly one runner, forward freeze V5 hash `d18ebf19bd0c…` and observation start
-2026-10-07T14:59:22.972Z unchanged, `api-demo.bybit.com` reachable (unauthenticated probe). Only
-if all pass: signed GET checks (account info = API key authentication, API key information, UNIFIED
-wallet, BTCUSDT position, BTCUSDT open orders, live instrument rules incl. minimum quantity,
-quantity step, minimum notional, tick and leverage filter, ticker), DEMO account confirmation (the
-key authenticates on the demo host, where production keys are rejected; no other host is ever
-contacted), private DEMO WebSocket authentication (`wss://stream-demo.bybit.com/v5/private`), flat
-position and no open orders. It then computes, from the LIVE rules and price, whether the
-reference equity represents the frozen TP1/TP2/remainder structure. Reports:
+## 3. Preflight (mode stays DISABLED): two separated gates
+`btc-swing v5 demo preflight` (with `BYBIT_EXECUTION_MODE` unset or `DISABLED`) evaluates two gates.
+
+**`DEMO_EXECUTION_PREFLIGHT`** (required for EXECUTION_SMOKE and for STRATEGY_DEMO). First, without
+any authenticated request: not an ephemeral cloud-session container (no order from the cloud
+environment), config mode and `BYBIT_EXECUTION_MODE` DISABLED, demo-only endpoint allowlist (REST
+`https://api-demo.bybit.com`, WS `wss://stream-demo.bybit.com`), demo credentials present, Bybit
+DEMO REST reachable (unauthenticated probe). Only if all pass: signed GET checks with a GET-only
+client (account info = API key authentication, API key information, UNIFIED wallet, BTCUSDT
+position, BTCUSDT open orders, live instrument rules incl. minimum quantity, quantity step, minimum
+notional, tick and leverage filter, ticker), DEMO account confirmation (the key authenticates on the
+demo host, where production keys are rejected), private DEMO WebSocket authentication, flat position
+and no open orders, and "production authenticated endpoint never used" (every journaled request went
+to `api-demo.bybit.com`, the WS endpoint is the demo one). It then computes, from the LIVE rules and
+price, whether the reference equity represents the frozen TP1/TP2/remainder structure.
+
+**`FORWARD_HOST_PREFLIGHT`** (required only for STRATEGY_DEMO; never for EXECUTION_SMOKE): persistent
+host, forward runner running on this host, exactly one forward runner, systemd deployment active,
+forward freeze V5 hash `d18ebf19bd0c…` and observation start 2026-10-07T14:59:22.972Z unchanged.
+Local checks only, re-evaluated live whenever a STRATEGY_DEMO executor is built.
+
+So a machine used only for demo connectivity and the smoke test (e.g. the owner's Mac, with no
+forward runner) can pass the first gate and run EXECUTION_SMOKE, while STRATEGY_DEMO stays refused
+there. The command exits 0 only if `DEMO_EXECUTION_PREFLIGHT` PASSED. Reports:
 `reports/forward/demo_preflight/<run>.md|.json`.
 
 ## 4. EXECUTION_SMOKE sequence
@@ -73,7 +85,7 @@ It aborts at the first failure and always closes a smoke position it opened. Rep
 
 ## 7. Running on the persistent host
 ```
-# 1) read-only preflight (mode stays DISABLED); it must report PASSED
+# 1) read-only preflight (mode stays DISABLED); DEMO_EXECUTION_PREFLIGHT must be PASSED
 sudo systemd-run --pipe --wait --uid=btcswing -p WorkingDirectory=/opt/btc_swing \
   -p EnvironmentFile=/etc/btc-v5-demo.env -p Environment=BTC_DATA_DIR=/var/lib/btc_swing \
   /opt/btc_swing/.venv/bin/btc-swing v5 demo preflight

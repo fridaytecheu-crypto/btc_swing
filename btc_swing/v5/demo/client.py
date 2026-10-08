@@ -152,6 +152,7 @@ class BybitDemoClient:
                 }
             )
         req_rec = {
+            "host": self._http.base_url.host,
             "method": method,
             "path": path,
             "params": params or None,

@@ -1,13 +1,17 @@
-"""Preflight for real Bybit DEMO validation. Mode stays DISABLED throughout.
+"""Preflight for real Bybit DEMO validation, in two separated gates. Mode stays DISABLED.
 
-1. Environment (no request to Bybit beyond an unauthenticated reachability probe): persistent host
-   (not an ephemeral cloud-session container, runner alive here), forward freeze unchanged
-   (V5 hash and observation start), exactly one forward runner, api-demo.bybit.com reachable.
-2. Only if 1 passes: read-only authenticated checks with a GET-only client (API key auth and info,
-   DEMO account confirmation, UNIFIED wallet, BTCUSDT position and open orders, live instrument
-   rules) and the private DEMO WebSocket authentication.
-3. Reference-equity sufficiency from the LIVE instrument rules for the frozen TP1/TP2 structure.
-A PASSED preflight report is required before `btc-swing v5 demo smoke`."""
+DEMO_EXECUTION_PREFLIGHT (required for EXECUTION_SMOKE): not an ephemeral cloud-session container,
+configured mode and BYBIT_EXECUTION_MODE (if set) DISABLED, demo-only endpoint allowlist, demo
+credentials present, Bybit DEMO REST reachable (unauthenticated probe); then, only if those pass,
+signed READ-ONLY checks with a GET-only client: authentication, API key information, DEMO account
+confirmation, UNIFIED wallet, BTCUSDT position and open orders (flat, none open), live instrument
+rules, private DEMO WebSocket authentication, and proof that no production endpoint was contacted.
+
+FORWARD_HOST_PREFLIGHT (required, together with a PASSED smoke, before STRATEGY_DEMO; never for
+EXECUTION_SMOKE): persistent host, forward runner running on this host, exactly one forward runner,
+systemd service active, forward freeze V5 hash and observation start unchanged. These checks are
+local (no network) and are re-evaluated live whenever a STRATEGY_DEMO executor is built.
+"""
 
 from __future__ import annotations
 
@@ -23,10 +27,19 @@ from typing import Any
 import httpx
 
 from btc_swing.v5.demo.client import BybitDemoClient, DemoApiError, DemoTransportError
-from btc_swing.v5.demo.config import DEMO_REST_HOST, DemoExecConfig, ExecutionMode, assert_demo_url
+from btc_swing.v5.demo.config import (
+    DEMO_REST_HOST,
+    DEMO_WS_PRIVATE_HOST,
+    DemoExecConfig,
+    EndpointNotAllowedError,
+    ExecutionMode,
+    assert_demo_url,
+    assert_demo_ws_url,
+)
 from btc_swing.v5.demo.credentials import (
     DemoCredentials,
     DemoCredentialsMissingError,
+    credentials_present,
     load_demo_credentials,
 )
 from btc_swing.v5.demo.journal import HashChainJournal
@@ -37,6 +50,14 @@ EXPECTED_V5_HASH = "d18ebf19bd0cde67be1c27683d3e7ad0385d2456a6edaa1fe55146f01309
 EXPECTED_OBSERVATION_START_MS = 1791385162972  # 2026-10-07T14:59:22.972Z
 PREFLIGHT_DIR = Path("reports/forward/demo_preflight")
 PREFLIGHT_TAG = "PREFLIGHT_READ_ONLY"
+DEMO_GATE = "DEMO_EXECUTION_PREFLIGHT"
+HOST_GATE = "FORWARD_HOST_PREFLIGHT"
+SERVICE = "btc-v5-forward"
+
+
+def is_cloud_session_container() -> bool:
+    """True inside an ephemeral Claude Code cloud-session container (not a persistent host)."""
+    return os.environ.get("CLAUDE_CODE_REMOTE", "").lower() == "true" or Path("/root/.ccr").exists()
 
 
 def _runner_pids() -> list[int]:
@@ -58,36 +79,105 @@ def _runner_pids() -> list[int]:
         try:
             cmd = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode()
         except OSError:
-            continue
+            try:
+                cmd = subprocess.run(
+                    ["ps", "-o", "command=", "-p", str(pid)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                ).stdout
+            except FileNotFoundError:
+                continue
         if "python" in cmd and "btc-swing v5 forward run" in cmd:
             pids.append(pid)
     return pids
 
 
-def is_cloud_session_container() -> bool:
-    """True inside an ephemeral Claude Code cloud-session container (not a persistent host)."""
-    return os.environ.get("CLAUDE_CODE_REMOTE", "").lower() == "true" or Path("/root/.ccr").exists()
+def _systemd_service_active() -> tuple[bool, str]:
+    if not Path("/run/systemd/system").exists():
+        return False, "systemd not running on this machine"
+    try:
+        r = subprocess.run(
+            ["systemctl", "is-active", SERVICE], capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        return False, "systemctl not found"
+    state = r.stdout.strip() or r.stderr.strip()
+    return state == "active", f"{SERVICE}: {state}"
 
 
-def environment_checks(
-    freeze: dict[str, Any] | None,
-    v5_hash: str,
-    pid_file: Path,
-    probe: Callable[[], tuple[int, str]] | None = None,
+def _check(name: str, ok: bool, detail: Any) -> dict[str, Any]:
+    return {"check": name, "ok": bool(ok), "detail": detail}
+
+
+def demo_environment_checks(
+    dcfg: DemoExecConfig, probe: Callable[[], tuple[int, str]] | None = None
 ) -> list[dict[str, Any]]:
+    """Local and unauthenticated checks of the DEMO_EXECUTION gate (no credential is sent)."""
     checks: list[dict[str, Any]] = []
-
-    def add(name: str, ok: bool, detail: str) -> None:
-        checks.append({"check": name, "ok": bool(ok), "detail": detail})
-
     cloud = is_cloud_session_container()
-    systemd = Path("/run/systemd/system").exists()
-    add(
-        "persistent host (not an ephemeral cloud-session container)",
-        not cloud,
-        "cloud-session container detected (CLAUDE_CODE_REMOTE / agent proxy)"
-        if cloud
-        else f"systemd {'present' if systemd else 'absent'}",
+    checks.append(
+        _check(
+            "not an ephemeral cloud-session container (no order from the cloud environment)",
+            not cloud,
+            "cloud-session container detected" if cloud else "ok",
+        )
+    )
+    env_mode = os.environ.get("BYBIT_EXECUTION_MODE", "")
+    checks.append(
+        _check(
+            "execution mode DISABLED during preflight (config and BYBIT_EXECUTION_MODE)",
+            dcfg.mode is ExecutionMode.DISABLED and env_mode in ("", ExecutionMode.DISABLED.value),
+            f"config {dcfg.mode.value}; BYBIT_EXECUTION_MODE={env_mode or '(unset)'}",
+        )
+    )
+    try:
+        assert_demo_url(dcfg.rest_base)
+        assert_demo_ws_url(dcfg.ws_private)
+        allow_ok, allow_detail = True, f"{dcfg.rest_base} / {dcfg.ws_private}"
+    except EndpointNotAllowedError as e:
+        allow_ok, allow_detail = False, str(e)
+    checks.append(_check("demo-only endpoint allowlist", allow_ok, allow_detail))
+    checks.append(
+        _check(
+            "demo credentials present (BYBIT_DEMO_API_KEY / BYBIT_DEMO_API_SECRET)",
+            credentials_present(dcfg),
+            "present" if credentials_present(dcfg) else "missing (values are never printed)",
+        )
+    )
+    try:
+        status, body = probe() if probe else _probe()
+        geo = "country" in body.lower()
+        checks.append(
+            _check(
+                f"Bybit DEMO REST reachable ({DEMO_REST_HOST}, unauthenticated probe)",
+                status == 200,
+                f"HTTP {status}" + (" (Bybit country restriction)" if geo else ""),
+            )
+        )
+    except httpx.HTTPError as e:
+        checks.append(
+            _check(
+                f"Bybit DEMO REST reachable ({DEMO_REST_HOST}, unauthenticated probe)",
+                False,
+                f"{type(e).__name__}: {e}"[:200],
+            )
+        )
+    return checks
+
+
+def forward_host_checks(
+    freeze: dict[str, Any] | None, v5_hash: str, pid_file: Path
+) -> list[dict[str, Any]]:
+    """FORWARD_HOST gate: local only. Mandatory before STRATEGY_DEMO, never for EXECUTION_SMOKE."""
+    checks: list[dict[str, Any]] = []
+    cloud = is_cloud_session_container()
+    checks.append(
+        _check(
+            "persistent host (not an ephemeral cloud-session container)",
+            not cloud,
+            "cloud-session container detected" if cloud else "ok",
+        )
     )
     alive = False
     if pid_file.exists():
@@ -97,37 +187,33 @@ def environment_checks(
         except (OSError, ValueError):
             alive = False
     pids = _runner_pids()
-    add(
-        "forward runner running on this host",
-        alive and len(pids) >= 1,
-        f"pid file alive={alive}; runner processes={pids}",
+    checks.append(
+        _check(
+            "forward runner running on this host",
+            alive and len(pids) >= 1,
+            f"pid file alive={alive}; runner processes={pids}",
+        )
     )
-    add("exactly one forward runner", len(pids) == 1, f"{len(pids)} runner process(es)")
+    checks.append(
+        _check("exactly one forward runner", len(pids) == 1, f"{len(pids)} runner process(es)")
+    )
+    sd_ok, sd_detail = _systemd_service_active()
+    checks.append(_check("systemd deployment active", sd_ok, sd_detail))
     fz: dict[str, Any] = freeze or {}
-    add(
-        "forward freeze present and V5 hash unchanged",
-        fz.get("v5_config_hash") == EXPECTED_V5_HASH == v5_hash,
-        f"freeze {str(fz.get('v5_config_hash', 'missing'))[:12]} / config {v5_hash[:12]} / expected {EXPECTED_V5_HASH[:12]}",
-    )
-    add(
-        "observation start unchanged",
-        int(fz.get("observation_start_ms", -1)) == EXPECTED_OBSERVATION_START_MS,
-        str(fz.get("observation_start", "missing")),
-    )
-    try:
-        status, body = probe() if probe else _probe()
-        geo = "country" in body.lower()
-        add(
-            f"{DEMO_REST_HOST} reachable (unauthenticated probe)",
-            status == 200,
-            f"HTTP {status}" + (" (Bybit country restriction)" if geo else ""),
+    checks.append(
+        _check(
+            "forward freeze present and V5 hash unchanged",
+            fz.get("v5_config_hash") == EXPECTED_V5_HASH == v5_hash,
+            f"freeze {str(fz.get('v5_config_hash', 'missing'))[:12]} / config {v5_hash[:12]} / expected {EXPECTED_V5_HASH[:12]}",
         )
-    except httpx.HTTPError as e:
-        add(
-            f"{DEMO_REST_HOST} reachable (unauthenticated probe)",
-            False,
-            f"{type(e).__name__}: {e}"[:200],
+    )
+    checks.append(
+        _check(
+            "observation start unchanged",
+            int(fz.get("observation_start_ms", -1)) == EXPECTED_OBSERVATION_START_MS,
+            str(fz.get("observation_start", "missing")),
         )
+    )
     return checks
 
 
@@ -221,6 +307,23 @@ def read_only_checks(
         oo is not None and len(oo) == 0,
         {"n_open": None if oo is None else len(oo)},
     )
+    recs = [
+        r
+        for r in journal.records()
+        if r.get("tag") == PREFLIGHT_TAG and "request" in r.get("data", {})
+    ]
+    req_hosts = sorted({str(r["data"]["request"].get("host")) for r in recs})
+    add(
+        "production authenticated endpoint never used",
+        req_hosts in ([], [DEMO_REST_HOST])
+        and str(cl._http.base_url.host) == DEMO_REST_HOST
+        and str(ws.get("endpoint", "")).startswith(f"wss://{DEMO_WS_PRIVATE_HOST}/"),
+        {
+            "rest_hosts_contacted": req_hosts,
+            "ws_endpoint": ws.get("endpoint"),
+            "requests": len(recs),
+        },
+    )
     cl.close()
     return res
 
@@ -237,18 +340,19 @@ def run_preflight(
     if dcfg.mode is not ExecutionMode.DISABLED:
         raise RuntimeError("preflight requires the configured mode to be DISABLED")
     started = datetime.now(UTC)
-    env = environment_checks(freeze, cfg_hash, pid_file, kw.pop("probe", None))
+    env = demo_environment_checks(dcfg, kw.pop("probe", None))
     out: dict[str, Any] = {
         "run_id": started.strftime("%y%m%d%H%M%S"),
         "started_at": started.isoformat(),
         "mode": dcfg.mode.value,
-        "environment": env,
         "read_only": None,
         "requirements": None,
     }
+    demo_checks = list(env)
     if all(c["ok"] for c in env):
         ro = read_only_checks(dcfg, journal, **kw)
         out["read_only"] = ro
+        demo_checks += ro["checks"]
         inst = ro["data"].get("BTCUSDT instrument rules")
         px = (ro["data"].get("ticker") or {}).get("last") or price_fallback
         if inst and px:
@@ -258,11 +362,23 @@ def run_preflight(
                     dcfg.reference_equity_usdt, dcfg.risk_per_trade, float(px), inst
                 ),
             }
-    ok_env = all(c["ok"] for c in env)
-    ok_ro = out["read_only"] is not None and all(c["ok"] for c in out["read_only"]["checks"])
-    out["status"] = (
-        "PASSED" if ok_env and ok_ro else ("BLOCKED_ENVIRONMENT" if not ok_env else "FAILED")
-    )
+    demo_ok = out["read_only"] is not None and all(c["ok"] for c in demo_checks)
+    host = forward_host_checks(freeze, cfg_hash, pid_file)
+    out["gates"] = {
+        DEMO_GATE: {
+            "status": "PASSED"
+            if demo_ok
+            else ("BLOCKED_ENVIRONMENT" if out["read_only"] is None else "FAILED"),
+            "checks": demo_checks,
+            "required_for": ["EXECUTION_SMOKE", "STRATEGY_DEMO"],
+        },
+        HOST_GATE: {
+            "status": "PASSED" if all(c["ok"] for c in host) else "FAILED",
+            "checks": host,
+            "required_for": ["STRATEGY_DEMO"],
+        },
+    }
+    out["status"] = out["gates"][DEMO_GATE]["status"]  # the gate EXECUTION_SMOKE needs
     out["finished_at"] = datetime.now(UTC).isoformat()
     out["authenticated_requests"] = sum(
         1
@@ -272,42 +388,61 @@ def run_preflight(
     return out
 
 
-def write_preflight(out: dict[str, Any], out_dir: Path = PREFLIGHT_DIR) -> Path:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"{out['run_id']}.json").write_text(
-        json.dumps(out, indent=1, sort_keys=True, default=str)
-    )
+def smoke_allowed(pf: dict[str, Any] | None) -> tuple[bool, str]:
+    """EXECUTION_SMOKE needs only a PASSED DEMO_EXECUTION_PREFLIGHT (forward-host gate not required)."""
+    if not pf:
+        return False, "no preflight report in the last 24 h"
+    st = ((pf.get("gates") or {}).get(DEMO_GATE) or {}).get("status")
+    return (st == "PASSED"), f"{DEMO_GATE} {st or 'missing (older preflight format)'}"
+
+
+def require_forward_host(
+    freeze: dict[str, Any] | None, v5_hash: str, pid_file: Path
+) -> list[dict[str, Any]]:
+    """Fail closed for STRATEGY_DEMO unless every FORWARD_HOST check passes right now."""
+    checks = forward_host_checks(freeze, v5_hash, pid_file)
+    failed = [c["check"] for c in checks if not c["ok"]]
+    if failed:
+        raise RuntimeError(f"{HOST_GATE} failed: {', '.join(failed)}")
+    return checks
+
+
+def _gate_table(title: str, gate: dict[str, Any]) -> list[str]:
     lines = [
-        f"# BTC V5 — Bybit DEMO preflight {out['run_id']}",
         "",
-        f"Started {out['started_at'][:19]} UTC · mode {out['mode']} (unchanged) · status **{out['status']}** · authenticated requests: {out['authenticated_requests']} (GET only)",
-        "",
-        "## Environment",
+        f"## {title}: {gate['status']} (required for {', '.join(gate['required_for'])})",
         "",
         "| check | result | detail |",
         "|---|---|---|",
     ]
     lines += [
-        f"| {c['check']} | {'PASS' if c['ok'] else 'FAIL'} | {str(c['detail']).replace('|', '/')[:200]} |"
-        for c in out["environment"]
+        f"| {c['check']} | {'PASS' if c['ok'] else 'FAIL'} | {json.dumps(c['detail'], default=str).replace('|', '/')[:240]} |"
+        for c in gate["checks"]
     ]
-    if out["read_only"]:
+    return lines
+
+
+def write_preflight(out: dict[str, Any], out_dir: Path = PREFLIGHT_DIR) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{out['run_id']}.json").write_text(
+        json.dumps(out, indent=1, sort_keys=True, default=str)
+    )
+    g = out["gates"]
+    lines = [
+        f"# BTC V5 — Bybit DEMO preflight {out['run_id']}",
+        "",
+        f"Started {out['started_at'][:19]} UTC · mode {out['mode']} (unchanged) · authenticated requests: {out['authenticated_requests']} (GET only)",
+        "",
+        f"- {DEMO_GATE}: **{g[DEMO_GATE]['status']}** -> EXECUTION_SMOKE {'allowed' if g[DEMO_GATE]['status'] == 'PASSED' else 'NOT allowed'}",
+        f"- {HOST_GATE}: **{g[HOST_GATE]['status']}** -> STRATEGY_DEMO {'possible after a PASSED smoke' if g[HOST_GATE]['status'] == 'PASSED' and g[DEMO_GATE]['status'] == 'PASSED' else 'NOT allowed (fails closed)'}",
+    ]
+    lines += _gate_table(DEMO_GATE, g[DEMO_GATE])
+    if out["read_only"] is None:
         lines += [
             "",
-            "## Read-only DEMO checks",
-            "",
-            "| check | result | detail |",
-            "|---|---|---|",
+            "Signed read-only checks were NOT run: a local/unauthenticated demo check failed. No authenticated request was sent.",
         ]
-        lines += [
-            f"| {c['check']} | {'PASS' if c['ok'] else 'FAIL'} | {json.dumps(c['detail'], default=str).replace('|', '/')[:240]} |"
-            for c in out["read_only"]["checks"]
-        ]
-    else:
-        lines += [
-            "",
-            "Read-only authenticated checks were NOT run: the environment gate failed. No authenticated request was sent.",
-        ]
+    lines += _gate_table(HOST_GATE, g[HOST_GATE])
     if out["requirements"]:
         lines += [
             "",

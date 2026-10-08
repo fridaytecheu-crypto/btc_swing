@@ -77,7 +77,32 @@ def test_config_reference_equity_2000_and_ws_allowlist() -> None:
             assert_demo_ws_url(bad)
 
 
-def test_environment_gate_blocks_cloud_container_before_any_authenticated_request(
+def _mac_today(monkeypatch: pytest.MonkeyPatch, fake: FakeBybitDemo) -> None:
+    """Owner's Mac today: persistent machine, demo creds in env, NO forward runner, no systemd."""
+    monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
+    monkeypatch.setattr(pf, "_runner_pids", lambda: [])
+    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (False, "systemd not running"))
+    monkeypatch.setenv("BYBIT_DEMO_API_KEY", fake.api_key)
+    monkeypatch.setenv("BYBIT_DEMO_API_SECRET", fake.api_secret)
+    monkeypatch.delenv("BYBIT_EXECUTION_MODE", raising=False)
+
+
+def _run(tmp_path: Path, fake: FakeBybitDemo, seen: list[str], **kw: Any) -> dict[str, Any]:
+    return pf.run_preflight(
+        load_demo_config(CFG),
+        pf.EXPECTED_V5_HASH,
+        FREEZE,
+        tmp_path / "none.pid",
+        HashChainJournal(tmp_path / "pre.jsonl", "pre"),
+        None,
+        probe=lambda: (200, "{}"),
+        transport=fake.transport(),
+        ws_connect=_connect({"op": "auth", "success": True, "conn_id": "c1"}, seen),
+        **kw,
+    )
+
+
+def test_demo_gate_blocks_cloud_container_before_any_authenticated_request(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: True)
@@ -91,75 +116,169 @@ def test_environment_gate_blocks_cloud_container_before_any_authenticated_reques
         80000.0,
         probe=lambda: (403, "configured to block access from your country"),
     )
+    demo = out["gates"][pf.DEMO_GATE]
     assert (
-        out["status"] == "BLOCKED_ENVIRONMENT"
+        out["status"] == demo["status"] == "BLOCKED_ENVIRONMENT"
         and out["read_only"] is None
         and out["authenticated_requests"] == 0
         and j.records() == []
     )
-    names = {c["check"]: c["ok"] for c in out["environment"]}
-    assert names["persistent host (not an ephemeral cloud-session container)"] is False
+    ok = {c["check"]: c["ok"] for c in demo["checks"]}
+    assert (
+        ok["not an ephemeral cloud-session container (no order from the cloud environment)"]
+        is False
+    )
+    assert out["gates"][pf.HOST_GATE]["status"] == "FAILED"
+    assert pf.smoke_allowed(out)[0] is False
     md = pf.write_preflight(out, tmp_path / "reports")
-    assert "NOT run" in md.read_text()
+    assert "NOT run" in md.read_text() and pf.HOST_GATE in md.read_text()
 
 
-def test_environment_gate_detects_changed_freeze_and_extra_runner(
+def test_demo_gate_passes_without_forward_runner_and_smoke_allowed_strategy_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = FakeBybitDemo()
+    _mac_today(monkeypatch, fake)
+    seen: list[str] = []
+    out = _run(tmp_path, fake, seen)
+    demo, host = out["gates"][pf.DEMO_GATE], out["gates"][pf.HOST_GATE]
+    assert demo["status"] == "PASSED", [c for c in demo["checks"] if not c["ok"]]
+    assert demo["required_for"] == ["EXECUTION_SMOKE", "STRATEGY_DEMO"]
+    names = {c["check"] for c in demo["checks"]}
+    for must in (
+        "demo-only endpoint allowlist",
+        "demo credentials present (BYBIT_DEMO_API_KEY / BYBIT_DEMO_API_SECRET)",
+        "API key authentication (signed account info)",
+        "account is DEMO (key authenticates on api-demo.bybit.com; no other host contacted)",
+        "UNIFIED wallet balance",
+        "BTCUSDT current position",
+        "BTCUSDT open orders",
+        "BTCUSDT instrument rules",
+        "private DEMO WebSocket authentication",
+        "production authenticated endpoint never used",
+    ):
+        assert must in names, must
+    assert not any("forward runner" in n or "systemd" in n for n in names)
+    # forward-host gate fails (no runner, no systemd) but does not block EXECUTION_SMOKE
+    hok = {c["check"]: c["ok"] for c in host["checks"]}
+    assert host["status"] == "FAILED" and host["required_for"] == ["STRATEGY_DEMO"]
+    assert not hok["forward runner running on this host"] and not hok["exactly one forward runner"]
+    assert (
+        hok["forward freeze present and V5 hash unchanged"] and hok["observation start unchanged"]
+    )
+    assert pf.smoke_allowed(out) == (True, f"{pf.DEMO_GATE} PASSED")
+    # GET only, demo host only, demo WS only; secrets never journaled
+    assert (
+        {r["method"] for r in fake.requests} == {"GET"}
+        and fake.hosts() == {"api-demo.bybit.com"}
+        and seen == ["wss://stream-demo.bybit.com/v5/private"]
+        and out["authenticated_requests"] > 0
+    )
+    text = (tmp_path / "pre.jsonl").read_text()
+    assert fake.api_key not in text and fake.api_secret not in text
+    req = out["requirements"]
+    assert req["source"] == "LIVE instrument rules" and req["min_notional"] == 5.0
+    # STRATEGY_DEMO fails closed on the same machine
+    with pytest.raises(RuntimeError, match=pf.HOST_GATE):
+        pf.require_forward_host(FREEZE, pf.EXPECTED_V5_HASH, tmp_path / "none.pid")
+    md = pf.write_preflight(out, tmp_path / "reports").read_text()
+    assert "EXECUTION_SMOKE allowed" in md and "STRATEGY_DEMO NOT allowed (fails closed)" in md
+    assert pf.smoke_allowed(pf.latest_preflight(tmp_path / "reports"))[0] is True
+
+
+def test_demo_gate_fails_if_execution_mode_env_not_disabled_or_creds_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = FakeBybitDemo()
+    _mac_today(monkeypatch, fake)
+    monkeypatch.setenv("BYBIT_EXECUTION_MODE", "EXECUTION_SMOKE")
+    out = _run(tmp_path / "a", fake, [])
+    assert out["status"] == "BLOCKED_ENVIRONMENT" and out["authenticated_requests"] == 0
+    monkeypatch.delenv("BYBIT_EXECUTION_MODE")
+    monkeypatch.delenv("BYBIT_DEMO_API_SECRET")
+    out = _run(tmp_path / "b", fake, [])
+    assert out["status"] == "BLOCKED_ENVIRONMENT" and not fake.requests
+    assert not pf.smoke_allowed(out)[0]
+    assert not pf.smoke_allowed({"status": "PASSED"})[0]  # older single-gate format refused
+    assert not pf.smoke_allowed(None)[0]
+
+
+def test_demo_gate_fails_if_a_production_host_is_contacted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = FakeBybitDemo()
+    _mac_today(monkeypatch, fake)
+    j = HashChainJournal(tmp_path / "pre.jsonl", "pre")
+    # a request record to a production host in the preflight journal must fail the gate
+    j.append(
+        "api_call",
+        {"request": {"host": "api.bybit.com", "method": "GET", "path": "/v5/x", "auth": True}},
+        pf.PREFLIGHT_TAG,
+    )
+    ro = pf.read_only_checks(
+        load_demo_config(CFG),
+        j,
+        DemoCredentials(fake.api_key, fake.api_secret),
+        fake.transport(),
+        _connect({"op": "auth", "success": True}, []),
+    )
+    ok = {c["check"]: c["ok"] for c in ro["checks"]}
+    assert ok["API key authentication (signed account info)"]
+    assert ok["production authenticated endpoint never used"] is False
+    # a WS endpoint outside the demo allowlist is rejected by the allowlist check itself
+    bad = load_demo_config(CFG).model_copy(
+        update={"ws_private": "wss://stream.bybit.com/v5/private"}
+    )
+    env = {c["check"]: c["ok"] for c in pf.demo_environment_checks(bad, lambda: (200, "{}"))}
+    assert env["demo-only endpoint allowlist"] is False
+
+
+def test_forward_host_gate_detects_changed_freeze_and_extra_runner(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
     monkeypatch.setattr(pf, "_runner_pids", lambda: [111, 222])
+    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (True, "active"))
     pid = tmp_path / "run.pid"
     pid.write_text(str(os.getpid()))
     bad = {**FREEZE, "observation_start_ms": 1}
-    env = pf.environment_checks(bad, "x" * 64, pid, probe=lambda: (200, "{}"))
-    ok = {c["check"]: c["ok"] for c in env}
-    assert (
-        ok["persistent host (not an ephemeral cloud-session container)"]
-        and ok["api-demo.bybit.com reachable (unauthenticated probe)"]
-    )
+    ok = {c["check"]: c["ok"] for c in pf.forward_host_checks(bad, "x" * 64, pid)}
+    assert ok["persistent host (not an ephemeral cloud-session container)"]
+    assert ok["forward runner running on this host"] and ok["systemd deployment active"]
     assert (
         not ok["exactly one forward runner"]
         and not ok["observation start unchanged"]
         and not ok["forward freeze present and V5 hash unchanged"]
     )
+    with pytest.raises(RuntimeError, match="exactly one forward runner"):
+        pf.require_forward_host(bad, "x" * 64, pid)
+    # authoritative host: one runner, systemd active, freeze unchanged -> passes
+    monkeypatch.setattr(pf, "_runner_pids", lambda: [os.getpid()])
+    checks = pf.require_forward_host(FREEZE, pf.EXPECTED_V5_HASH, pid)
+    assert all(c["ok"] for c in checks)
 
 
-def test_read_only_preflight_passes_on_fake_demo_with_get_only(
+def test_strategy_demo_executor_fails_closed_off_the_forward_host(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from types import SimpleNamespace
+
+    from btc_swing.v5.demo import runtime
+
     monkeypatch.setattr(pf, "is_cloud_session_container", lambda: False)
-    monkeypatch.setattr(pf, "_runner_pids", lambda: [os.getpid() + 1])
-    pid = tmp_path / "run.pid"
-    pid.write_text(str(os.getpid()))
-    fake = FakeBybitDemo()
-    seen: list[str] = []
-    j = HashChainJournal(tmp_path / "pre.jsonl", "pre")
-    out = pf.run_preflight(
-        load_demo_config(CFG),
-        pf.EXPECTED_V5_HASH,
-        FREEZE,
-        pid,
-        j,
-        None,
-        probe=lambda: (200, "{}"),
-        creds=DemoCredentials(fake.api_key, fake.api_secret),
-        transport=fake.transport(),
-        ws_connect=_connect({"op": "auth", "success": True, "conn_id": "c1"}, seen),
+    monkeypatch.setattr(pf, "_runner_pids", lambda: [])
+    monkeypatch.setattr(pf, "_systemd_service_active", lambda: (False, "systemd not running"))
+    monkeypatch.setattr(runtime, "load_freeze", lambda: FREEZE)
+    built: list[Any] = []
+    monkeypatch.setattr(runtime, "BybitDemoClient", lambda *a, **k: built.append(a))
+    ctx = SimpleNamespace(
+        cfg=SimpleNamespace(config_hash=pf.EXPECTED_V5_HASH),
+        paths=SimpleNamespace(run_pid=tmp_path / "none.pid", root=tmp_path),
     )
-    assert out["status"] == "PASSED", [c for c in out["read_only"]["checks"] if not c["ok"]]
-    assert (
-        {r["method"] for r in fake.requests} == {"GET"}
-        and fake.hosts() == {"api-demo.bybit.com"}
-        and seen == ["wss://stream-demo.bybit.com/v5/private"]
-    )
-    req = out["requirements"]
-    assert (
-        req["source"] == "LIVE instrument rules"
-        and req["min_notional"] == 5.0
-        and req["reference_equity"] == 2000.0
-    )
-    text = (tmp_path / "pre.jsonl").read_text()
-    assert fake.api_key not in text and fake.api_secret not in text
+    dcfg = load_demo_config(CFG, mode_override=ExecutionMode.STRATEGY_DEMO)
+    with pytest.raises(RuntimeError, match=pf.HOST_GATE):
+        runtime.build_executor(ctx, dcfg)  # type: ignore[arg-type]
+    assert built == []  # no client (and so no authenticated request) was created
 
 
 def test_read_only_client_refuses_state_changes_while_disabled(tmp_path: Path) -> None:

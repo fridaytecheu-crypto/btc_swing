@@ -38,7 +38,11 @@ def _demo_hook(ctx: ForwardContext) -> Any:
         return None
     from btc_swing.v5.demo.runtime import build_executor, demo_cycle
 
-    ex = build_executor(ctx, dcfg)
+    try:
+        ex = build_executor(ctx, dcfg)
+    except Exception as e:
+        log.error("STRATEGY_DEMO refused (fails closed, observation continues): %s", e)
+        return None
     log.info("STRATEGY_DEMO active: recovery %s", ex.recover())
     return lambda a, b, res: demo_cycle(ex, ctx, a, b, res)
 

@@ -12,6 +12,7 @@ from btc_swing.v5.demo.client import BybitDemoClient
 from btc_swing.v5.demo.config import SMOKE_TAG, STRATEGY_TAG, DemoExecConfig, ExecutionMode
 from btc_swing.v5.demo.credentials import credentials_present
 from btc_swing.v5.demo.journal import HashChainJournal, verify_chain
+from btc_swing.v5.demo.preflight import require_forward_host
 from btc_swing.v5.demo.strategy import (
     CapturingEngine,
     StrategyDemoExecutor,
@@ -19,7 +20,7 @@ from btc_swing.v5.demo.strategy import (
     trail_candidate,
 )
 from btc_swing.v5.forward.config import ForwardContextLike
-from btc_swing.v5.forward.freeze import check_freeze
+from btc_swing.v5.forward.freeze import check_freeze, load_freeze
 from btc_swing.v5.forward.pipeline import _read_jsonl
 
 SMOKE_REPORTS = Path("reports/forward/demo_smoke")
@@ -55,6 +56,8 @@ def build_executor(
     """Only for mode STRATEGY_DEMO, only after a PASSED smoke run; credentials from env (fail closed)."""
     if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
         raise RuntimeError("build_executor called while mode is not STRATEGY_DEMO")
+    # FORWARD_HOST_PREFLIGHT re-evaluated live: STRATEGY_DEMO fails closed off the authoritative host
+    require_forward_host(load_freeze(), ctx.cfg.config_hash, ctx.paths.run_pid)
     dp = DemoPaths(ctx.paths.root)
     journal = HashChainJournal(dp.strategy_journal, "strategy_demo", forbid_tags=(SMOKE_TAG,))
     client = BybitDemoClient(dcfg, dcfg.mode, journal, STRATEGY_TAG)

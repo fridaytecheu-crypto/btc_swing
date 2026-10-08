@@ -163,6 +163,13 @@
   validation must be run from a Claude Code session on the persistent host
   (`docs/V5_DEMO_EXECUTION.md` section 7). The container's forward runner was NOT restarted to avoid
   a second runner beside the persistent host's.
+- 2026-10-08 (later still): the owner's Mac reached `api-demo.bybit.com` (HTTP 200, freeze and
+  observation start correct) but the preflight was blocked only by the forward-runner checks, which
+  do not apply to a machine used only for demo connectivity and the smoke test. The preflight is now
+  split into `DEMO_EXECUTION_PREFLIGHT` (needed for EXECUTION_SMOKE) and `FORWARD_HOST_PREFLIGHT`
+  (runner on this host, exactly one runner, systemd, freeze; needed additionally for STRATEGY_DEMO,
+  re-checked live by `build_executor`, which fails closed while the observation continues). Next:
+  on the Mac, `btc-swing v5 demo preflight`, then `btc-swing v5 demo smoke --mode EXECUTION_SMOKE`.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

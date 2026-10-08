@@ -999,17 +999,18 @@ def demo_smoke(
 
     if mode != ExecutionMode.EXECUTION_SMOKE.value:
         raise typer.BadParameter("smoke requires --mode EXECUTION_SMOKE")
-    from btc_swing.v5.demo.preflight import latest_preflight
+    from btc_swing.v5.demo.preflight import latest_preflight, smoke_allowed
     from btc_swing.v5.demo.ws import private_ws_auth
 
     pf = latest_preflight()
-    if pf is None or pf.get("status") != "PASSED":
+    allowed, why = smoke_allowed(pf)
+    if not allowed:
         console.print_json(
             json.dumps(
                 {
                     "status": "REFUSED",
-                    "reason": "no PASSED read-only preflight in the last 24 h: run `btc-swing v5 demo preflight` first",
-                    "latest_preflight": pf and pf.get("status"),
+                    "reason": "EXECUTION_SMOKE needs a PASSED DEMO_EXECUTION_PREFLIGHT from the last 24 h: run `btc-swing v5 demo preflight` first",
+                    "latest_preflight": why,
                 }
             )
         )
@@ -1077,10 +1078,11 @@ def demo_smoke(
         "paths_requested": hosts,
         "notes": list(note or []),
     }
-    req = pf.get("requirements") or {}
+    pfd: dict[str, Any] = pf or {}
+    req = pfd.get("requirements") or {}
     if req:
         extra["live_rules"] = (
-            f"{req['min_qty']} BTC / {req['qty_step']} BTC / {req['min_notional']} USDT (preflight {pf['run_id']})"
+            f"{req['min_qty']} BTC / {req['qty_step']} BTC / {req['min_notional']} USDT (preflight {pfd.get('run_id')})"
         )
         med = req["by_stop"].get("median", {})
         extra["min_reference_equity"] = (
@@ -1112,10 +1114,11 @@ def demo_preflight(
     demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
     forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
 ) -> None:
-    """Environment gate (persistent host, runner, freeze, observation start, single runner,
-    api-demo reachable) and, only if it passes, READ-ONLY authenticated DEMO checks (GET only) and
-    private DEMO WebSocket auth, plus the reference-equity requirement from LIVE instrument rules.
-    The mode stays DISABLED. Writes reports/forward/demo_preflight/<run>.md|.json; exit 1 unless PASSED."""
+    """Two separated gates, mode stays DISABLED. DEMO_EXECUTION_PREFLIGHT (needed for
+    EXECUTION_SMOKE): demo-only allowlist, credentials, Bybit DEMO reachable, then READ-ONLY signed
+    checks (GET only) and private DEMO WebSocket auth. FORWARD_HOST_PREFLIGHT (needed only for
+    STRATEGY_DEMO): runner on this host, exactly one runner, systemd, freeze and observation start.
+    Writes reports/forward/demo_preflight/<run>.md|.json; exit 1 unless the DEMO gate PASSED."""
     from btc_swing.v5.demo.config import load_demo_config
     from btc_swing.v5.demo.journal import HashChainJournal
     from btc_swing.v5.demo.preflight import run_preflight, write_preflight
@@ -1140,21 +1143,29 @@ def demo_preflight(
         px,
     )
     md = write_preflight(out)
+    g = out["gates"]
     console.print_json(
         json.dumps(
             {
-                "status": out["status"],
+                "DEMO_EXECUTION_PREFLIGHT": g["DEMO_EXECUTION_PREFLIGHT"]["status"],
+                "FORWARD_HOST_PREFLIGHT": g["FORWARD_HOST_PREFLIGHT"]["status"],
+                "EXECUTION_SMOKE_allowed": g["DEMO_EXECUTION_PREFLIGHT"]["status"] == "PASSED",
+                "STRATEGY_DEMO_allowed": False,
                 "report": str(md),
-                "environment": [(c["check"], c["ok"], c["detail"]) for c in out["environment"]],
-                "read_only": [
-                    (c["check"], c["ok"]) for c in (out["read_only"] or {}).get("checks", [])
+                "demo_execution_checks": [
+                    (c["check"], c["ok"]) for c in g["DEMO_EXECUTION_PREFLIGHT"]["checks"]
+                ],
+                "forward_host_checks": [
+                    (c["check"], c["ok"], c["detail"])
+                    for c in g["FORWARD_HOST_PREFLIGHT"]["checks"]
                 ],
                 "authenticated_requests": out["authenticated_requests"],
+                "mode": out["mode"],
             },
             default=str,
         )
     )
-    if out["status"] != "PASSED":
+    if g["DEMO_EXECUTION_PREFLIGHT"]["status"] != "PASSED":
         raise typer.Exit(code=1)
 
 
