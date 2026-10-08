@@ -141,6 +141,19 @@
   `docs/V5_FORWARD_DEPLOYMENT.md`; a local rehearsal (export, verify, cycle, integrity comparison)
   passed. The cloud-container runner died once when the session restarted (15:25-15:58 UTC on
   2026-10-07, carried as flagged gap bars) which is exactly why the persistent host is needed.
+- V5 BYBIT DEMO EXECUTION (`btc_swing/v5/demo/`, `config/btc_swing_v5_demo.yaml` mode DISABLED,
+  `docs/V5_DEMO_EXECUTION.md`): demo-only adapter (host allowlist, env-only credentials, fail
+  closed), EXECUTION_SMOKE sequence, STRATEGY_DEMO executor (frozen triggers via an engine subclass,
+  frozen sizing on a 100 USDT reference equity, deterministic order ids, write-ahead state,
+  fail-safes, frozen exit management, restart recovery, paper-vs-demo reconciliation), hash-chained
+  journals, demo status in `v5 forward status-text`. 26 offline tests against an in-process fake
+  Bybit DEMO pass (incl. every restart scenario). The real smoke run from the cloud container
+  (2026-10-08, runs 261008192245/261008192324) is BLOCKED by Bybit's country restriction at the first
+  unauthenticated request: no signed request or order left the container. Open owner decisions:
+  run the smoke on the persistent host; 100 USDT reference equity is below Bybit's 0.001 BTC minimum
+  for nearly every V5 trade (~480 USDT needed at the median stop; ~1,700 USDT to place both TP legs).
+  The forward runner in the container died again on 2026-10-07 16:17 UTC and was restarted
+  2026-10-08 19:08 UTC (a 27 h gap in this copy of the observation).
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

@@ -15,6 +15,8 @@ User=btcswing
 Group=btcswing
 WorkingDirectory=/opt/btc_swing
 EnvironmentFile=/etc/btc-v5-forward.env
+# Optional Bybit DEMO credentials (mode 0600 root). Unused while config/btc_swing_v5_demo.yaml says DISABLED.
+EnvironmentFile=-/etc/btc-v5-demo.env
 # The venv binary is used directly: no network access is needed to start.
 ExecStart=/opt/btc_swing/.venv/bin/btc-swing v5 forward run
 # Graceful shutdown: SIGTERM -> collector flushes and saves state, cycle loop stops.

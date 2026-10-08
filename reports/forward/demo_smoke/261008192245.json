@@ -1,0 +1,39 @@
+{
+ "authenticated_requests": 0,
+ "cleanup": [],
+ "endpoint": "https://api-demo.bybit.com",
+ "finished_at": "2026-10-08T19:22:46.426574+00:00",
+ "journal": "data/btc/forward/demo/smoke_journal.jsonl",
+ "journal_chain": {
+  "first_bad_seq": null,
+  "last_hash": "d5f7670e4cf86af0fcbf45ea9fb56c874d4da7e474aebfcb9bb8715051e59e75",
+  "ok": true,
+  "records": 3
+ },
+ "mode_after": "DISABLED",
+ "notes": [
+  "Executed from the ephemeral cloud container: Bybit's CloudFront edge answers HTTP 403 'configured to block access from your country' for api-demo.bybit.com (and stream-demo, api-testnet, api.bybit.com). This is Bybit's own jurisdiction restriction, not the session's network allowlist; it cannot be changed from here and must not be circumvented.",
+  "The sequence stopped at the first, UNAUTHENTICATED request (public server time). No signed request, no API key and no order left this container.",
+  "Re-run on the persistent host (where Bybit Demo is reachable and permitted): BTC_DATA_DIR=/var/lib/btc_swing btc-swing v5 demo smoke --mode EXECUTION_SMOKE"
+ ],
+ "orders_sent": [],
+ "paths_requested": [
+  "/v5/market/time"
+ ],
+ "production_endpoint_used": "no (every request is checked against api-demo.bybit.com before it is sent)",
+ "real_order_placed": "no",
+ "restart_recovery_tests": "PASSED (tests/v5/test_demo_strategy.py: ..............                                                           [100%])",
+ "run_id": "261008192245",
+ "started_at": "2026-10-08T19:22:45.754253+00:00",
+ "status": "BLOCKED",
+ "steps": [
+  {
+   "description": "public server time (no authentication)",
+   "elapsed_s": 0.666,
+   "error": "DemoTransportError: /v5/market/time: HTTP 403: {\n   error:The Amazon CloudFront distribution is configured to block access from your country.\n}",
+   "geo_blocked": true,
+   "ok": false,
+   "step": "connectivity"
+  }
+ ]
+}

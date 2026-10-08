@@ -492,5 +492,13 @@ def status_text(ctx: ForwardContextLike, data_dir: Path) -> str:
         ("frozen V5 config hash", s["frozen_v5_config_hash"]),
         ("health", "OK" if h["ok"] else "PROBLEMS: " + "; ".join(h["problems"])),
     ]
+    try:
+        from btc_swing.v5.demo.config import DEFAULT_DEMO_CONFIG_PATH, load_demo_config
+        from btc_swing.v5.demo.runtime import demo_status, demo_status_lines
+
+        if DEFAULT_DEMO_CONFIG_PATH.exists():
+            rows += demo_status_lines(demo_status(ctx, load_demo_config(DEFAULT_DEMO_CONFIG_PATH)))
+    except Exception as e:
+        rows.append(("demo execution", f"status unavailable: {type(e).__name__}: {e}"[:120]))
     w = max(len(k) for k, _ in rows)
     return "\n".join(f"{k.ljust(w)}  {v}" for k, v in rows)

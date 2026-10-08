@@ -50,6 +50,7 @@ owner pre-registration. **V5 forward observation mode** (`btc-swing v5 forward .
 `docs/V5_FORWARD_OBSERVATION_RUNBOOK.md`, `reports/forward/`): the frozen V5 signals are recorded
 prospectively on live Bybit public data with a virtual paper ledger; observational only. Persistent-host
 deployment and restart-safe migration: `deploy/`, `docs/V5_FORWARD_DEPLOYMENT.md`.
+Bybit DEMO execution validation (demo endpoint only, default DISABLED): `docs/V5_DEMO_EXECUTION.md`.
 
 ## Quick start
 ```
@@ -59,7 +60,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 73 tests, no database needed
+uv run pytest -q                                            # 99 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

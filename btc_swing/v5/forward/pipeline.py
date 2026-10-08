@@ -629,8 +629,13 @@ def extend_seed(ctx: ForwardContext, now_ms: int) -> dict[str, Any]:
 
 # ----------------------------------------------------------------------------- cycle
 def run_cycle(
-    ctx: ForwardContext, now_ms: int | None = None, extend: bool = True
+    ctx: ForwardContext,
+    now_ms: int | None = None,
+    extend: bool = True,
+    on_result: Any | None = None,
 ) -> dict[str, Any]:
+    """`on_result(a, b, res)` (optional, demo execution only) runs after the paper ledger update;
+    its failure never stops the observation."""
     t0 = time.time()
     now = now_ms if now_ms is not None else int(time.time() * 1000)
     out: dict[str, Any] = {"cycle_at": _iso(now)}
@@ -684,6 +689,12 @@ def run_cycle(
     eng = V5Engine(ctx.cfg, a.bars, a.funding, None, b.aux, b.series, b.ff)
     res = eng.run(ctx.start_ms, b.last_close_ms + 1, notes={"stream": "forward_paper"})
     out["paper"] = update_paper(ctx, res.trades, b.last_close_ms, float(b.series.base.close[-1]))
+    if on_result is not None:
+        try:
+            out["demo"] = on_result(a, b, res)
+        except Exception as e:
+            log.exception("demo execution step failed")
+            out["demo"] = {"error": f"{type(e).__name__}: {e}"[:300]}
     out["episodes_since_start"] = res.episodes.height
     out["blocked"] = res.blocked
     out["new_outcomes"] = len(persist_outcomes(ctx, b, eng))

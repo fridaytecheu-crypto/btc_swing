@@ -22,9 +22,14 @@ V5 FORWARD OBSERVATION MODE (`btc_swing/v5/forward/`, `docs/V5_FORWARD_OBSERVATI
 frozen V5 strategy recorded prospectively on live Bybit public data; never change a V5 rule during
 the observation; snapshots in `reports/forward/` are immutable. Deployment/migration: `deploy/`,
 `docs/V5_FORWARD_DEPLOYMENT.md` (`v5 forward status-text|health|integrity|export|verify`).
+Demo execution: `v5 demo smoke|status|verify-journal|recover|reconcile-ack`, config `config/btc_swing_v5_demo.yaml`.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
+  Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
+  `docs/V5_DEMO_EXECUTION.md`): demo endpoint only (enforced), demo keys only from
+  `BYBIT_DEMO_API_KEY`/`BYBIT_DEMO_API_SECRET`, default mode DISABLED, STRATEGY_DEMO only by the
+  owner after a PASSED smoke report. Never production endpoints or keys; never print secrets.
 - No parameter search/optimisation; defaults are pre-registered. A rule change needs owner approval
   and a single pre-registered run.
 - PIT discipline: a decision at T may only use bars with `close_time <= T` and auxiliary rows with

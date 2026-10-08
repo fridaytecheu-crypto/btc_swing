@@ -966,5 +966,178 @@ def forward_verify(
         raise typer.Exit(code=1)
 
 
+demo_app = typer.Typer(
+    help="V5 Bybit DEMO execution validation (demo endpoint only; default mode DISABLED; "
+    "credentials from BYBIT_DEMO_API_KEY / BYBIT_DEMO_API_SECRET only)"
+)
+v5_app.add_typer(demo_app, name="demo")
+
+
+@demo_app.command("smoke")
+def demo_smoke(
+    mode: str = typer.Option(
+        ..., help="must be EXECUTION_SMOKE (explicit opt-in for this run only)"
+    ),
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+    run_recovery_tests: bool = True,
+    note: list[str] | None = None,
+) -> None:
+    """EXECUTION_SMOKE on Bybit DEMO: auth, wallet, instrument, position, leverage, limit
+    create/cancel, minimum market fill, stop, TP, position read, close, closed PnL, reconciliation.
+    Writes reports/forward/BYBIT_DEMO_EXECUTION_SMOKE.md (+ immutable per-run copy). The config file
+    is not changed: the mode returns to DISABLED when this command exits."""
+    import subprocess
+    import sys
+
+    from btc_swing.v5.demo.client import BybitDemoClient
+    from btc_swing.v5.demo.config import SMOKE_TAG, ExecutionMode, load_demo_config
+    from btc_swing.v5.demo.journal import HashChainJournal, verify_chain
+    from btc_swing.v5.demo.runtime import SMOKE_REPORTS, SMOKE_SUMMARY, DemoPaths
+    from btc_swing.v5.demo.smoke import SmokeResult, run_execution_smoke, write_smoke_report
+    from btc_swing.v5.forward.config import ForwardPaths, load_forward_config
+
+    if mode != ExecutionMode.EXECUTION_SMOKE.value:
+        raise typer.BadParameter("smoke requires --mode EXECUTION_SMOKE")
+    dcfg = load_demo_config(demo_config, ExecutionMode.EXECUTION_SMOKE)
+    fcfg = load_forward_config(forward_config)
+    dp = DemoPaths(ForwardPaths(_data_dir(), fcfg.symbol).root)
+    journal = HashChainJournal(dp.smoke_journal, "execution_smoke")
+    rec_tests = "not run"
+    if run_recovery_tests:
+        r = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-o",
+                "addopts=",
+                "-p",
+                "no:cacheprovider",
+                "tests/v5/test_demo_strategy.py",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        tail = (r.stdout.strip().splitlines() or ["(no output)"])[-1]
+        rec_tests = (
+            "PASSED" if r.returncode == 0 else "FAILED"
+        ) + f" (tests/v5/test_demo_strategy.py: {tail})"
+    try:
+        client = BybitDemoClient(dcfg, dcfg.mode, journal, SMOKE_TAG)
+        res = run_execution_smoke(client, dcfg)
+        client.close()
+    except Exception as e:
+        from datetime import UTC, datetime
+
+        res = SmokeResult(
+            datetime.now(UTC).strftime("%y%m%d%H%M%S"),
+            datetime.now(UTC).isoformat(),
+            status="FAILED",
+            finished_at=datetime.now(UTC).isoformat(),
+        )
+        res.steps.append(
+            {
+                "step": "setup",
+                "description": "client construction",
+                "ok": False,
+                "error": f"{type(e).__name__}: {e}"[:300],
+                "elapsed_s": 0.0,
+            }
+        )
+    hosts = sorted(
+        {
+            str(r["data"].get("request", {}).get("path"))
+            for r in journal.records()
+            if r.get("tag") == SMOKE_TAG and "request" in r["data"]
+        }
+    )
+    extra = {
+        "restart_recovery_tests": rec_tests,
+        "production_endpoint_used": "no (every request is checked against api-demo.bybit.com before it is sent)",
+        "real_order_placed": "no",
+        "mode_after": load_demo_config(demo_config).mode.value,
+        "paths_requested": hosts,
+        "notes": list(note or []),
+    }
+    path = write_smoke_report(
+        res, dp.smoke_journal, verify_chain(dp.smoke_journal), SMOKE_REPORTS, SMOKE_SUMMARY, extra
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "status": res.status,
+                "run_id": res.run_id,
+                "report": str(path),
+                "summary": str(SMOKE_SUMMARY),
+                "steps": [(s["step"], s["ok"]) for s in res.steps],
+                "mode_after": extra["mode_after"],
+                "restart_recovery_tests": rec_tests,
+            }
+        )
+    )
+
+
+@demo_app.command("status")
+def demo_status_cmd(
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Read-only demo execution status (no API call)."""
+    from btc_swing.v5.demo.config import load_demo_config
+    from btc_swing.v5.demo.runtime import demo_status, demo_status_lines
+
+    rows = demo_status_lines(
+        demo_status(_forward_ctx(forward_config), load_demo_config(demo_config))
+    )
+    w = max(len(k) for k, _ in rows)
+    typer.echo("\n".join(f"{k.ljust(w)}  {v}" for k, v in rows))
+
+
+@demo_app.command("verify-journal")
+def demo_verify_journal(forward_config: Path = Path("config/btc_swing_v5_forward.yaml")) -> None:
+    """Verify the hash chains of the smoke and strategy demo journals (exit 1 on a break)."""
+    from btc_swing.v5.demo.journal import verify_chain
+    from btc_swing.v5.demo.runtime import DemoPaths
+    from btc_swing.v5.forward.config import ForwardPaths, load_forward_config
+
+    dp = DemoPaths(ForwardPaths(_data_dir(), load_forward_config(forward_config).symbol).root)
+    out = {"smoke": verify_chain(dp.smoke_journal), "strategy": verify_chain(dp.strategy_journal)}
+    console.print_json(json.dumps(out))
+    if not all(v["ok"] for v in out.values()):
+        raise typer.Exit(code=1)
+
+
+@demo_app.command("recover")
+def demo_recover(
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """STRATEGY_DEMO only: query Bybit DEMO open orders and position and reconcile with the
+    local journal/state (never resubmits)."""
+    from btc_swing.v5.demo.config import load_demo_config
+    from btc_swing.v5.demo.runtime import build_executor
+
+    ex = build_executor(_forward_ctx(forward_config), load_demo_config(demo_config))
+    console.print_json(json.dumps(ex.recover(), default=str))
+
+
+@demo_app.command("reconcile-ack")
+def demo_reconcile_ack(
+    note: str = typer.Option(..., help="what the operator checked and why trading may resume"),
+    demo_config: Path = Path("config/btc_swing_v5_demo.yaml"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """Clear a reconciliation-required flag after a human check (journaled with the note)."""
+    from btc_swing.v5.demo.config import load_demo_config
+    from btc_swing.v5.demo.runtime import build_executor
+
+    ex = build_executor(_forward_ctx(forward_config), load_demo_config(demo_config))
+    ex.acknowledge_reconciliation(note)
+    typer.echo("reconciliation acknowledged")
+
+
 if __name__ == "__main__":
     app()

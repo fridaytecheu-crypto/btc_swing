@@ -1,0 +1,31 @@
+# BTC V5 — Bybit DEMO execution validation. Execution validation only, NOT strategy research.
+# Default mode DISABLED: no authenticated request of any kind is possible in this mode.
+# Modes: DISABLED | EXECUTION_SMOKE | STRATEGY_DEMO. A CLI run may override the mode for that one
+# invocation (`--mode`); this file is never rewritten by the program, so it stays DISABLED.
+mode: DISABLED
+rest_base: https://api-demo.bybit.com     # the ONLY host authenticated requests may reach (enforced in code)
+category: linear
+symbol: BTCUSDT
+account_type: UNIFIED
+recv_window_ms: 5000
+http_timeout_s: 10.0
+credentials_env:
+  api_key: BYBIT_DEMO_API_KEY
+  api_secret: BYBIT_DEMO_API_SECRET
+reference_equity_usdt: 100.0              # all strategy sizing/performance as if the account were 100 USDT
+risk_per_trade: 0.0025                    # must equal the frozen V5 risk_per_trade (checked at load)
+stop_trigger_by: LastPrice                # the frozen engine stops on traded prices (liquidation on mark)
+smoke:
+  leverage: 2
+  limit_offset_frac: 0.10                 # resting limit 10% away from last price (never fills)
+  stop_offset_frac: 0.03
+  tp_offset_frac: 0.03
+  fill_timeout_s: 15.0
+  poll_interval_s: 1.0
+failsafe:
+  collector_stale_s: 120                  # raw data older than this -> no new trade
+  bar_stale_s: 900                        # last completed bar older than this -> no new trade
+  entry_max_delay_s: 120                  # trigger bar closed longer ago than this -> no late entry
+  gap_lookback_bars: 12                   # gap-filled bar among the last N -> no new trade
+  ack_timeout_s: 15.0
+  fill_timeout_s: 20.0

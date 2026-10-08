@@ -26,9 +26,27 @@ def _next_cycle_at(now: float, cycle_s: int, grace_s: int) -> float:
     return (int(now) // cycle_s + 1) * cycle_s + grace_s
 
 
+def _demo_hook(ctx: ForwardContext) -> Any:
+    """None unless config/btc_swing_v5_demo.yaml says STRATEGY_DEMO (default DISABLED)."""
+    from btc_swing.v5.demo.config import DEFAULT_DEMO_CONFIG_PATH, ExecutionMode, load_demo_config
+
+    if not DEFAULT_DEMO_CONFIG_PATH.exists():
+        return None
+    dcfg = load_demo_config(DEFAULT_DEMO_CONFIG_PATH)
+    if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
+        log.info("demo execution mode %s: no authenticated request", dcfg.mode.value)
+        return None
+    from btc_swing.v5.demo.runtime import build_executor, demo_cycle
+
+    ex = build_executor(ctx, dcfg)
+    log.info("STRATEGY_DEMO active: recovery %s", ex.recover())
+    return lambda a, b, res: demo_cycle(ex, ctx, a, b, res)
+
+
 async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Event) -> None:
     sc = ctx.fcfg.schedule
     last_report_day = ""
+    hook = _demo_hook(ctx)
     while not stop.is_set():
         wait = max(
             1.0, _next_cycle_at(time.time(), sc.cycle_seconds, sc.cycle_grace_seconds) - time.time()
@@ -39,7 +57,7 @@ async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Even
         except TimeoutError:
             pass
         try:
-            out = await asyncio.to_thread(run_cycle, ctx)
+            out = await asyncio.to_thread(run_cycle, ctx, None, True, hook)
             log.info(
                 "cycle %s: bars %s (+%s), signals %s, paper closed %s, open %s, %.1fs",
                 out["cycle_at"][11:19],
