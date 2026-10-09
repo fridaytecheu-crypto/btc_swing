@@ -981,6 +981,24 @@ def forward_coverage(forward_config: Path = Path("config/btc_swing_v5_forward.ya
     console.print_json(json.dumps(coverage(_forward_ctx(forward_config)), default=str))
 
 
+@forward_app.command("signal-diagnostic")
+def forward_signal_diagnostic(
+    as_json: bool = typer.Option(False, "--json", help="machine-readable output"),
+    forward_config: Path = Path("config/btc_swing_v5_forward.yaml"),
+) -> None:
+    """READ-ONLY: why no V5 signal fires at the latest completed 5m bar. Every frozen family/side:
+    Stage A conditions (value, threshold, PASS/FAIL, distance, warm-up), Stage B state, cooldowns,
+    gap and STRATEGY_DEMO/risk blockers, closest-to-trigger ranking. Writes nothing, places no
+    order, makes no API call."""
+    from btc_swing.v5.forward.diagnostic import render_diagnostic, signal_diagnostic
+
+    d = signal_diagnostic(_forward_ctx(forward_config))
+    if as_json:
+        typer.echo(json.dumps(d, default=str, indent=1))
+    else:
+        typer.echo(render_diagnostic(d))
+
+
 @forward_app.command("claim-authority")
 def forward_claim_authority(
     note: str = typer.Option(..., help="why this host becomes the authoritative forward host"),

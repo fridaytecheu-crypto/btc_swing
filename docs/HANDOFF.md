@@ -192,6 +192,16 @@
   The cloud collector's state (17 live bars; last bar 2026-10-08 19:30 UTC) was cold-exported with
   its authority released and published on branch `v5-forward-state-cloud-20261008` for the Mac.
   Activation itself must be done by the owner ON THE MAC; it was not (and cannot be) done from here.
+- 2026-10-09: `btc-swing v5 forward signal-diagnostic` (read-only, zero side effects, verified by a
+  data-tree fingerprint): per family/side every frozen Stage A condition (value, threshold, PASS/FAIL,
+  distance, z warm-up), Stage B state from an in-memory replay, cooldowns, gap/demo/risk blockers,
+  closest-to-trigger ranking; verdicts cross-checked against the frozen detector masks. Finding on
+  the cloud copy (last bar 2026-10-08 19:30Z): families A/C/D cannot fire until `oi_chg_1h_z` has
+  2880 observations (OI exists only forward: ~10 days of collection); families A/B cannot fire while
+  the frozen 30-day `vol_1h_z` window contains the carried-forward outage rows (1h volume ~1e-12
+  from rolling-sum residue -> log ~ -27 -> window std x9.7 -> z>=1 needs ~750k BTC/h) until those
+  rows leave the window (2026-11-07 19:05Z on that copy). This is a frozen-feature behaviour under
+  outages; changing it would be a V5 rule change (owner decision + pre-registration), not done.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

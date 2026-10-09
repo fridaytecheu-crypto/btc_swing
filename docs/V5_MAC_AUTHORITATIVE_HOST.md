@@ -118,6 +118,7 @@ launchctl print gui/$(id -u)/com.btcswing.v5-forward | grep -E "state|pid|runs|l
 tail -f ~/btc_swing_data/btc/forward/logs/forward_run.log  # app log; launchd.*.log for stdout/err
 tail ~/btc_swing_data/btc/forward/logs/health.log          # 5-minute health results
 uv run btc-swing v5 forward coverage                       # missing periods, duplicates
+uv run btc-swing v5 forward signal-diagnostic              # READ-ONLY: why no signal fires now (--json)
 bash deploy/macos/stop_macos.sh                            # graceful stop (SIGTERM)
 bash deploy/macos/start_macos.sh "restart"                 # start again (lease already held)
 uv run btc-swing v5 demo deactivate --note "..."           # STRATEGY_DEMO off (only when flat)

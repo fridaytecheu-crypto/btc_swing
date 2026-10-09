@@ -24,7 +24,7 @@ the observation; snapshots in `reports/forward/` are immutable. Deployment/migra
 `docs/V5_FORWARD_DEPLOYMENT.md` (`v5 forward status-text|health|integrity|export|verify`).
 Demo execution: `v5 demo preflight|smoke|activate|deactivate|status|verify-journal|recover|reconcile-ack`, config `config/btc_swing_v5_demo.yaml`.
 Temporary authoritative host = owner's Mac (launchd, `deploy/macos/`, `docs/V5_MAC_AUTHORITATIVE_HOST.md`):
-`v5 forward claim-authority|release-authority|coverage|host-status`; STRATEGY_DEMO only via the
+`v5 forward claim-authority|release-authority|coverage|host-status|signal-diagnostic` (read-only); STRATEGY_DEMO only via the
 host-bound `STRATEGY_DEMO_ACTIVATED` event; the cloud container must never run the forward runner again.
 
 ## Non-negotiables (owner's specification)
