@@ -26,6 +26,13 @@ Demo execution: `v5 demo preflight|smoke|activate|deactivate|status|verify-journ
 Temporary authoritative host = owner's Mac (launchd, `deploy/macos/`, `docs/V5_MAC_AUTHORITATIVE_HOST.md`):
 `v5 forward claim-authority|release-authority|coverage|host-status|signal-diagnostic` (read-only); STRATEGY_DEMO only via the
 host-bound `STRATEGY_DEMO_ACTIVATED` event; the cloud container must never run the forward runner again.
+V5.1 = BTC_V5_1_DATA_QUALITY_FIX (`btc_swing/v51/`, `config/btc_swing_v5_1.yaml` hash `144f7d58bb71…`,
+`docs/BTC_SWING_V5_1_DATA_QUALITY_FIX.md`): the frozen V5 rules (every strategy section byte-identical) on
+VALID observations only (gap rows are never observations; clean windows; clean-bar ATR) plus Bybit public
+history warm-up seeds (OI/premium/funding, strictly before the V5 start). Own freeze
+`manifests/v5_1_forward_freeze.json`, own journals under `forward_v51/`, `V51D-` order ids. CLI `btc-swing v51
+forward freeze|cycle|coverage|host-status|signal-diagnostic|compare-diagnostic`, `v51 seed oi|premium|funding|status`,
+`v51 demo activate|deactivate|status|reconcile-ack`. Never modify V5 for V5.1.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.

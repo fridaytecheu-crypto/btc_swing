@@ -55,7 +55,12 @@ from btc_swing.v5.demo.fills import (
     confirmed_record,
     dedupe_executions,
 )
-from btc_swing.v5.demo.ids import is_smoke_link_id, is_strategy_link_id, strategy_link_id
+from btc_swing.v5.demo.ids import (
+    STRATEGY_PREFIX,
+    is_smoke_link_id,
+    is_strategy_link_id,
+    strategy_link_id,
+)
 from btc_swing.v5.demo.journal import HashChainJournal
 from btc_swing.v5.engine import V5Engine
 
@@ -156,10 +161,13 @@ class StrategyDemoExecutor:
         clock: Any = time.time,
         sleep: Any = time.sleep,
         activated_at_ms: int | None = None,
+        link_prefix: str = STRATEGY_PREFIX,
     ) -> None:
         """`activated_at_ms`: the STRATEGY_DEMO_ACTIVATED timestamp. Only triggers whose bar closed
-        strictly after it can be traded; without it nothing is ever entered (fails closed)."""
+        strictly after it can be traded; without it nothing is ever entered (fails closed).
+        `link_prefix`: the orderLinkId namespace (V5D- for V5, V51D- for V5.1)."""
         self.activated_at_ms = activated_at_ms
+        self.link_prefix = link_prefix
         if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
             raise RuntimeError("StrategyDemoExecutor requires mode STRATEGY_DEMO")
         if not smoke_report or smoke_report.get("status") != "PASSED":
@@ -254,7 +262,9 @@ class StrategyDemoExecutor:
             self.save()
             return out | {"ok": False}
         self.state["last_exchange_position"] = pos
-        strat_open = [o for o in opens if is_strategy_link_id(o.get("orderLinkId"))]
+        strat_open = [
+            o for o in opens if is_strategy_link_id(o.get("orderLinkId"), self.link_prefix)
+        ]
         p = self.state["position"]
         out.update(
             {
@@ -333,7 +343,7 @@ class StrategyDemoExecutor:
             self.alert("ENTRY_BLOCKED_BY_FAILSAFE", {"signal_id": sid, "blockers": blockers})
             self.save()
             return decision | {"action": "BLOCKED", "blockers": blockers}
-        link = strategy_link_id(sid, "EN")
+        link = strategy_link_id(sid, "EN", self.link_prefix)
         try:
             if self.client.order(link) is not None:
                 self.alert(
@@ -627,7 +637,7 @@ class StrategyDemoExecutor:
                     continue
                 q = fmt_qty(p["filled_qty"] * frac, inst["qty_step"])
                 px = fmt_price(p["entry_price"] + s * rr * r, inst["tick"])
-                link = strategy_link_id(p["signal_id"], leg)
+                link = strategy_link_id(p["signal_id"], leg, self.link_prefix)
                 if float(q) < inst["min_qty"] - 1e-12:
                     p["legs"][leg] = {
                         "link": link,
@@ -792,7 +802,7 @@ class StrategyDemoExecutor:
                         with contextlib.suppress(DemoApiError):
                             self.client.cancel_order(lg["link"])
                 inst = self._instrument()
-                link = strategy_link_id(p["signal_id"], "TC")
+                link = strategy_link_id(p["signal_id"], "TC", self.link_prefix)
                 try:
                     self.client.create_order(
                         _bybit_side(p["side"], closing=True),

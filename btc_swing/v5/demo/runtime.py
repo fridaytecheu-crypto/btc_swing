@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from btc_swing.v5.demo.activation import activation_state, effective_activation
 from btc_swing.v5.demo.client import BybitDemoClient
 from btc_swing.v5.demo.config import SMOKE_TAG, STRATEGY_TAG, DemoExecConfig, ExecutionMode
 from btc_swing.v5.demo.credentials import credentials_present
+from btc_swing.v5.demo.ids import STRATEGY_PREFIX
 from btc_swing.v5.demo.journal import HashChainJournal, verify_chain
 from btc_swing.v5.demo.preflight import require_forward_host
 from btc_swing.v5.demo.strategy import (
@@ -52,13 +54,24 @@ def latest_passed_smoke(reports_dir: Path = SMOKE_REPORTS) -> dict[str, Any] | N
 
 
 def build_executor(
-    ctx: ForwardContextLike, dcfg: DemoExecConfig, reports_dir: Path = SMOKE_REPORTS
+    ctx: ForwardContextLike,
+    dcfg: DemoExecConfig,
+    reports_dir: Path = SMOKE_REPORTS,
+    *,
+    stream_hash: str | None = None,
+    freeze_check: Callable[[Any], Any] | None = None,
+    link_prefix: str = STRATEGY_PREFIX,
 ) -> StrategyDemoExecutor:
-    """Only for mode STRATEGY_DEMO, only after a PASSED smoke run; credentials from env (fail closed)."""
+    """Only for mode STRATEGY_DEMO, only after a PASSED smoke run; credentials from env (fail closed).
+    `stream_hash`: the frozen config hash of the data-stream (V5) freeze the host gate checks
+    (V5.1 passes its parent's); `freeze_check`: the strategy's own freeze check (V5.1 passes
+    its own); `link_prefix`: orderLinkId namespace."""
     if dcfg.mode is not ExecutionMode.STRATEGY_DEMO:
         raise RuntimeError("build_executor called while mode is not STRATEGY_DEMO")
     # FORWARD_HOST_PREFLIGHT re-evaluated live: STRATEGY_DEMO fails closed off the authoritative host
-    require_forward_host(load_freeze(), ctx.cfg.config_hash, ctx.paths.run_pid)
+    require_forward_host(load_freeze(), stream_hash or ctx.cfg.config_hash, ctx.paths.run_pid)
+    if freeze_check is not None:
+        freeze_check(ctx.cfg)
     act = effective_activation(ctx.paths.root)
     if act is None:
         raise RuntimeError("no STRATEGY_DEMO_ACTIVATED event for this host: STRATEGY_DEMO refused")
@@ -76,6 +89,7 @@ def build_executor(
         ctx.paths.paper_trades,
         latest_passed_smoke(reports_dir),
         activated_at_ms=int(act["activated_at_ms"]),
+        link_prefix=link_prefix,
     )
 
 
@@ -95,12 +109,13 @@ def demo_cycle(
     b: Any,
     res: Any,
     now_ms: int | None = None,
+    freeze_check: Callable[[Any], Any] = check_freeze,
 ) -> dict[str, Any]:
     now = now_ms if now_ms is not None else int(time.time() * 1000)
     fs = ex.dcfg.failsafe
     blockers: list[str] = []
     try:
-        check_freeze(ctx.cfg)
+        freeze_check(ctx.cfg)
     except RuntimeError:
         blockers.append("FREEZE_CONFIG_MISMATCH")
     eng = CapturingEngine(ctx.cfg, a.bars, a.funding, None, b.aux, b.series, b.ff)

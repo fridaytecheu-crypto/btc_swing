@@ -53,7 +53,9 @@ def effective_activation(forward_root: Path) -> dict[str, Any] | None:
     return last
 
 
-def record_activation(forward_root: Path, gates: dict[str, Any], note: str) -> dict[str, Any]:
+def record_activation(
+    forward_root: Path, gates: dict[str, Any], note: str, version: str = "V5"
+) -> dict[str, Any]:
     """Append STRATEGY_DEMO_ACTIVATED (exact UTC timestamp). Callers must have verified `gates`."""
     if not gates or not all(g.get("ok") for g in gates.values()):
         raise RuntimeError("refusing to activate: not every gate passed")
@@ -62,6 +64,7 @@ def record_activation(forward_root: Path, gates: dict[str, Any], note: str) -> d
     now = datetime.now(UTC)
     rec = {
         **host_identity(),
+        "version": version,
         "activated_at": now.isoformat(),
         "activated_at_ms": int(now.timestamp() * 1000),
         "note": note,

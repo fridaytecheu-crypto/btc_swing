@@ -202,6 +202,20 @@
   from rolling-sum residue -> log ~ -27 -> window std x9.7 -> z>=1 needs ~750k BTC/h) until those
   rows leave the window (2026-11-07 19:05Z on that copy). This is a frozen-feature behaviour under
   outages; changing it would be a V5 rule change (owner decision + pre-registration), not done.
+- 2026-10-09 (later): BTC_V5_1_DATA_QUALITY_FIX implemented and pushed (`btc_swing/v51/`,
+  `docs/BTC_SWING_V5_1_DATA_QUALITY_FIX.md`). V5 untouched and still running. V5.1: frozen V5 strategy
+  sections byte-identical (hash `144f7d58bb71…`), gap rows never observations, clean-window
+  features, clean-bar Wilder ATR, Bybit PUBLIC history seeds (OI 5min, mark/index klines, funding
+  history; immutable pages with retrieved_at; warm-up strictly before the V5 start; alignment
+  verified vs live rows), own freeze/journals/demo (`V51D-`), read-only V5.1 diagnostic with the
+  FEATURE | VALID OBS | WARM | CURRENT | Z | QUALITY table and a V5-vs-V5.1 comparison, owner-gated
+  activation (`v51 demo activate`: all V5 gates + V5.1 data-quality gates + V5 demo inactive/flat).
+  28 new tests (190 total). On the cloud copy: V5.1 vol_1h_z baseline clean (z>=1 needs ~3.8k
+  BTC/h instead of ~748k), current window correctly INVALID NOW (stale copy ends 5 bars after an
+  outage), OI 0/2880 because Bybit REST is geo-blocked here: the OI seed, the V5.1 diagnostic on
+  live data, the V5.1 freeze and (later) the activation must be run by the owner ON THE MAC. NOT
+  activated. Next: owner runs `v51 seed oi`, `v51 forward signal-diagnostic`, `compare-diagnostic`,
+  then decides on `v51 forward freeze` and, after every gate passes, `v51 demo activate`.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

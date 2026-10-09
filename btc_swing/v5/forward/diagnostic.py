@@ -120,7 +120,9 @@ def z_params(cfg: V5Config, ff: FeatureFrame, z_col: str, k: int) -> dict[str, A
 
 
 # ----------------------------------------------------------------------------- data quality
-def data_quality(cfg: V5Config, ff: FeatureFrame, rows: Any, k: int) -> dict[str, Any]:
+def data_quality(
+    cfg: V5Config, ff: FeatureFrame, rows: Any, k: int, validity: Any = None
+) -> dict[str, Any]:
     """How flagged gap rows (collector outages carried forward as zero-trade rows, and the
     seed->forward gap fill) enter each frozen 30-day z window. INFORMATIONAL: the live-only z is
     NOT a V5 calculation and is never used for any decision."""
@@ -154,7 +156,9 @@ def data_quality(cfg: V5Config, ff: FeatureFrame, rows: Any, k: int) -> dict[str
     for col, src in Z_SOURCES.items():
         if src.window != "z":
             continue
-        x = np.asarray(src.raw(ff), dtype=np.float64)
+        x = np.asarray(src.raw(ff), dtype=np.float64).copy()
+        if validity is not None:  # V5.1: invalid observations are not observations at all
+            x[~validity.valid_for(col)] = np.nan
         w_all = x[lo:k]
         keep = ~np.isnan(w_all)
         clean = keep & ~touched[lo:k]
@@ -406,12 +410,22 @@ def _family_states(
 
 
 # ----------------------------------------------------------------------------- main
-def signal_diagnostic(ctx: ForwardContextLike, now_ms: int | None = None) -> dict[str, Any]:
+def signal_diagnostic(
+    ctx: ForwardContextLike,
+    now_ms: int | None = None,
+    builder: Callable[[Any], tuple[Any, Any, Any]] | None = None,
+    feature_table: Callable[[Any, FeatureFrame, Any, int], list[dict[str, Any]]] | None = None,
+    label: str = "V5 (frozen)",
+) -> dict[str, Any]:
     """Read-only. Uses the latest completed 5m bar already built by the runner."""
     now = now_ms if now_ms is not None else int(time.time() * 1000)
     cfg = ctx.cfg
-    a = assemble(ctx)  # type: ignore[arg-type]
-    b = build(ctx, a)  # type: ignore[arg-type]
+    validity: Any = None
+    if builder is None:
+        a = assemble(ctx)  # type: ignore[arg-type]
+        b = build(ctx, a)  # type: ignore[arg-type]
+    else:
+        a, b, validity = builder(ctx)
     ff = b.ff
     k = ff.idx_at(b.last_close_ms)
     rows = a.rows.sort("open_time_ms")
@@ -422,7 +436,8 @@ def signal_diagnostic(ctx: ForwardContextLike, now_ms: int | None = None) -> dic
     FUNDING_EVENTS_SEEN["n"] = int(
         (np.asarray(b.aux.funding_t, dtype=np.int64) <= b.last_close_ms).sum()
     )
-    quality = data_quality(cfg, ff, rows, k)
+    quality = data_quality(cfg, ff, rows, k, validity)
+    ftab = feature_table(cfg, ff, validity, k) if feature_table is not None else None
     eng = V5Engine(cfg, a.bars, a.funding, None, b.aux, b.series, ff)
     states, engine_summary = _family_states(ctx, eng, b)
     v = ff.v
@@ -551,6 +566,44 @@ def signal_diagnostic(ctx: ForwardContextLike, now_ms: int | None = None) -> dic
             else:
                 reason = "confirmed; waiting for a 5m close inside the entry zone"
             closest = _closest(failed)
+            invalid_now = (
+                sorted(
+                    {
+                        c["column"]
+                        for c in conds
+                        if validity is not None
+                        and c["column"] in validity.obs_cols()
+                        and not validity.valid_for(c["column"])[k]
+                    }
+                )
+                if validity is not None
+                else []
+            )
+            dq_label = (
+                "UNREACHABLE: " + ",".join(distorted)
+                if distorted
+                else (
+                    "INVALID NOW: " + ",".join(invalid_now)
+                    if invalid_now
+                    else (
+                        "baseline includes gap rows: "
+                        + ",".join(
+                            sorted(
+                                {
+                                    c["column"]
+                                    for c in conds
+                                    if quality.get(c["column"], {}).get("window_obs_from_gap_rows")
+                                }
+                            )
+                        )
+                        if any(
+                            quality.get(c["column"], {}).get("window_obs_from_gap_rows")
+                            for c in conds
+                        )
+                        else "clean"
+                    )
+                )
+            )
             fams.append(
                 {
                     "family": fam.value,
@@ -573,6 +626,8 @@ def signal_diagnostic(ctx: ForwardContextLike, now_ms: int | None = None) -> dic
                     "signal_now": frozen and not blockers and "CONFIRMED" in st["state"],
                     "reason_no_signal": reason,
                     "closest_failed": closest,
+                    "data_quality": dq_label,
+                    "invalid_now_inputs": invalid_now,
                     "n_failed": len(failed),
                     "rank_key": _rank_key(not_warm + distorted, failed),
                 }
@@ -587,6 +642,8 @@ def signal_diagnostic(ctx: ForwardContextLike, now_ms: int | None = None) -> dic
         "latest_bar_valid_live": market["bar_valid_live"],
         "gap_rows_last_12_bars": gaps_12,
         "gap_rows_last_48_bars": gaps_48,
+        "variant": label,
+        "feature_table": ftab,
         "market": market,
         "data_quality": quality,
         "families": fams,
@@ -718,7 +775,7 @@ def _f(x: Any, nd: int = 3) -> str:
 def render_diagnostic(d: dict[str, Any]) -> str:
     m = d["market"]
     out: list[str] = [
-        "BTC V5 SIGNAL DIAGNOSTIC (read-only: nothing written, no order, no API call)",
+        f"BTC {d.get('variant', 'V5')} SIGNAL DIAGNOSTIC (read-only: nothing written, no order, no API call)",
         f"generated {d['generated_at']} | latest completed 5m bar closes {d['latest_bar']} "
         f"(live trades: {d['latest_bar_valid_live']}) | frozen V5 {d['frozen_v5_config_hash'][:12]} "
         f"| observation start {d['observation_start']}",
@@ -780,7 +837,17 @@ def render_diagnostic(d: dict[str, Any]) -> str:
             f"for z>=1.5: {vq['btc_per_hour_needed_for_vol_1h_z_1.5']:,.0f} BTC"
             + (" -> UNREACHABLE" if vq.get("unreachable") else "")
         )
-    out += ["", "FAMILIES (frozen v5-event-1 conditions at the latest bar)"]
+    if d.get("feature_table"):
+        out += ["", "FEATURE | VALID OBS | WARM | CURRENT | Z | QUALITY"]
+        for r in d["feature_table"]:
+            out.append(
+                f"{r['feature']} | {r['valid_obs']}/{r['min_periods']} | {'yes' if r['warm'] else 'NO'} | "
+                f"{_f(r['current'], 6)} | {_f(r['z'])} | {r['quality']}"
+            )
+    out += [
+        "",
+        f"FAMILIES (frozen v5-event-1 conditions at the latest bar; variant {d['variant']})",
+    ]
     for f in d["families"]:
         out.append(
             f"- {f['family']} {f['side']}: state {f['state']}; Stage A event now {f['stage_a_event_now']}; "
@@ -814,7 +881,7 @@ def render_diagnostic(d: dict[str, Any]) -> str:
         )
     out += [
         "",
-        "FAMILY | SIDE | EVENT | ENTRY | CLOSEST FAILED CONDITION | CURRENT | THRESHOLD | DISTANCE | WARM | BLOCKED BY GAP | SIGNAL NOW",
+        "FAMILY | SIDE | EVENT | ENTRY | CLOSEST FAILED CONDITION | CURRENT | THRESHOLD | DISTANCE | WARM | DATA QUALITY | BLOCKED BY GAP | SIGNAL NOW",
     ]
     for f in d["families"]:
         c = f["closest_failed"] or {}
@@ -835,6 +902,7 @@ def render_diagnostic(d: dict[str, Any]) -> str:
                         if f["unreachable_inputs"]
                         else ""
                     ),
+                    f["data_quality"],
                     "yes" if f["blocked_by_gap"] else "no",
                     "YES" if f["signal_now"] else "no",
                 ]

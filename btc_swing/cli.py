@@ -824,8 +824,12 @@ def forward_run(
     """Run the collector and the 5-minute cycle continuously (or for --duration seconds); the
     previous UTC day's immutable report is written at 00:05 UTC. Ctrl-C / SIGTERM stops cleanly."""
     from btc_swing.v5.forward.runner import run_forward
+    from btc_swing.v51.cli import v51_runtime
 
-    out = run_forward(_forward_ctx(forward_config), reports_dir, duration)
+    # the V5.1 pipeline runs after V5 in the same process once its freeze exists (None before)
+    out = run_forward(
+        _forward_ctx(forward_config), reports_dir, duration, v51_runtime(forward_config)
+    )
     console.print_json(json.dumps(out, default=str))
 
 
@@ -1532,6 +1536,11 @@ def demo_reconcile_ack(
     ex = build_executor(_forward_ctx(forward_config), load_demo_config(demo_config))
     ex.acknowledge_reconciliation(note)
     typer.echo("reconciliation acknowledged")
+
+
+from btc_swing.v51.cli import v51_app  # noqa: E402
+
+app.add_typer(v51_app, name="v51")
 
 
 if __name__ == "__main__":

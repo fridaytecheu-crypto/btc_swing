@@ -11,6 +11,8 @@ import logging
 import os
 import signal
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -27,51 +29,68 @@ def _next_cycle_at(now: float, cycle_s: int, grace_s: int) -> float:
     return (int(now) // cycle_s + 1) * cycle_s + grace_s
 
 
-def _demo_hook(ctx: ForwardContext) -> Any:
+def _demo_hook(
+    ctx: Any,
+    build: Callable[[Any, Any], Any] | None = None,
+    cycle: Callable[..., Any] | None = None,
+    label: str = "STRATEGY_DEMO",
+) -> Any:
     """Per-cycle demo hook. STRATEGY_DEMO is in effect only while this host holds an active
-    STRATEGY_DEMO_ACTIVATED event (checked every cycle, so activation needs no restart); the
-    executor is built lazily and every refusal fails closed while the observation continues."""
+    STRATEGY_DEMO_ACTIVATED event in the strategy's own journal (checked every cycle, so activation
+    needs no restart); the executor is built lazily and every refusal fails closed while the
+    observation continues. `build`/`cycle` default to the V5 executor; V5.1 passes its own."""
     from btc_swing.v5.demo.activation import effective_activation
     from btc_swing.v5.demo.config import DEFAULT_DEMO_CONFIG_PATH, ExecutionMode, load_demo_config
+    from btc_swing.v5.demo.runtime import build_executor, demo_cycle
 
+    build_fn = build or build_executor
+    cycle_fn = cycle or demo_cycle
     held: dict[str, Any] = {"ex": None, "at": None, "refused": None}
 
     def hook(a: Any, b: Any, res: Any) -> Any:
         act = effective_activation(ctx.paths.root)
         if act is None:
             if held["ex"] is not None:
-                log.warning("STRATEGY_DEMO no longer active on this host: executor released")
+                log.warning("%s no longer active on this host: executor released", label)
             held.update(ex=None, at=None)
-            return {"mode": "DISABLED", "note": "no active STRATEGY_DEMO_ACTIVATED for this host"}
-        from btc_swing.v5.demo.runtime import build_executor, demo_cycle
-
+            return {"mode": "DISABLED", "note": f"no active {label}_ACTIVATED for this host"}
         if held["ex"] is None or held["at"] != act["activated_at_ms"]:
             dcfg = load_demo_config(DEFAULT_DEMO_CONFIG_PATH, ExecutionMode.STRATEGY_DEMO)
             try:
-                ex = build_executor(ctx, dcfg)
+                ex = build_fn(ctx, dcfg)
             except Exception as e:
                 msg = f"{type(e).__name__}: {e}"[:300]
                 if msg != held["refused"]:
-                    log.error(
-                        "STRATEGY_DEMO refused (fails closed, observation continues): %s", msg
-                    )
+                    log.error("%s refused (fails closed, observation continues): %s", label, msg)
                 held["refused"] = msg
-                return {"mode": "STRATEGY_DEMO", "refused": msg}
-            log.info(
-                "STRATEGY_DEMO active since %s: recovery %s", act["activated_at"], ex.recover()
-            )
+                return {"mode": label, "refused": msg}
+            log.info("%s active since %s: recovery %s", label, act["activated_at"], ex.recover())
             held.update(ex=ex, at=act["activated_at_ms"], refused=None)
-        return demo_cycle(held["ex"], ctx, a, b, res)
+        return cycle_fn(held["ex"], ctx, a, b, res)
 
     if not DEFAULT_DEMO_CONFIG_PATH.exists():
         return None
     return hook
 
 
-async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Event) -> None:
+@dataclass
+class V51Runtime:
+    """The V5.1 pipeline evaluated after V5 in the same runner (shared collector and bars)."""
+
+    ctx: Any  # btc_swing.v51.forward.V51Context
+    reports_dir: Path
+    build: Callable[[Any, Any], Any]
+    cycle: Callable[..., Any]
+    run_cycle: Callable[..., Any]
+
+
+async def _cycle_loop(
+    ctx: ForwardContext, reports_dir: Path, stop: asyncio.Event, v51: V51Runtime | None = None
+) -> None:
     sc = ctx.fcfg.schedule
     last_report_day = ""
     hook = _demo_hook(ctx)
+    hook51 = _demo_hook(v51.ctx, v51.build, v51.cycle, "STRATEGY_DEMO (V5.1)") if v51 else None
     while not stop.is_set():
         wait = max(
             1.0, _next_cycle_at(time.time(), sc.cycle_seconds, sc.cycle_grace_seconds) - time.time()
@@ -95,6 +114,20 @@ async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Even
             )
         except Exception as e:
             log.exception("cycle failed: %s", e)
+        if v51 is not None:
+            try:
+                o51 = await asyncio.to_thread(v51.run_cycle, v51.ctx, None, hook51)
+                log.info(
+                    "V5.1 cycle %s: signals %s, paper closed %s, open %s, valid 1h %s, %.1fs",
+                    o51["cycle_at"][11:19],
+                    len(o51["new_signals"]),
+                    o51["paper"]["closed_trades"],
+                    o51["paper"]["open_position"] is not None,
+                    o51["validity"]["current_1h_window_clean"],
+                    o51["elapsed_s"],
+                )
+            except Exception as e:
+                log.exception("V5.1 cycle failed: %s", e)
         now = datetime.now(UTC)
         if now.minute >= sc.daily_report_utc_minute and now.hour == 0:
             prev = (now - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -104,10 +137,23 @@ async def _cycle_loop(ctx: ForwardContext, reports_dir: Path, stop: asyncio.Even
                     log.info("daily report %s -> %s", prev, p)
                 except Exception as e:
                     log.exception("daily report failed: %s", e)
+                if v51 is not None:
+                    try:
+                        p = await asyncio.to_thread(
+                            write_day_report, v51.ctx, prev, v51.reports_dir
+                        )
+                        log.info("V5.1 daily report %s -> %s", prev, p)
+                    except Exception as e:
+                        log.exception("V5.1 daily report failed: %s", e)
                 last_report_day = prev
 
 
-async def _main(ctx: ForwardContext, reports_dir: Path, duration_s: float | None) -> dict[str, Any]:
+async def _main(
+    ctx: ForwardContext,
+    reports_dir: Path,
+    duration_s: float | None,
+    v51: V51Runtime | None = None,
+) -> dict[str, Any]:
     col = BybitPublicCollector(ctx.fcfg.collector, ctx.paths.root.parent.parent)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
@@ -118,7 +164,7 @@ async def _main(ctx: ForwardContext, reports_dir: Path, duration_s: float | None
         loop.call_later(duration_s, stop.set)
     ctx.paths.run_pid.write_text(str(os.getpid()))
     col_task = asyncio.create_task(col.run(duration_seconds=duration_s))
-    cyc_task = asyncio.create_task(_cycle_loop(ctx, reports_dir, stop))
+    cyc_task = asyncio.create_task(_cycle_loop(ctx, reports_dir, stop, v51))
     await stop.wait() if duration_s is None else asyncio.sleep(duration_s)
     col.stop()
     stop.set()
@@ -129,7 +175,10 @@ async def _main(ctx: ForwardContext, reports_dir: Path, duration_s: float | None
 
 
 def run_forward(
-    ctx: ForwardContext, reports_dir: Path, duration_s: float | None = None
+    ctx: ForwardContext,
+    reports_dir: Path,
+    duration_s: float | None = None,
+    v51: V51Runtime | None = None,
 ) -> dict[str, Any]:
     ctx.paths.logs.mkdir(parents=True, exist_ok=True)
     fh = logging.FileHandler(ctx.paths.logs / "forward_run.log")
@@ -149,7 +198,7 @@ def run_forward(
         why,
     )
     try:
-        out = asyncio.run(_main(ctx, reports_dir, duration_s))
+        out = asyncio.run(_main(ctx, reports_dir, duration_s, v51))
     finally:
         lock.release()
     (
