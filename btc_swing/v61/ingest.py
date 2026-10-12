@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -139,7 +140,11 @@ class BybitTradeIngestor:
         url = BASE + self.key(day)
         h = hashlib.sha256()
         n = 0
-        tmp = Path(tempfile.mkstemp(prefix=f"bybit_{day}_", suffix=".csv.gz")[1])
+        fd, name = tempfile.mkstemp(prefix=f"bybit_{day}_", suffix=".csv.gz")
+        os.close(
+            fd
+        )  # the descriptor must not outlive the file (deleted files would stay allocated)
+        tmp = Path(name)
         with self.client.stream("GET", url) as r:
             if r.status_code != 200:
                 tmp.unlink(missing_ok=True)
@@ -245,7 +250,10 @@ def dataset_hash(data_dir: Path, symbol: str = "BTCUSDT") -> str:
     m = data_dir / "btc" / "raw" / f"manifest_{DATASET}.jsonl"
     h = hashlib.sha256()
     if m.exists():
-        rows = sorted(json.loads(x) for x in m.read_text().splitlines() if x.strip())
+        rows = sorted(
+            (json.loads(x) for x in m.read_text().splitlines() if x.strip()),
+            key=lambda r: str(r["day"]),
+        )
         for r in rows:
             h.update(f"{r['day']}:{r['sha256']}\n".encode())
     return h.hexdigest()

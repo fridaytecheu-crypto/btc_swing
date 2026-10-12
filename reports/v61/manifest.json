@@ -1,0 +1,169 @@
+{
+ "availability": {
+  "binance": {
+   "days_with_invalid_rows": 6,
+   "first_missing_days": [
+    "2022-05-01 00:00",
+    "2022-05-28 00:00",
+    "2023-09-12 00:00",
+    "2023-11-10 00:00",
+    "2024-10-28 00:00",
+    "2025-01-29 00:00"
+   ],
+   "first_row": "2021-11-17 00:00",
+   "invalid_rows": 52,
+   "last_close": "2025-07-01 00:00",
+   "meta": {
+    "days": 1322,
+    "feature_version": "v6.1-feat-1",
+    "first_open_ms": 1637107200000,
+    "last_close_ms": 1751328000000,
+    "oi_rows_available": 380283,
+    "regime_share": {
+     "RANGE": 0.2832513867876954,
+     "TREND_DOWN": 0.34342168851907884,
+     "TREND_UP": 0.3711232980332829
+    },
+    "rows": 380736,
+    "source": "binance",
+    "valid_rows": 380684
+   },
+   "oi_share": 0.9987682686425124,
+   "rows_in_window": 367775,
+   "valid_share": 0.999858609203997
+  },
+  "bybit": {
+   "days_with_invalid_rows": 1,
+   "first_missing_days": [
+    "2022-04-06 00:00"
+   ],
+   "first_row": "2021-11-17 00:00",
+   "invalid_rows": 7,
+   "last_close": "2025-07-01 00:00",
+   "meta": {
+    "days": 1322,
+    "feature_version": "v6.1-feat-1",
+    "first_open_ms": 1637107200000,
+    "last_close_ms": 1751328000000,
+    "oi_rows_available": 380283,
+    "regime_share": {
+     "RANGE": 0.28350353000504286,
+     "TREND_DOWN": 0.3429174020843839,
+     "TREND_UP": 0.37194276348966215
+    },
+    "rows": 380736,
+    "source": "bybit",
+    "valid_rows": 380729
+   },
+   "oi_share": 0.9987682686425124,
+   "rows_in_window": 367775,
+   "valid_share": 0.999980966623615
+  },
+  "venue_mismatch": "price/volume/aggressor flow are Bybit-native in the primary frame; open interest, funding and premium are Binance USDT-M series in BOTH frames (Bybit history not reachable); the Binance frame uses Binance klines + aggTrades flow"
+ },
+ "code_version": "aa3150e92211-dirty",
+ "config_hash": "028cc86200064b3c16397b962badbeb1490a4e8b7ca9153dbc4dbb2a9c571822",
+ "data_hashes": {
+  "bybit_trades_5m": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+  "funding": "6e651f5f4815c18c6a8a2af1e5874dacd31a8031898e3499ce37dfff82a61fc1",
+  "metrics": "069b2df5ae27b973b717ceae2a3badc4c98a868aca037836dcb239ddf0ff5390",
+  "perp_klines_5m": "5e5242ac3ef160d306c4a6acacd98163ec8ad54bbbea34b743e1b0dbe3371be7",
+  "premium_index_5m": "456dbe868f1659c1de6efa945207ffcfb424a1d3a6b710276894cac40939dd31"
+ },
+ "final_specification": {
+  "cost_share_stop_max": 0.2,
+  "entry_mode": "TAKER",
+  "entry_mode_final": "TAKER",
+  "entry_selection": {
+   "development_supports_maker_first": false,
+   "entry_mode": "TAKER",
+   "rule": "declared: MAKER_FIRST replaces TAKER only if it improves net expectancy on development without reducing trades/day by more than 10% (confirmed on validation before adoption)"
+  },
+  "exit_selection": {
+   "frequency_and_fold_requirement_met_on_development": false,
+   "rule": "declared: among (variant, time stop) with >= 2.0 trades/calendar day AND net R positive in >= 4 of 6 development folds, the highest net R per day; else the highest net R per day of all (flagged)",
+   "time_stop_h": 2.0,
+   "variant": "S"
+  },
+  "exit_variant": "S",
+  "families": [
+   "TREND_PULLBACK_RECLAIM",
+   "LIQUIDITY_SWEEP_REVERSAL",
+   "BREAKOUT_RETEST_CONTINUATION",
+   "IMPULSE_CONSOLIDATION_BREAK",
+   "RANGE_EDGE_MEAN_REVERSION"
+  ],
+  "flow_development": {
+   "BREAKOUT_RETEST_CONTINUATION": false,
+   "IMPULSE_CONSOLIDATION_BREAK": false,
+   "LIQUIDITY_SWEEP_REVERSAL": false,
+   "RANGE_EDGE_MEAN_REVERSION": false,
+   "TREND_PULLBACK_RECLAIM": true
+  },
+  "flow_final": {
+   "BREAKOUT_RETEST_CONTINUATION": false,
+   "IMPULSE_CONSOLIDATION_BREAK": false,
+   "LIQUIDITY_SWEEP_REVERSAL": false,
+   "RANGE_EDGE_MEAN_REVERSION": false,
+   "TREND_PULLBACK_RECLAIM": true
+  },
+  "risk_per_trade": 0.0015,
+  "rule": "flow kept per family only if it improved net expectancy on development AND validation; maker-first kept only if confirmed on validation",
+  "stop_floor_pct": 0.0,
+  "time_stop_h": 2.0
+ },
+ "frozen_after_development": {
+  "cost_share_stop_max": 0.2,
+  "entry_mode": "TAKER",
+  "entry_selection": {
+   "development_supports_maker_first": false,
+   "entry_mode": "TAKER",
+   "rule": "declared: MAKER_FIRST replaces TAKER only if it improves net expectancy on development without reducing trades/day by more than 10% (confirmed on validation before adoption)"
+  },
+  "exit_selection": {
+   "frequency_and_fold_requirement_met_on_development": false,
+   "rule": "declared: among (variant, time stop) with >= 2.0 trades/calendar day AND net R positive in >= 4 of 6 development folds, the highest net R per day; else the highest net R per day of all (flagged)",
+   "time_stop_h": 2.0,
+   "variant": "S"
+  },
+  "exit_variant": "S",
+  "families": [
+   "TREND_PULLBACK_RECLAIM",
+   "LIQUIDITY_SWEEP_REVERSAL",
+   "BREAKOUT_RETEST_CONTINUATION",
+   "IMPULSE_CONSOLIDATION_BREAK",
+   "RANGE_EDGE_MEAN_REVERSION"
+  ],
+  "flow_development": {
+   "BREAKOUT_RETEST_CONTINUATION": false,
+   "IMPULSE_CONSOLIDATION_BREAK": false,
+   "LIQUIDITY_SWEEP_REVERSAL": false,
+   "RANGE_EDGE_MEAN_REVERSION": false,
+   "TREND_PULLBACK_RECLAIM": true
+  },
+  "risk_per_trade": 0.0015,
+  "stop_floor_pct": 0.0,
+  "time_stop_h": 2.0
+ },
+ "holdout_run": false,
+ "ran_at": "2026-10-12T08:05:08.512132+00:00",
+ "research_hash": "449a76157ec42f67dc55f1f602ea3c44a78402a60b7bf9e18162222acb4967d3",
+ "strategy_name": "btc_swing_v6_1_structure_flow",
+ "windows": {
+  "development": {
+   "days": 912.0,
+   "end_exclusive": "2024-07-01 00:00",
+   "start": "2022-01-01 00:00"
+  },
+  "holdout": {
+   "days": 457.0,
+   "end_exclusive": "2026-10-01 00:00",
+   "start": "2025-07-01 00:00"
+  },
+  "validation": {
+   "days": 365.0,
+   "end_exclusive": "2025-07-01 00:00",
+   "start": "2024-07-01 00:00"
+  }
+ }
+}

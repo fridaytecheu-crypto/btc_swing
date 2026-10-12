@@ -273,3 +273,30 @@ comparison; stop-distance / cost analysis; hold-time distribution; frequency dis
 expectancy and PF; walk-forward stability; Bybit-native vs Binance comparison; the exact combined
 candidate if one survives; PASS/FAIL for >= 2 trades/day; PASS/FAIL for net edge; and the
 recommendation whether the locked holdout deserves to be spent. The harness STOPS before the holdout.
+
+## 17. Outcome (2026-10-12; `reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md`, tables `reports/v61/`)
+
+Executed as pre-registered (config hash `028cc86200064b3c…`, Bybit-native dataset 2021-11-15 -> 2025-06-30,
+1,324 days, 1.52 billion trades, manifest `manifests/v61_bybit_dataset_manifest.json`). Development chose exit
+variant S with a 2 h time stop and TAKER entries by the declared rules (no (variant, time stop) pair met the
+frequency-and-folds requirement, so the fallback was flagged); flow confirmation survived both windows only for
+TREND_PULLBACK_RECLAIM.
+
+| Bybit validation 2024-07 -> 2025-06 (final specification) | value |
+|---|---|
+| trades / per calendar day / zero-trade days | 147 / 0.40 / 74.8% |
+| gross R / fee R / slippage R / net R per trade | -0.122 / -0.116 / -0.030 / -0.268 (95% CI -0.41..-0.11) |
+| profit factor / win rate / max DD at 0.15% | 0.51 / 37% / 6.0% |
+| median stop / cost share of stop / median hold | 94 bps / 0.16 / 50 min |
+| families (net R) | breakout-retest -0.10, trend-pullback -0.25, sweep -0.33, range-edge -0.39, impulse-consolidation 0 trades |
+| Binance robustness (same spec) | 131 trades, -0.277R, PF 0.49 |
+| null (regime/hour-matched) | -0.241R: no edge versus random entries with the same geometry |
+| cost-share grid (development) | θ none 4.21/day at -0.56R; 0.30: 1.31/day -0.27R; 0.20: 0.56/day -0.22R; 0.15: 0.26/day -0.18R |
+| minimum-stop 1% (development) | 2.64/day at -0.17R, max DD 63% |
+| one-position rule | 96 refusals vs 1,903 cost-share refusals; independent episodes 5.64/day at -0.52R |
+
+**>= 2 trades/day: FAIL. Net edge: FAIL. Recommendation: do NOT spend the locked holdout.** The scientific
+question of section 2 is answered negatively on this data: good structural location plus flow confirmation does
+not produce gross edge (gross expectancy is negative before costs), and the cost-share rule that keeps costs
+survivable removes most of the frequency. No threshold was changed after a result was read; the locked holdout
+2025-07-01 -> 2026-09-30 remains unspent and was never downloaded by this track.

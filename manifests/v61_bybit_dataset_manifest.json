@@ -1,0 +1,20 @@
+{
+ "archive_bytes": 56330981318,
+ "dataset": "bybit_trades_5m",
+ "days": 1324,
+ "days_with_fewer_than_288_rows": [
+  [
+   "2022-04-06",
+   281
+  ]
+ ],
+ "first_day": "2021-11-15",
+ "holdout_policy": "days >= 2025-07-01 refused without --allow-holdout; none downloaded",
+ "last_day": "2025-06-30",
+ "manifest_hash": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+ "per_day_manifest": "data/btc/raw/manifest_bybit_trades_5m.jsonl (key, sha256, bytes, trades, rows per day)",
+ "rows_5m": 381305,
+ "source": "https://public.bybit.com/trading/BTCUSDT/ (daily gzip tick trades; raw not retained)",
+ "symbol": "BTCUSDT",
+ "trades": 1522116900
+}

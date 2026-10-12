@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6 Phase 2-4 done: objective not achieved; V5.1 pending on the Mac)
+# Handoff — state of work and next steps (2026-10-12, V6 and V6.1 both failed their gates; locked holdout unspent; V5.1 pending on the Mac)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -243,6 +243,19 @@
   failed) and stays unspent; the design doc section 11 and report section L.2 record the proposed next
   architecture (Bybit-native flow history, structure-confirmed later entries at lower frequency,
   cost-aware trigger eligibility, prospective liquidation families). V5/V5.1 untouched.
+- 2026-10-12 (later): V6.1 STRUCTURE + FLOW INTRADAY (`docs/BTC_V6_1_STRUCTURE_FLOW_DESIGN.md` frozen at
+  0de0846 before any result; `btc_swing/v61/`; `config/btc_swing_v6_1.yaml`; CLI `btc-swing v61
+  ingest|research|render`). Built the BYBIT-NATIVE 5m dataset from the public trade archive (1,324 days
+  2021-11-15..2025-06-30, 1.52 bn trades, 56 GB streamed, raw not retained, sha256 manifest; holdout days
+  refused; `manifests/v61_bybit_dataset_manifest.json`; an fd leak in the first ingest run filled the disk once
+  and was fixed). Five structure-first families, structure-only control, cost-share eligibility (round trip /
+  stop <= 0.20 primary), TAKER / MAKER / MAKER_FIRST entry models, time stops, Binance robustness run, nulls,
+  folds, declared gate. Result `reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md`: **>= 2 trades/day FAIL
+  (0.40/day), net edge FAIL (gross -0.12R, net -0.27R, PF 0.51 on Bybit validation; Binance -0.28R; null
+  -0.24R); every family negative on both windows; flow helped only the trend-pullback family; maker fills raise
+  the count, not the edge; without the cost filter 4.2 trades/day at -0.56R.** Recommendation: do NOT spend the
+  locked holdout (unspent, never downloaded by V6/V6.1). Design section 17 and report section 14 record the
+  reading. V5/V5.1/V6 untouched; nothing activated; no order placed.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -275,6 +288,8 @@ uv run btc-swing v5 forward freeze && uv run btc-swing v5 forward seed && nohup 
 uv run btc-swing v5 forward status                                          # live status
 uv run btc-swing v6 research                                                # V6 development + validation (~6 min); --oos --confirm-once-only-oos spends the OOS window once
 uv run btc-swing v6 render                                                  # re-render the V6 report from reports/v6/summary.json
+uv run btc-swing v61 ingest                                                 # Bybit trade archive -> 5m rows 2021-11-15..2025-06-30 (~1 h; holdout refused)
+uv run btc-swing v61 research                                               # V6.1 development + validation (~4 min); stops before the holdout
 bash scripts/check.sh
 ```
 

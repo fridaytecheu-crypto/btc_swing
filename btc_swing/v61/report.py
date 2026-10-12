@@ -659,4 +659,61 @@ def render_report_v61(res: V61Research, cfg: V61Config) -> str:
         f"\n**11. >= 2 trades/calendar day: {'PASS' if vd['frequency_pass'] else 'FAIL'}.**  **12. Net edge after costs: {'PASS' if vd['net_edge_pass'] else 'FAIL'}.**  "
         f"**13. Locked holdout: {vd['recommendation']}.** The harness stopped before the holdout; spending it needs the owner's explicit decision and a separate run.\n"
     )
+    out.append(_reading(res, cfg))
     return "\n".join(out)
+
+
+def _reading(res: V61Research, cfg: V61Config) -> str:
+    """Data-driven reading of the result; no rule is changed here."""
+    runs, spec = res.final["runs"], res.final["spec"]
+    bv, bd = runs["bybit_validation"], runs["bybit_development"]
+    st, fq, op = bv["stats"], bv["frequency"], bv["one_position"]
+    grid = {round(r["theta"], 2): r for r in res.development["grids"]["cost_share"]}
+    nofilter = grid.get(0.0, {})
+    floors = {r["min_stop_pct"]: r for r in res.development["grids"]["stop_floor"]}
+    fam_rows = {r["family"]: r for r in bv["by_family"]}
+    best_fam = max(fam_rows.values(), key=lambda r: r["net_r_mean"]) if fam_rows else None
+    lines = ["\n## 14. Reading of the result\n"]
+    lines.append(
+        f"- **Scientific question (design section 2): NOT supported.** With structure first, location second and flow as "
+        f"confirmation, the final specification shows gross expectancy {st.get('gross_r_mean', float('nan')):+.3f}R per trade BEFORE costs on "
+        f"Bybit validation (development {bd['stats'].get('gross_r_mean', float('nan')):+.3f}R): the structural setups as declared have no gross edge, so "
+        f"costs ({-(st.get('fee_r_mean', 0) + st.get('slip_r_mean', 0)):.3f}R per trade) are not the binding problem this time. "
+        f"The regime/hour-matched null loses about as much ({bv.get('null', {}).get('null_mean_net_r', float('nan')):+.3f}R), and the Binance frame "
+        f"reproduces the result ({runs['binance_validation']['stats'].get('net_r_mean', float('nan')):+.3f}R), so this is not a venue artefact."
+    )
+    lines.append(
+        f"- **Frequency vs cost eligibility are in direct conflict.** The pre-registered cost-share rule (round trip <= 20% of the stop, i.e. stops of "
+        f">= ~75 bps at 15 bps round trip) leaves {fq['mean_trades_per_calendar_day']:.2f} trades per calendar day; without the filter the same "
+        f"families fire {nofilter.get('trades_per_day', float('nan')):.2f}/day on development at {nofilter.get('net_r_mean', float('nan')):+.3f}R. "
+        f"Forcing a 1% minimum stop reaches {floors.get(1.0, {}).get('trades_per_day', float('nan')):.2f}/day at "
+        f"{floors.get(1.0, {}).get('net_r_mean', float('nan')):+.3f}R. Every point of the grid is negative: more trades only multiply the loss."
+    )
+    lines.append(
+        f"- **Flow confirmation** improved net expectancy on both windows only for {', '.join(k for k, v in spec['flow_final'].items() if v) or 'no family'}; "
+        "for the other families it removed trades without improving expectancy. Flow is not the missing ingredient."
+    )
+    lines.append(
+        "- **Maker entries** fill at the limit in nearly every case under the 1-tick-through rule and raise the trade count by lowering the cost share "
+        "(more triggers pass the eligibility rule), but net expectancy stays negative on development, so the declared rule kept TAKER. The fill model "
+        "ignores queue position and assumes a fill whenever the bar trades through the limit, which is optimistic; even so maker entries do not create an edge."
+    )
+    lines.append(
+        f"- **One-position rule** is not the throttle: {op['refused_position_open']} valid triggers were refused for an open position against "
+        f"{op['refused_cost_share']} refused by the cost-share rule; the independent-episode diagnostic reaches {bv['mode_independent']['trades_per_day']:.2f}/day at "
+        f"{bv['mode_independent']['net_r_mean']:+.3f}R."
+    )
+    if best_fam is not None:
+        lines.append(
+            f"- **Least bad family on validation:** {best_fam['family']} (n={best_fam['n']}, {best_fam['net_r_mean']:+.3f}R, PF {best_fam['profit_factor']:.2f}); "
+            "IMPULSE_CONSOLIDATION_BREAK produced no eligible trade at its declared thresholds (its consolidation stops are too tight for the cost rule). "
+            "No family is positive on either window."
+        )
+    lines.append(
+        "- **What would be a NEW hypothesis (needs a new pre-registration; nothing here was tuned):** (1) the only sub-populations with PF near 1 "
+        "are stops >= 1% and TREND_UP longs — a lower-frequency swing geometry, not an intraday engine; (2) a 2-slot design cannot help while the "
+        "per-trade edge is negative; (3) the research venue question is closed: Bybit-native and Binance results coincide; (4) with five "
+        "generations of structural/flow rules negative after costs on 5m-1h horizons, the remaining untested mechanisms are prospective-only "
+        "(liquidation stream) or require a different cost structure (maker-only market making is a different product)."
+    )
+    return "\n".join(lines) + "\n"

@@ -43,6 +43,17 @@ report). The once-only OOS window 2025-07..2026-09 was NOT run (`v6 research --o
 runs it exactly once; refused by a lock file afterwards). CLI `btc-swing v6 config|research|render`.
 Never modify V5/V5.1 for V6.
 
+V6.1 STRUCTURE + FLOW INTRADAY (`btc_swing/v61/`, `config/btc_swing_v6_1.yaml`,
+`docs/BTC_V6_1_STRUCTURE_FLOW_DESIGN.md` frozen at commit 0de0846 before any result,
+`reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md`, tables `reports/v61/`): structure -> location -> flow
+confirmation -> entry on a BYBIT-NATIVE 5m dataset built from the public trade archive (`btc-swing v61
+ingest`; `data/btc/datasets/bybit_trades_5m/`, raw gz not retained, sha256 manifest; holdout days refused).
+Five families, structure-only control, cost-share eligibility, taker/maker/maker-first entry models,
+time stops. CLI `btc-swing v61 ingest|research|render`. Result: >= 2 trades/day FAIL (0.40/day), net edge
+FAIL (net -0.27R, PF 0.51; gross negative; Binance identical) — do NOT spend the locked holdout. The locked holdout
+2025-07..2026-09 is NOT downloaded or run by this track; spending it needs an explicit owner decision. Paper only; no
+exchange client.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

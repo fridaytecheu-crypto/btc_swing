@@ -59,6 +59,13 @@ history exists) under the owner's HARD frequency gate (>= 2 trades per calendar 
 PF > 1 AND DD < 10%): **C — V6 ACTIVE-INTRADAY OBJECTIVE NOT ACHIEVED** (validation 2024-07..2025-06:
 654 trades, 1.79/day, gross +0.04R, costs 0.35R, net -0.30R, PF 0.55; every family negative; without the
 one-position rule 2.85 trades/day at the same -0.31R). The once-only OOS window 2025-07..2026-09 was not run.
+**V6.1 STRUCTURE + FLOW INTRADAY** (`btc_swing/v61/`, `config/btc_swing_v6_1.yaml`,
+`docs/BTC_V6_1_STRUCTURE_FLOW_DESIGN.md`, `btc-swing v61 ingest|research|render`,
+`reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md`): structure -> location -> flow confirmation -> entry on a
+Bybit-native 5m dataset streamed from the public trade archive (`data/btc/datasets/bybit_trades_5m/`), five
+structure-first families with a structure-only control, cost-share eligibility, taker/maker/maker-first entry
+models and time stops: **>= 2 trades/day FAIL (0.40/day), net edge FAIL (gross -0.12R, net -0.27R, PF 0.51 on
+validation; Binance robustness identical)**; the locked holdout stays unspent.
 
 ## Quick start
 ```
@@ -68,7 +75,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 222 tests, no database needed
+uv run pytest -q                                            # 247 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

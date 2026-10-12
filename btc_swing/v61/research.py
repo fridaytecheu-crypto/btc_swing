@@ -24,7 +24,6 @@ from btc_swing.v6.evaluation import (
     fold_table,
     frequency_report,
     group_table,
-    regime_null,
     regime_rows,
     trade_stats,
     with_calendar,
@@ -237,6 +236,8 @@ def cost_distribution(res: V61Result) -> dict[str, Any]:
             continue
         q = [5, 25, 50, 75, 95]
         d: dict[str, Any] = {"n": df.height}
+        if "cost_bps" not in df.columns and {"cost_share_stop", "stop_bps"} <= set(df.columns):
+            df = df.with_columns((pl.col("cost_share_stop") * pl.col("stop_bps")).alias("cost_bps"))
         for col in ("cost_bps", "stop_bps", "target_bps", "cost_share_stop", "cost_share_target"):
             if col in df.columns:
                 x = df[col].to_numpy().astype(np.float64)
@@ -657,12 +658,8 @@ def run_development(
     )
     dev["combined"]["with_overlay"] = trade_stats(ov.trades, w.start_ms, w.end_ms, _c6(cfg))
     if comb.trades.height:
-        dev["combined"]["null"] = (
-            regime_null(
-                comb, comb.trades, fr, w.start_ms, w.end_ms, cfg.research.null_k, cfg.research.seed
-            )
-            if False
-            else _null(cfg, fr, inp, comb, w, flow_dev, v, ts, mode, cfg.research.seed)
+        dev["combined"]["null"] = _null(
+            cfg, fr, inp, comb, w, flow_dev, v, ts, mode, cfg.research.seed
         )
     dev["_trades_combined"] = comb.trades
     dev["_refused_combined"] = comb.refused
@@ -694,8 +691,70 @@ def _null(
     mode: EntryMode,
     seed: int,
 ) -> dict[str, Any]:
-    eng = V61Engine(cfg, fr, inp.funding, flow=flow, variant=v, time_stop_hours=ts, entry_mode=mode)
-    return regime_null(eng, res.trades, fr, w.start_ms, w.end_ms, cfg.research.null_k, seed)
+    """Regime- and hour-matched null: for every real trade, `null_k` random bars with the same
+    regime code and UTC hour inside the window, same side, same stop distance in ATR15, same exits
+    and costs (taker), simulated on their own."""
+    from btc_swing.core.enums import Side
+    from btc_swing.v61.families import Episode as Ep61
+    from btc_swing.v61.families import Trigger61
+
+    t = res.trades
+    if t.is_empty():
+        return {"n": 0}
+    eng = V61Engine(
+        cfg, fr, inp.funding, flow=flow, variant=v, time_stop_hours=ts, entry_mode="TAKER"
+    )
+    rng = np.random.RandomState(seed)
+    i0, i1 = fr.idx_at(w.start_ms) + 1, fr.idx_at(w.end_ms - 1)
+    codes = fr.regime_code[i0:i1]
+    hours = fr.cols["utc_hour"][i0:i1]
+    atr15 = fr.cols["atr15m"]
+    close = fr.cols["close"]
+    pools: dict[tuple[int, int], np.ndarray] = {}
+    sims: list[float] = []
+    for row in t.iter_rows(named=True):
+        key = (int(row["regime_code"]), int((row["entry_ms"] % DAY_MS) // 3_600_000))
+        if key not in pools:
+            pools[key] = np.flatnonzero((codes == key[0]) & (hours == key[1])) + i0
+        pool = pools[key]
+        pool = pool[(pool > i0) & (pool < i1 - 2)]
+        if len(pool) == 0:
+            continue
+        side = Side(row["side"])
+        s_ = side.sign
+        fam = V61Family(row["family"])
+        for j in rng.choice(pool, size=cfg.research.null_k, replace=True):
+            a = float(atr15[j])
+            ref = float(close[j])
+            if math.isnan(a) or math.isnan(ref):
+                continue
+            stop = ref - s_ * float(row["stop_atr15"]) * a
+            target = (
+                ref + s_ * float(row["target_bps"]) / 1e4 * ref
+                if not math.isnan(float(row["target_bps"]))
+                else math.nan
+            )
+            ep = Ep61(-1, fam, side, int(j), int(fr.close_ms[j]), 0.0, {})
+            pos = eng._simulate(
+                ep, Trigger61(ref, stop, target, "NULL", True), int(j), -1, cfg.risk.initial_equity
+            )
+            if pos is not None:
+                sims.append(pos.net_pnl() / max(pos.sizing.risk_amount, 1e-9))
+    if not sims:
+        return {"n": 0}
+    arr = np.asarray(sims)
+    real = _f(t["net_r"].mean())
+    sd = arr.std() / math.sqrt(max(t.height, 1))
+    return {
+        "n_real": t.height,
+        "n_null": len(arr),
+        "real_mean_net_r": real,
+        "null_mean_net_r": float(arr.mean()),
+        "null_sd_of_mean": float(sd),
+        "edge_vs_null_r": real - float(arr.mean()),
+        "z_vs_null": (real - float(arr.mean())) / sd if sd > 0 else math.nan,
+        "null_share_positive": float(np.mean(arr > 0)),
+    }
 
 
 # ----------------------------------------------------------------------------- validation / final
@@ -861,7 +920,7 @@ def verdict(cfg: V61Config, final_runs: dict[str, Any], final: dict[str, Any]) -
             pos_val >= g.min_positive_val_halves,
         ),
         (
-            "bootstrap 95%% lower bound of net R > 0",
+            "bootstrap 95% lower bound of net R > 0",
             st.get("net_r_boot_lo", math.nan),
             (st.get("net_r_boot_lo") or -9) > 0,
         ),
