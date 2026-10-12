@@ -1,0 +1,64 @@
+{
+ "code_version": "2c4e51a99a73-dirty",
+ "config_hash": "9d4ef909f4a3d2e51315b19de4624383b300d2a1ade436e5abe75731ad58f285",
+ "data_hashes": {
+  "funding": "6e651f5f4815c18c6a8a2af1e5874dacd31a8031898e3499ce37dfff82a61fc1",
+  "metrics": "069b2df5ae27b973b717ceae2a3badc4c98a868aca037836dcb239ddf0ff5390",
+  "perp_klines_5m": "5e5242ac3ef160d306c4a6acacd98163ec8ad54bbbea34b743e1b0dbe3371be7",
+  "premium_index_5m": "456dbe868f1659c1de6efa945207ffcfb424a1d3a6b710276894cac40939dd31"
+ },
+ "frame_meta": {
+  "days": 1322,
+  "feature_version": "v6-feat-1",
+  "first_open_ms": 1637107200000,
+  "flow_rows_from_aggtrades": 376651,
+  "last_close_ms": 1751328000000,
+  "rows": 380736,
+  "valid_rows": 380684
+ },
+ "frozen": {
+  "breakeven_after_tp1": false,
+  "exit_variant": "B",
+  "families": [
+   "MOMENTUM_CONTINUATION",
+   "FLOW_OI_IMPULSE",
+   "PULLBACK_CONTINUATION",
+   "FAILED_BREAKOUT_REVERSAL"
+  ],
+  "mode": "baseline (one position, cooldowns)",
+  "overlay": {
+   "max_daily_loss_frac": 0.0075,
+   "max_full_risk_losses_per_day": 5,
+   "note": "pre-registered default; grid reported for tail-risk only"
+  },
+  "risk_per_trade": 0.0015,
+  "selection": {
+   "breakeven_after_tp1": false,
+   "frequency_requirement_met_on_development": false,
+   "net_r_per_day": -0.45459440181404054,
+   "rule": "pre-declared: among variants with >= 2.0 trades per calendar day on development, the highest net R per day; if none qualifies, the highest net R per day of all (flagged)",
+   "variant": "B"
+  }
+ },
+ "oos_run": false,
+ "ran_at": "2026-10-12T06:39:14.768231+00:00",
+ "research_hash": "7537e73fd3b71183ca979f315e4f3c2a31e7b427731a98bc9e48f99d90d036b9",
+ "strategy_name": "btc_swing_v6_active_intraday",
+ "windows": {
+  "development": {
+   "days": 912.0,
+   "end_exclusive": "2024-07-01 00:00",
+   "start": "2022-01-01 00:00"
+  },
+  "oos": {
+   "days": 457.0,
+   "end_exclusive": "2026-10-01 00:00",
+   "start": "2025-07-01 00:00"
+  },
+  "validation": {
+   "days": 365.0,
+   "end_exclusive": "2025-07-01 00:00",
+   "start": "2024-07-01 00:00"
+  }
+ }
+}

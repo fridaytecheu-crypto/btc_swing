@@ -1,9 +1,10 @@
 # BTC V6 — ACTIVE INTRADAY: Phase 1 audit and design (STOP point)
 
-Status: DESIGN ONLY. No V6 code, config, freeze, journal or runner change exists yet. V5 and V5.1
-are untouched (V5.1 remains the authoritative Bybit DEMO strategy). This document records the data
-audit, why V5/V5.1 is quiet, the proposed V6 design, the research protocol and the two decisions
-the owner must take before Phase 2 (research harness) starts.
+Status: Phase 1 design (sections 0-9, frozen before any V6 code) plus the owner's hard frequency
+requirement (section 10, 2026-10-11) and the Phase 2-4 outcome (section 11). V5 and V5.1 are untouched
+(V5.1 remains the authoritative Bybit DEMO strategy). The V6 track is isolated in `btc_swing/v6/`
+(config `config/btc_swing_v6.yaml`, CLI `btc-swing v6 research|render|config`, report
+`reports/BTC_SWING_V6_ACTIVE_INTRADAY_RESEARCH.md`, tables `reports/v6/`) and has no exchange client.
 
 ## 0. Two findings that stop Phase 1 here
 
@@ -198,3 +199,63 @@ but enforces its own one-position rule.
 4. Primary risk per trade for classification: 0.15% proposed (grid reported).
 
 Nothing in this phase touched V5, V5.1, the freezes, journals, the Mac runner or Bybit.
+
+Decisions as applied in Phase 2 (owner said "proceed with Phase 2"; the defaults below were ASSUMED
+and are recorded here so they can be revisited): 1. D/E forward-only (declared in the config as
+`forward_only: true`; the schema refuses to enable them for historical research); 2. the windows of
+section 6 as written (development 2022-01-01 -> 2024-06-30, validation 2024-07-01 -> 2025-06-30,
+once-only OOS 2025-07-01 -> 2026-09-30, the latter run only with an explicit owner flag and refused a
+second time by a lock file); 3. Binance history (no Bybit-native flow dataset was built); 4. primary
+risk 0.15% (grid 0.10-0.25% reported).
+
+## 10. HARD acceptance requirement: trade frequency (owner, 2026-10-11)
+
+Trade frequency is a product requirement, not a quota. Declared before Phase 2 ran and encoded in
+`config/btc_swing_v6.yaml` (`research.combined_criteria`):
+
+- HARD minimum: mean executed trades per CALENDAR day >= 2.0 across the locked historical holdout
+  (every UTC day counts, zero-trade days included). Target: 3-6 trades per day on normal/active
+  market days. Active day (pre-registered): a UTC calendar day whose (high-low)/close range is >= the
+  median daily range of the previous 60 days; calendar-day statistics are primary, active-day
+  statistics are reported second.
+- Required frequency report: mean and median trades per calendar day, mean per active day, % of days
+  with 0 / 1 / 2 / 3-6 / >6 trades, max trades in a day, average time between entries, average
+  holding time; by year, weekday/weekend, UTC session, side, family.
+- Acceptance gate (all four): holdout average >= 2.0 trades/day AND net expectancy after fees and
+  slippage > 0 AND profit factor after costs > 1 AND drawdown acceptable (< 10% of the reference
+  equity at the primary risk). Robust criteria of section 7 are reported alongside.
+- The one-position rule may remain, but the research must quantify how many otherwise valid
+  triggers it suppresses (recorded per refusal with a counterfactual simulation) and run a
+  diagnostic with independent sequential episodes after a close (`sequential` mode) and with every
+  valid trigger simulated on its own (`independent` mode).
+- Net edge is never sacrificed to reach the frequency; a 0.5-1 trade/day result is never called a
+  success. If no robust variant achieves both, the report states V6 ACTIVE-INTRADAY OBJECTIVE NOT
+  ACHIEVED and names the binding bottleneck (event scarcity, Stage B confirmation, one-position rule,
+  hold duration, costs, cooldowns, anti-chase, regime restrictions) with a proposal for the next
+  architecture.
+
+
+## 11. Phase 2-4 outcome (2026-10-12; `reports/BTC_SWING_V6_ACTIVE_INTRADAY_RESEARCH.md`)
+
+Executed exactly as pre-registered (config hash `9d4ef909f4a3d2e5…`; development 2022-01-01 ->
+2024-06-30, validation 2024-07-01 -> 2025-06-30; frozen choice after development: exit variant B
+without breakeven, selected by the declared rule; grids, risk grid, overlay grid and maker variant
+reported only). **Classification C — V6 ACTIVE-INTRADAY OBJECTIVE NOT ACHIEVED.**
+
+| validation (frozen) | value |
+|---|---|
+| trades / per calendar day | 654 / 1.79 (median 2; 10.7% zero days; 23% of days 3-6; max 5) |
+| gross R / fee R / slippage R / net R per trade | +0.044 / -0.269 / -0.077 / -0.303 (95% CI -0.40..-0.21) |
+| profit factor / win rate / max DD at 0.15% | 0.55 / 37.9% / 31.0% |
+| median stop / round-trip cost / cost share of stop | 48 bps / 15 bps / 31% |
+| median hold / share > 4 h / time-limit exits | 165 min / 36% / 13% |
+| one-position rule | 855 valid triggers refused (58%); sequential 1.98/day at -0.30R; independent 2.85/day at -0.31R |
+| per family (net R) | A -0.39, C -0.23, B -0.16, F -0.14; all negative in every development fold too |
+
+Binding bottlenecks: costs against intraday stops (even the 1.0 ATR(15m) floor leaves the round trip
+at ~31% of the stop) and the one-position rule for frequency; but the frequency diagnostics show the
+slot is not the problem that matters: more trades of the same kind lose the same -0.3R each. The
+signal set has no gross edge on this data (gross +0.04R, nulls with the same geometry lose about
+as much), so no cost reduction or slot relaxation can satisfy the gate. The once-only OOS window
+2025-07-01 -> 2026-09-30 was NOT run and remains unspent. No parameter was changed after a result was
+read; the next architecture proposal is in report section L.2 and needs a new owner pre-registration.

@@ -1,0 +1,154 @@
+# BTC V6 — ACTIVE INTRADAY. Pre-registered research configuration (docs/BTC_V6_ACTIVE_INTRADAY_DESIGN.md).
+# Paper/backtest only: this track has no exchange client and can never place an order.
+# Every threshold below was declared before any V6 result was read. Grids are 3-point stability
+# reports; the scalar next to each grid is the pre-registered default used for classification.
+strategy_name: btc_swing_v6_active_intraday
+
+instrument: {symbol: BTCUSDT, quote: USDT, research_venue: binance_um_perp, forward_venue: bybit_linear_perp}
+
+features:
+  atr_period: 14
+  ema_fast: 21
+  ema_slow: 50
+  swing_k: 2
+  rel_vol_days: 20              # same-time-of-day median over the previous 20 days (valid rows only)
+  min_baseline_days: 10
+  rv_rank_days: 30
+  big_trade_qty_btc: 1.0
+  prem_z_window: 8640
+  prem_z_min_periods: 2880
+
+families:
+  momentum_continuation:        # A
+    enabled: true
+    break_window_bars: 48       # 4h of 5m highs/lows before the 15m bar
+    rel_vol_15m_min: 1.5
+    rel_vol_grid: [1.25, 1.5, 2.0]
+    max_extension_atr5: 3.0     # 15m close no farther than this from the break level
+    extension_grid: [2.0, 3.0, 4.0]
+    zone_atr5: 1.0              # pullback zone [level, level + zone * ATR(5m)]
+    invalidation_atr5: 0.5      # 5m close beyond the level by this -> failed break
+  pullback_continuation:        # B
+    enabled: true
+    impulse_bars: 12
+    impulse_min_atr1h: 1.5
+    impulse_grid: [1.25, 1.5, 2.0]
+    retrace_min: 0.30
+    retrace_max: 0.60
+    retrace_invalid: 0.75
+    pullback_max_rel_vol: 1.0
+  failed_breakout_reversal:     # C
+    enabled: true
+    break_window_bars: 288      # 24h high/low
+    rel_vol_5m_min: 1.5
+    rel_vol_grid: [1.25, 1.5, 2.0]
+    imbalance_5m_min: 0.20
+    reentry_bars: 3
+  flow_oi_impulse:              # F
+    enabled: true
+    ret_15m_min_atr15: 1.0
+    ret_grid: [0.75, 1.0, 1.5]
+    rel_vol_15m_min: 1.5
+    imbalance_15m_min: 0.15
+    oi_rel_min: 1.0             # |OI change 15m| >= same-time-of-day median of |OI change 15m|
+    max_crowding_prem_z: 2.0
+    pause_max_bars: 2
+    pause_wait_bars: 6
+  liquidation_flow_reversal:    # D: forward-only (no liquidation history exists)
+    enabled: false
+    forward_only: true
+    note: "shadow diagnostic on live Bybit allLiquidation only; no paper trades until a new pre-registration"
+  liquidation_continuation:     # E: forward-only
+    enabled: false
+    forward_only: true
+    note: "shadow diagnostic on live Bybit allLiquidation only; no paper trades until a new pre-registration"
+
+stops:
+  buffer_atr5: 0.10
+  floor_atr15: 1.0
+  max_atr15: 3.0
+
+episode:
+  max_age_bars: 24              # 2 h
+  entry_window_bars: 6          # after the Stage B condition is first met
+  cooldown_after_close_bars: 6
+  cooldown_after_invalidation_bars: 3
+  cooldown_after_two_losses_bars: 12
+  cluster_bars: 12              # first-in-cluster: no same family/side event in the previous 12 bars
+  family_priority: [MOMENTUM_CONTINUATION, FLOW_OI_IMPULSE, PULLBACK_CONTINUATION, FAILED_BREAKOUT_REVERSAL]
+  one_position: true
+  pyramiding: false
+  averaging: false
+
+risk:
+  initial_equity: 5000.0        # virtual reference equity (shadow)
+  risk_per_trade: 0.0015        # primary 0.15 %
+  risk_grid: [0.001, 0.00125, 0.0015, 0.002, 0.0025]
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 4h
+  compounding: false
+
+overlay:
+  max_full_risk_losses_per_day: 5
+  losses_grid: [4, 5, 6]
+  max_daily_loss_frac: 0.0075
+  daily_loss_grid: [0.005, 0.0075]
+  full_risk_loss_r: -0.9
+
+exits:
+  variants:
+    A: {name: A, tp1_r: 1.0, tp1_frac: 0.4, tp2_r: 2.0, tp2_frac: 0.3, trail_from_entry: false, description: "TP1 +1R 40% / TP2 +2R 30% / runner on the 15m structure trail"}
+    B: {name: B, tp1_r: 0.75, tp1_frac: 0.3, tp2_r: 1.5, tp2_frac: 0.3, trail_from_entry: false, description: "TP1 +0.75R 30% / TP2 +1.5R 30% / runner on the 15m structure trail"}
+    C: {name: C, tp1_r: 1.5, tp1_frac: 1.0, trail_from_entry: true, description: "single +1.5R target with the 15m structure trail from entry"}
+    D: {name: D, trail_from_entry: true, description: "pure structure: 15m swing trail from entry, no targets"}
+  default_variant: A
+  breakeven_after_tp1: true
+  trail_atr15_buffer: 0.25
+  max_hold_hours: 8
+  evaluate_r_levels: [0.5, 1.0, 1.5, 2.0, 3.0]
+
+costs:                          # Bybit-like, taker on every fill
+  taker_fee_bps: 5.5
+  maker_fee_bps: 2.0
+  entry_slippage_bps: 1.0
+  stop_slippage_bps: 3.0
+  spread_ticks: 1.0
+  tick_size: 0.1
+  apply_funding: true
+  max_cost_share_of_stop: 0.25  # family flagged when round-trip cost > 25 % of its median stop
+
+research:
+  development: {start: "2022-01-01", end_exclusive: "2024-07-01"}
+  validation: {start: "2024-07-01", end_exclusive: "2025-07-01"}
+  oos_once_only: {start: "2025-07-01", end_exclusive: "2026-10-01"}
+  warmup_days: 45
+  stability_folds: 6
+  null_k: 20
+  bootstrap_resamples: 1000
+  seed: 7
+  active_day:
+    range_median_days: 60
+    description: "a UTC calendar day whose (high-low)/close range is >= the median daily range of the previous 60 days (pre-registered; calendar-day statistics are primary)"
+  family_criteria:              # validation, net of primary costs
+    min_net_expectancy_r: 0.0
+    min_bootstrap_lower_r: -0.02
+    min_profit_factor: 1.10
+    min_trades_per_day: 0.5
+    max_cost_share_of_gross: 0.60
+    min_positive_folds: 2
+    folds: 3
+  combined_criteria:            # HARD acceptance gate (owner, 2026-10-11) + design criteria
+    min_trades_per_calendar_day: 2.0
+    target_trades_per_day: [3.0, 6.0]
+    min_net_expectancy_r: 0.0
+    min_profit_factor_hard: 1.0
+    min_profit_factor_robust: 1.15
+    max_drawdown_frac: 0.10
+    max_year_profit_share: 0.60
+    max_regime_profit_share: 0.60
+    median_hold_minutes: [15.0, 360.0]

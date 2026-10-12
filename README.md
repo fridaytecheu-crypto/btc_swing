@@ -51,6 +51,14 @@ owner pre-registration. **V5 forward observation mode** (`btc-swing v5 forward .
 prospectively on live Bybit public data with a virtual paper ledger; observational only. Persistent-host
 deployment and restart-safe migration: `deploy/`, `docs/V5_FORWARD_DEPLOYMENT.md`.
 Bybit DEMO execution validation (demo endpoint only, default DISABLED): `docs/V5_DEMO_EXECUTION.md`.
+**V6 ACTIVE INTRADAY** (`btc_swing/v6/`, `config/btc_swing_v6.yaml`, `docs/BTC_V6_ACTIVE_INTRADAY_DESIGN.md`,
+`btc-swing v6 research|render`, `reports/BTC_SWING_V6_ACTIVE_INTRADAY_RESEARCH.md`): isolated paper-only
+track (no exchange client) with four 5m/15m intraday families (momentum continuation, pullback
+continuation, failed-breakout reversal, flow/OI impulse; liquidation families forward-only because no
+history exists) under the owner's HARD frequency gate (>= 2 trades per calendar day AND net edge > 0 AND
+PF > 1 AND DD < 10%): **C — V6 ACTIVE-INTRADAY OBJECTIVE NOT ACHIEVED** (validation 2024-07..2025-06:
+654 trades, 1.79/day, gross +0.04R, costs 0.35R, net -0.30R, PF 0.55; every family negative; without the
+one-position rule 2.85 trades/day at the same -0.31R). The once-only OOS window 2025-07..2026-09 was not run.
 
 ## Quick start
 ```
@@ -60,7 +68,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 190 tests, no database needed
+uv run pytest -q                                            # 222 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

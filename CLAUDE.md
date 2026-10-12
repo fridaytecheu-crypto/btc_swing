@@ -34,6 +34,15 @@ history warm-up seeds (OI/premium/funding, strictly before the V5 start). Own fr
 forward freeze|cycle|coverage|host-status|signal-diagnostic|compare-diagnostic`, `v51 seed oi|premium|funding|status`,
 `v51 demo activate|deactivate|status|reconcile-ack`. Never modify V5 for V5.1.
 
+V6 ACTIVE INTRADAY (`btc_swing/v6/`, `config/btc_swing_v6.yaml`, `docs/BTC_V6_ACTIVE_INTRADAY_DESIGN.md`,
+`reports/BTC_SWING_V6_ACTIVE_INTRADAY_RESEARCH.md`, tables `reports/v6/`): isolated PAPER-ONLY research
+track (no exchange client, no credentials, `V6D-` reserved); four historical families A/B/C/F on Binance
+history with the hard frequency gate (>= 2 trades per calendar day AND net edge > 0 AND PF > 1 AND DD < 10%);
+D/E forward-only. Phase 2-4 result: classification C — V6 ACTIVE-INTRADAY OBJECTIVE NOT ACHIEVED (see the
+report). The once-only OOS window 2025-07..2026-09 was NOT run (`v6 research --oos --confirm-once-only-oos`
+runs it exactly once; refused by a lock file afterwards). CLI `btc-swing v6 config|research|render`.
+Never modify V5/V5.1 for V6.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

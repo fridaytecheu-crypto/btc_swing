@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-07, V5 research done; forward observation running)
+# Handoff — state of work and next steps (2026-10-12, V6 Phase 2-4 done: objective not achieved; V5.1 pending on the Mac)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -216,6 +216,33 @@
   live data, the V5.1 freeze and (later) the activation must be run by the owner ON THE MAC. NOT
   activated. Next: owner runs `v51 seed oi`, `v51 forward signal-diagnostic`, `compare-diagnostic`,
   then decides on `v51 forward freeze` and, after every gate passes, `v51 demo activate`.
+- 2026-10-10/12: V6 ACTIVE INTRADAY. Phase 1 (`docs/BTC_V6_ACTIVE_INTRADAY_DESIGN.md`, commit 2c4e51a):
+  data audit (no liquidation history anywhere; no untouched historical window), why V5 is quiet (hold
+  time, 30-day z extremes, swing geometry, costs), families A-F, pre-declared grids/exits/costs/windows,
+  acceptance criteria. Owner then made trade frequency a HARD requirement (>= 2 executed trades per
+  calendar day on the holdout, target 3-6 on active days, plus net edge > 0, PF > 1, DD acceptable) and
+  said proceed; the four open decisions were applied as the design defaults (recorded in section 9).
+  Phase 2-4 (`btc_swing/v6/`: strict config, PIT 5m frame with V5.1 data-quality rules and
+  same-time-of-day baselines, families A/B/C/F as vectorised Stage A + per-episode anti-chase Stage B,
+  chronological paper engine with the frozen sizing ladder, Bybit-like costs, four exit variants,
+  one-position rule with refusal counterfactuals and `sequential`/`independent` diagnostic modes,
+  calendar-day frequency report, folds, regime/hour-matched nulls, criteria/gate, report; 32 tests)
+  ran development 2022-01..2024-06 and validation 2024-07..2025-06 with the pre-registered protocol
+  (exit variant chosen on development by the declared rule = B without breakeven; no variant reached
+  2 trades/day on development, max 1.58). Result `reports/BTC_SWING_V6_ACTIVE_INTRADAY_RESEARCH.md`,
+  tables `reports/v6/`: **C — V6 ACTIVE-INTRADAY OBJECTIVE NOT ACHIEVED.** Validation: 654 trades,
+  1.79 per calendar day (10.7% zero days, 23% of days 3-6, max 5), median hold 165 min, gross +0.044R,
+  fees -0.269R, slippage -0.077R, net -0.303R (95% CI -0.40..-0.21), PF 0.55, win 38%, max DD 31% of
+  the 5,000 USDT reference at 0.15% risk; every family negative on development AND validation
+  (momentum -0.39R, failed-breakout -0.23R, pullback -0.16R, flow/OI -0.14R); STOP exits -1.24R
+  carry the loss, TRAIL +0.40R and TIME_LIMIT +1.42R are positive. Bottlenecks: costs (round trip
+  15 bps = 31% of the 48 bps median stop; binding) and the one-position rule (855 valid triggers =
+  58% refused while a position was open; binding for frequency only), but removing the slot does not
+  help: sequential mode 1.98/day at -0.30R, independent mode 2.85/day at -0.31R. Nulls with the same
+  geometry lose similarly (momentum edge vs null -0.02R). The once-only OOS window was NOT run (gate
+  failed) and stays unspent; the design doc section 11 and report section L.2 record the proposed next
+  architecture (Bybit-native flow history, structure-confirmed later entries at lower frequency,
+  cost-aware trigger eligibility, prospective liquidation families). V5/V5.1 untouched.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -246,6 +273,8 @@ uv run btc-swing v5 collect --duration 900 --reconnect-after 420            # By
 uv run btc-swing v5 research --out data/btc/runs/v5_microstructure_research --collector-stats manifests/v5_bybit_collector_verification.json  # V5 Stage A + Stage B (~8 min)
 uv run btc-swing v5 forward freeze && uv run btc-swing v5 forward seed && nohup uv run btc-swing v5 forward run &   # forward observation (see docs/V5_FORWARD_OBSERVATION_RUNBOOK.md)
 uv run btc-swing v5 forward status                                          # live status
+uv run btc-swing v6 research                                                # V6 development + validation (~6 min); --oos --confirm-once-only-oos spends the OOS window once
+uv run btc-swing v6 render                                                  # re-render the V6 report from reports/v6/summary.json
 bash scripts/check.sh
 ```
 
