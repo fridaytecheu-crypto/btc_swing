@@ -74,6 +74,16 @@ structure). **Almost no incremental microstructure edge**: flow features sit wit
 controls; only a failed-range-break reversal (~2 bps at 60 min) and a trend-pullback release (~3 bps,
 3.6 events/day) are repeatable, both far below the ~15 bps round trip. Stopped at the report.
 
+**V8 CANDIDATE RANKING** (`docs/BTC_V8_CANDIDATE_RANKING_DESIGN.md`): design only, superseded by the owner
+before any code or run; kept on record.
+
+**V9 SIMPLE TREND + VOLUME PULLBACK** (`btc_swing/v9/`, `config/btc_swing_v9.yaml`,
+`docs/BTC_V9_SIMPLE_TREND_VOLUME_PULLBACK_DESIGN.md`, `btc-swing v9 config|research|render`,
+`reports/BTC_SWING_V9_SIMPLE_TREND_VOLUME_PULLBACK.md`): one deterministic strategy (15m EMA20/50 trend,
+5m impulse + 25-60% pullback with impulse-RVOL and pullback-volume rules, 1m breakout entry with relative
+volume / taker imbalance / delta confirmation), conservative taker costs, the A/B/C/D volume ladder with the
+mandatory funnel, TRAIN-only selection, one pass per validation window. See the report for the result.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -82,7 +92,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 252 tests, no database needed
+uv run pytest -q                                            # 257 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

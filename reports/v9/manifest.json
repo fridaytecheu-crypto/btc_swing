@@ -1,0 +1,38 @@
+{
+ "config_hash": "fe9fb2f28b7475487c45eddce7738a764f7a293ff791c4a1555059942466ee82",
+ "dataset_hash_1m": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+ "folds": [
+  "2022H1",
+  "2022H2",
+  "2023H1",
+  "2023H2",
+  "2024H1"
+ ],
+ "frame": {
+  "bars_5m": 380736,
+  "days": 1322,
+  "feature_version": "v9-feat-1",
+  "first_open_ms": 1637107200000,
+  "last_close_ms": 1751328000000,
+  "rows_1m": 1903680,
+  "valid_bars_5m": 380726,
+  "valid_rows_1m": 1903640
+ },
+ "generated_utc": "2026-10-12 14:57 UTC",
+ "locked_holdout": "not read",
+ "v9_version": "9.0.0-simple-trend-volume-pullback",
+ "windows": {
+  "recent_validation": {
+   "end_ms": 1751328000000,
+   "start_ms": 1735689600000
+  },
+  "train": {
+   "end_ms": 1719792000000,
+   "start_ms": 1640995200000
+  },
+  "validation_1": {
+   "end_ms": 1735689600000,
+   "start_ms": 1719792000000
+  }
+ }
+}

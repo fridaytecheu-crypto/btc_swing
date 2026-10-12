@@ -62,9 +62,18 @@ thresholds; `btc-swing v7 ingest`; holdout days refused). Result: almost no incr
 are the only repeatable effects). CLI `btc-swing v7 ingest|discover|render`. Paper only; nothing activated;
 any Phase 2 needs a new owner pre-registration.
 
-V8 CANDIDATE RANKING (`docs/BTC_V8_CANDIDATE_RANKING_DESIGN.md`): DESIGN ONLY, awaiting owner approval; no
-`btc_swing/v8/` code, no config, no run. Do not start the V8 research run without the owner's explicit approval
-of the design document; when approved, freeze the design commit hash first (section 7 order of work).
+V8 CANDIDATE RANKING (`docs/BTC_V8_CANDIDATE_RANKING_DESIGN.md`): SUPERSEDED by owner decision (2026-10-12)
+before any code or run; design kept on record only. No ranking / ML work is to be done.
+
+V9 SIMPLE TREND + VOLUME PULLBACK (`btc_swing/v9/`, `config/btc_swing_v9.yaml`,
+`docs/BTC_V9_SIMPLE_TREND_VOLUME_PULLBACK_DESIGN.md`, `reports/BTC_SWING_V9_SIMPLE_TREND_VOLUME_PULLBACK.md`,
+tables `reports/v9/`): ONE deterministic BTCUSDT strategy (15m EMA20/50 trend, 5m impulse + pullback with
+volume rules, 1m breakout entry with rvol / taker imbalance / delta confirmation; taker costs; A/B/C/D volume
+ladder; funnel; TRAIN-only selection, one pass per validation window) on the existing Bybit 1m dataset. CLI
+`btc-swing v9 config|research|render`. Result: classification C — PRICE ONLY ~0.9 trades/day at net -0.19R
+(gross ~3 bps vs 15 bps costs); the 0.50% minimum stop rejects ~88% of triggers; the floor-stop sensitivity
+reaches 4.7/day at -0.28R; no volume rule adds edge on both validation windows. Paper only; no exchange
+client; `V9D-` reserved; holdout not read. V9 is closed; do not tune it.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.

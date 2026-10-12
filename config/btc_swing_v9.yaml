@@ -1,0 +1,91 @@
+# BTC V9 — SIMPLE TREND + VOLUME PULLBACK. Pre-registered configuration
+# (docs/BTC_V9_SIMPLE_TREND_VOLUME_PULLBACK_DESIGN.md). Paper research only; no exchange client.
+strategy_name: btc_swing_v9_simple_trend_volume_pullback
+
+windows:
+  train: {start: "2022-01-01", end_exclusive: "2024-07-01"}
+  validation_1: {start: "2024-07-01", end_exclusive: "2025-01-01"}
+  recent_validation: {start: "2025-01-01", end_exclusive: "2025-07-01"}
+  locked_holdout: {start: "2025-07-01", end_exclusive: "2026-10-01"}   # never read
+  warmup_days: 45
+
+trend:
+  ema_fast: 20
+  ema_slow: 50
+
+impulse:
+  atr_period: 14
+  max_leg_bars: 8                 # origin searched in p-8..p-1 (5m bars)
+  size_atr: 1.0                   # anchor
+  size_atr_grid: [0.8, 1.0, 1.2]
+  raw_size_atr: 0.5               # funnel base rate only
+  rvol_min: 1.25                  # anchor (step B)
+  rvol_grid: [1.1, 1.25, 1.5]
+  rvol_baseline_days: 20
+  rvol_min_days: 10
+
+pullback:
+  min_bars: 2
+  max_bars: 6
+  retrace_min: 0.25
+  retrace_max: 0.60
+  retrace_grid: [[0.20, 0.60], [0.25, 0.60], [0.25, 0.70]]
+  volume_ratio_max: 0.75          # anchor (step C)
+  volume_ratio_grid: [0.60, 0.75, 0.90]
+
+trigger:
+  lookback_min: 10                # local 1m pullback high/low = extreme of the previous 10 completed 1m bars
+  rvol_min: 1.25                  # anchor (step D)
+  rvol_grid: [1.0, 1.25, 1.5]
+  rvol_baseline_min: 20
+  imbalance_min: 0.20             # anchor (step D)
+  imbalance_grid: [0.10, 0.20, 0.30]
+  delta_mode: sign                # anchor; `median` compared once
+  delta_median_window_min: 60
+  accel_baseline_min: 5
+  accel_gate_candidate: 1.5
+
+stop:
+  buffer_atr: 0.10
+  min_distance_pct: 0.50          # anchor; closer structural stops are rejected
+  min_distance_grid: [0.40, 0.50, 0.60]
+
+exits:
+  primary: B
+  exit_a_r: 1.0
+  exit_b_r: 1.5
+  split_tp1_r: 1.0
+  split_tp2_r: 1.75
+  time_stop_min: 120
+  time_stop_grid: [120, 180]
+  progress_min_r: 0.5
+  hard_max_multiple: 2
+
+costs:
+  taker_fee_bps: 5.5
+  half_spread_bps: 0.5
+  entry_slippage_bps: 1.0
+  exit_slippage_bps: 1.0
+  stop_slippage_bps: 3.0
+  apply_funding: true
+  stress_multiplier: 1.5
+
+risk:
+  initial_equity: 5000.0
+  risk_per_trade: 0.00125         # primary 0.125 %
+  risk_grid: [0.001, 0.00125, 0.0015]
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 1h
+  compounding: false
+
+selection:
+  min_folds_positive: 4
+  min_trades_per_day: 2.0
+  accel_min_gain_r: 0.05
+  frequency_target: [3.0, 6.0]
+  max_drawdown_pct: 10.0

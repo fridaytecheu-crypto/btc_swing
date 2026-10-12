@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6/V6.1 failed their gates; V7 Phase 1 done: almost no microstructure edge; V8 candidate-ranking DESIGN written, awaiting owner approval; locked holdout unspent; V5.1 pending on the Mac)
+# Handoff — state of work and next steps (2026-10-12, V6/V6.1/V7 negative; V8 ranking superseded before any run; V9 SIMPLE TREND + VOLUME PULLBACK run; locked holdout unspent; V5.1 pending on the Mac)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -275,8 +275,19 @@
   ranking (model-free Stage A information check first; then monotone simple score / logistic / shallow
   boosted vs volatility-only and time-only controls; no neural network), labels at 30-180 min incl.
   +0.75%/-0.50% bracket net of Bybit costs, TRAIN-only selection, frozen artefact, validation once per
-  window, success = 3-6 executed trades/day with net > 0 and monotone rank buckets. NO V8 CODE EXISTS and
-  NOTHING HAS BEEN RUN: the research run starts only after the owner approves the design document.
+  window, success = 3-6 executed trades/day with net > 0 and monotone rank buckets. SUPERSEDED the same day:
+  the owner stopped the ranking/ML direction before any code or run; the design stays on record only.
+- 2026-10-12 (V9 SIMPLE TREND + VOLUME PULLBACK): owner-specified single deterministic strategy, design
+  `docs/BTC_V9_SIMPLE_TREND_VOLUME_PULLBACK_DESIGN.md` (frozen before any result; section 10 records the
+  harness notes), harness `btc_swing/v9/` (features on 1m/5m/15m from the existing Bybit 1m dataset, leg /
+  arm tables, 1m trigger, taker-cost engine with the frozen sizing ladder), A/B/C/D volume ladder with the
+  mandatory funnel, TRAIN half-year folds, pre-declared neighbourhoods, accel diagnostic, TRAIN-only
+  selection + freeze, one pass per validation window. **Result (classification C): PRICE ONLY 0.93/day,
+  net -0.185R, PF 0.72 on TRAIN; frozen step B (impulse RVOL) 0.91/day, -0.231R, PF 0.65 on validation 1 and
+  0.78/day, -0.183R, PF 0.73 on recent validation; gross ~3 bps vs 15 bps round trip; the 0.50% minimum
+  stop rejects ~88% of triggers (structural stop ~0.2%); the floor-stop sensitivity reaches 4.7/day at
+  -0.28R; no volume rule adds edge on both validation windows; accel not promoted.** Profitability FAIL,
+  3-6/day FAIL. Locked holdout untouched; nothing activated; no order placed.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

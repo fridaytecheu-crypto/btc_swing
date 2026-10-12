@@ -1,0 +1,35 @@
+{
+ "accel_gate": {
+  "folds_positive": 1,
+  "net_r": -0.18537275934281547,
+  "trades_per_day": 0.5844298245614035
+ },
+ "accel_promoted": false,
+ "config_hash": "fe9fb2f28b7475487c45eddce7738a764f7a293ff791c4a1555059942466ee82",
+ "selection": {
+  "net_r": -0.1696746415247511,
+  "qualified": false,
+  "step": "B_IMPULSE_RVOL"
+ },
+ "spec": {
+  "accel_min": null,
+  "cost_mult": 1.0,
+  "delta_mode": null,
+  "exit": "B",
+  "imbalance": null,
+  "impulse_atr": 1.0,
+  "impulse_rvol": 1.25,
+  "min_stop_pct": 0.5,
+  "name": "FROZEN_B_IMPULSE_RVOL",
+  "pb_vol_ratio": null,
+  "retrace": [
+   0.25,
+   0.6
+  ],
+  "risk_per_trade": 0.00125,
+  "stop_mode": "reject",
+  "time_stop_min": 120,
+  "trig_rvol": null
+ },
+ "spec_hash": "c2a507a7e9ecffb72cdaa3812e151b088845a348ab44eb0f3c4b6250cc392ccb"
+}

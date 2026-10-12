@@ -1,4 +1,7 @@
-# BTC V8 — CANDIDATE RANKING: pre-registered design (awaiting owner approval)
+# BTC V8 — CANDIDATE RANKING: pre-registered design (SUPERSEDED 2026-10-12, never run)
+
+Owner decision 2026-10-12: the ranking / ML direction was stopped before any V8 code or data read; the
+next track is V9 (`docs/BTC_V9_SIMPLE_TREND_VOLUME_PULLBACK_DESIGN.md`). This document is kept on record only.
 
 Status: DESIGN ONLY. No V8 code exists, no V8 data has been read, nothing has been run. This document
 is the pre-registration that must be frozen (by commit hash) BEFORE any V8 harness touches data. V5,
