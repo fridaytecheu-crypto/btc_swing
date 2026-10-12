@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6/V6.1 failed their gates; V7 Phase 1 edge discovery done: almost no microstructure edge; locked holdout unspent; V5.1 pending on the Mac)
+# Handoff — state of work and next steps (2026-10-12, V6/V6.1 failed their gates; V7 Phase 1 done: almost no microstructure edge; V8 candidate-ranking DESIGN written, awaiting owner approval; locked holdout unspent; V5.1 pending on the Mac)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -268,6 +268,15 @@
   wide intervals, only +-1% brackets positive after costs at ~+6 bps) are the only repeatable effects;
   absorption is a ~1.5 bp effect that fails validation 1; compression breaks reverse; E2/E3 unsupported.
   STOPPED at the discovery report as instructed; no engine built; nothing activated; no order placed.
+- 2026-10-12 (V8 CANDIDATE RANKING, DESIGN ONLY, awaiting owner approval): the owner accepted the V7
+  result and declined the three V7 engines. `docs/BTC_V8_CANDIDATE_RANKING_DESIGN.md` pre-registers the
+  next BTC-only track: a permissive deterministic candidate generator (relaxed E1, cost-eligible failed
+  breaks, absorption at a level, compression-break fade; 10-30 candidates/day) plus a PIT-safe context
+  ranking (model-free Stage A information check first; then monotone simple score / logistic / shallow
+  boosted vs volatility-only and time-only controls; no neural network), labels at 30-180 min incl.
+  +0.75%/-0.50% bracket net of Bybit costs, TRAIN-only selection, frozen artefact, validation once per
+  window, success = 3-6 executed trades/day with net > 0 and monotone rank buckets. NO V8 CODE EXISTS and
+  NOTHING HAS BEEN RUN: the research run starts only after the owner approves the design document.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

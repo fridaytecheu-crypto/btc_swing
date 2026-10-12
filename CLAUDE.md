@@ -62,6 +62,10 @@ thresholds; `btc-swing v7 ingest`; holdout days refused). Result: almost no incr
 are the only repeatable effects). CLI `btc-swing v7 ingest|discover|render`. Paper only; nothing activated;
 any Phase 2 needs a new owner pre-registration.
 
+V8 CANDIDATE RANKING (`docs/BTC_V8_CANDIDATE_RANKING_DESIGN.md`): DESIGN ONLY, awaiting owner approval; no
+`btc_swing/v8/` code, no config, no run. Do not start the V8 research run without the owner's explicit approval
+of the design document; when approved, freeze the design commit hash first (section 7 order of work).
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
