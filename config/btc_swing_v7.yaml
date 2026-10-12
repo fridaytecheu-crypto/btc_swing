@@ -1,0 +1,60 @@
+# BTC V7 — MICROSTRUCTURE SPECIALIST. Pre-registered Phase 1 (edge discovery) configuration
+# (docs/BTC_V7_MICROSTRUCTURE_DESIGN.md). Paper research only; no exchange client exists in this track.
+strategy_name: btc_swing_v7_microstructure_discovery
+
+windows:
+  discovery: {start: "2022-01-01", end_exclusive: "2024-07-01"}
+  validation_1: {start: "2024-07-01", end_exclusive: "2025-01-01"}
+  recent_validation: {start: "2025-01-01", end_exclusive: "2025-07-01"}
+  locked_holdout: {start: "2025-07-01", end_exclusive: "2026-10-01"}   # never read
+  warmup_days: 45
+
+features:
+  atr_period: 14
+  z_window_min: 1440            # previous 24 h of 1m rows
+  z_min_periods: 720
+  burst_short_min: 5
+  burst_long_min: 60
+  flow_window_min: 5
+  response_quantile_window_min: 1440
+  strong_flow_pct: 0.75         # |delta_5| above its rolling 75th percentile
+  weak_response_pct: 0.25       # |impact_5| below its rolling 25th percentile
+  strong_response_pct: 0.75
+  compression_range_min: 30
+  compression_history_min: 10080   # previous 7 days
+  rv_tercile_history_min: 10080
+  range_window_min: 60
+  impulse_window_min: 120
+  ema_fast: 21
+  ema_slow: 50
+  swing_k: 2
+  trend_slope_bars_1h: 6
+  large_trade_keys: [q90, q95, q975]
+  large_trade_anchor: q95
+
+discovery:
+  horizons_min: [15, 30, 60, 120, 180]
+  max_horizon_min: 180
+  move_pcts: [0.25, 0.40, 0.50, 0.75, 1.00]
+  before_pairs: [[0.25, 0.25], [0.40, 0.40], [0.50, 0.50], [0.75, 0.75], [1.00, 1.00], [0.50, 0.25], [0.75, 0.50]]
+  cluster_min: 15               # first-in-cluster events: no same event in the previous 15 minutes
+  controls_per_event: 5
+  control_exclusion_min: 60     # a control is never within +-60 min of an event of the same definition
+  bootstrap_resamples: 1000
+  seed: 17
+  decision:
+    min_effect_atr_60: 0.05     # signed 60-min forward return advantage over matched controls (ATR5m units)
+    min_consistent_half_years: 4   # of 5 discovery half-years with the same sign
+  anchors:                      # the owner's initial hypotheses; neighbourhoods are discovery-only
+    intensity_burst_tc_z: {anchor: 1.5, grid: [1.0, 1.5, 2.0]}
+    imbalance_abs: {anchor: 0.30, grid: [0.20, 0.30, 0.45]}
+    large_trade_imbalance_abs: {anchor: 0.25, grid: [0.15, 0.25, 0.40]}
+    delta_accel_pct: {anchor: 0.90, grid: [0.90]}
+    compression_pct: {anchor: 0.20, grid: [0.15, 0.20, 0.30]}
+    pullback_depth: {anchor: [0.25, 0.65], grid: [[0.25, 0.65]]}
+    anti_chase_atr: {anchor: 0.75, grid: [0.5, 0.75, 1.0]}
+    engine_tc_z: 1.0
+    engine_imbalance: 0.20
+    engine_large_trade: 0.15
+    engine_impulse_atr: 1.5
+    engine_volume_expansion: 1.5
