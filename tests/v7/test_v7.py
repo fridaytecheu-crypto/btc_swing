@@ -143,7 +143,12 @@ def test_forward_outcomes_and_before() -> None:
     fr = build_frame_v7(rows, c)
     fr.cols["atr5m"][:] = 100.0
     out = forward_outcomes(fr, np.array([k]), np.array([1.0]), c)
-    assert out.ret[15][0] > 0 and out.ret[60][0] < 0 and out.mfe[15][0] > 0 and out.mae[60][0] > out.mfe[60][0]
+    assert (
+        out.ret[15][0] > 0
+        and out.ret[60][0] < 0
+        and out.mfe[15][0] > 0
+        and out.mae[60][0] > out.mfe[60][0]
+    )
     assert out.before[(0.25, 0.25)][0] == 1.0  # +0.25% reached (minute 9) before -0.25%
     assert out.before[(0.5, 0.5)][0] == 0.0  # -0.5% first (never +0.5%)
     assert math.isnan(out.before[(1.0, 1.0)][0]) or out.before[(1.0, 1.0)][0] == 0.0
