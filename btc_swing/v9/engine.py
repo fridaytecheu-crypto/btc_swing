@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 from btc_swing.core.config import RiskCfg
 from btc_swing.core.enums import Side
 from btc_swing.risk.sizing import size_position
-from btc_swing.v9.config import V9Config
+from btc_swing.v9.config import ExitsCfg, V9Config
 from btc_swing.v9.features import V9Frame
 from btc_swing.v9.setups import DirectionTables
 
@@ -38,7 +38,7 @@ class Spec:
     delta_mode: str | None  # None | "sign" | "median"
     accel_min: float | None
     min_stop_pct: float
-    exit: str  # A | B | C
+    exit: str  # A | B | C | "R<x>" (full exit at +xR) | "S<x>/<y>" (50% at +xR, 50% at +yR)
     time_stop_min: int
     risk_per_trade: float
     cost_mult: float = 1.0
@@ -96,6 +96,22 @@ def ladder(cfg: V9Config, exit_mode: str | None = None, time_stop: int | None = 
         **base,  # type: ignore[arg-type]
     )
     return [a, b, c, d]
+
+
+def exit_targets(mode: str, ex: ExitsCfg) -> list[tuple[float, float]]:
+    """(fraction, R multiple) legs for an exit mode; A/B/C are the pre-registered V9 exits."""
+    if mode == "A":
+        return [(1.0, ex.exit_a_r)]
+    if mode == "B":
+        return [(1.0, ex.exit_b_r)]
+    if mode == "C":
+        return [(0.5, ex.split_tp1_r), (0.5, ex.split_tp2_r)]
+    if mode.startswith("R"):
+        return [(1.0, float(mode[1:]))]
+    if mode.startswith("S") and "/" in mode:
+        a, b = mode[1:].split("/")
+        return [(0.5, float(a)), (0.5, float(b))]
+    raise ValueError(f"unknown exit mode {mode!r}")
 
 
 @dataclass
@@ -427,12 +443,7 @@ class V9Engine:
         self, spec: Spec, d: int, m0: int, entry: float, stop: float, dist: float
     ) -> tuple[list[tuple[float, float, str, int]], int]:
         ex = self.cfg.exits
-        if spec.exit == "A":
-            targets = [(1.0, ex.exit_a_r)]
-        elif spec.exit == "B":
-            targets = [(1.0, ex.exit_b_r)]
-        else:
-            targets = [(0.5, ex.split_tp1_r), (0.5, ex.split_tp2_r)]
+        targets = exit_targets(spec.exit, ex)
         time_stop = spec.time_stop_min
         hard_max = time_stop * ex.hard_max_multiple
         legs: list[tuple[float, float, str, int]] = []

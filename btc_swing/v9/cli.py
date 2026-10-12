@@ -80,3 +80,51 @@ def v9_render(
     )
     report.write_text(render_report(res, cfg))
     typer.echo(str(report))
+
+
+@v9_app.command("stop-study")
+def v9_stop_study(
+    config: Path = Path("config/btc_swing_v9.yaml"),
+    out_dir: Path = Path("reports/v9"),
+    report: Path = Path("reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md"),
+) -> None:
+    """Stop-geometry sensitivity matrix on the unchanged V9 entry signal (design section 12)."""
+    from btc_swing.v7.ingest import dataset_hash_1m
+    from btc_swing.v9.config import load_v9_config
+    from btc_swing.v9.data import load_funding, load_rows, ms
+    from btc_swing.v9.features import build_frame_v9
+    from btc_swing.v9.setups import build_tables
+    from btc_swing.v9.stop_study import render_stop_study, run_stop_study
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    cfg = load_v9_config(config)
+    frozen = json.loads((out_dir / "frozen_spec.json").read_text())["spec"]
+    data_dir = get_settings().data_dir
+    start = ms(cfg.windows.train.start) - cfg.windows.warmup_days * 86_400_000
+    end = ms(cfg.windows.recent_validation.end_exclusive)  # the locked holdout is never read
+    rows = load_rows(data_dir, start, end)
+    if rows.is_empty():
+        raise typer.BadParameter("no 1m rows; the V7 Bybit 1m dataset is required")
+    fr = build_frame_v9(rows, cfg)
+    tables = build_tables(fr, cfg)
+    funding = load_funding(data_dir, "BTCUSDT", start, end)
+    study = run_stop_study(cfg, fr, tables, funding, out_dir, dataset_hash_1m(data_dir), frozen)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_stop_study(study, cfg))
+    typer.echo(json.dumps({"cells": len(study.cells), "report": str(report)}))
+
+
+@v9_app.command("render-stop-study")
+def v9_render_stop_study(
+    config: Path = Path("config/btc_swing_v9.yaml"),
+    out_dir: Path = Path("reports/v9"),
+    report: Path = Path("reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md"),
+) -> None:
+    """Re-render the stop-geometry report from reports/v9/stop_study.json."""
+    from btc_swing.v9.config import load_v9_config
+    from btc_swing.v9.stop_study import StopStudy, render_stop_study
+
+    cfg = load_v9_config(config)
+    d = json.loads((out_dir / "stop_study.json").read_text())
+    report.write_text(render_stop_study(StopStudy(d["manifest"], d["cells"]), cfg))
+    typer.echo(str(report))

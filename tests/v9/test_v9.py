@@ -203,3 +203,34 @@ def test_stop_first_when_both_touched_and_min_stop_rejects() -> None:
     eng2 = V9Engine(fr, tables, c)
     legs, m_exit = eng2._simulate(spec, 1, m0, 100.0, 99.0, 1.0)
     assert legs[0][2] == "STOP" and m_exit == m0
+
+
+def test_exit_targets_parse_generic_modes() -> None:
+    from btc_swing.v9.engine import exit_targets
+
+    ex = cfg().exits
+    assert exit_targets("A", ex) == [(1.0, ex.exit_a_r)]
+    assert exit_targets("B", ex) == [(1.0, ex.exit_b_r)]
+    assert exit_targets("C", ex) == [(0.5, ex.split_tp1_r), (0.5, ex.split_tp2_r)]
+    assert exit_targets("R2.0", ex) == [(1.0, 2.0)]
+    assert exit_targets("S1.0/2.0", ex) == [(0.5, 1.0), (0.5, 2.0)]
+
+
+def test_floor_mode_keeps_usdt_risk_constant_as_stops_widen() -> None:
+    c = cfg()
+    rows, _close = synthetic_1m(seed=11)
+    fr = build_frame_v9(rows, c)
+    tables = build_tables(fr, c)
+    eng = V9Engine(fr, tables, c)
+    base = ladder(c)[0]
+    risks = {}
+    for floor in (0.5, 1.5):
+        sp = type(base)(
+            **{**base.as_dict(), "min_stop_pct": floor, "stop_mode": "floor", "exit": "R2.0"}
+        )
+        res = eng.run(sp, START + 5 * 86_400_000, START + 30 * 86_400_000)
+        assert res.trades
+        risks[floor] = [round(t.risk_usd, 6) for t in res.trades]
+        assert all(t.stop_pct >= floor - 1e-9 for t in res.trades)
+    planned = c.risk.initial_equity * c.risk.risk_per_trade
+    assert all(abs(r - planned) < 1e-6 for r in risks[0.5] + risks[1.5])

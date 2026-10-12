@@ -73,7 +73,9 @@ ladder; funnel; TRAIN-only selection, one pass per validation window) on the exi
 `btc-swing v9 config|research|render`. Result: classification C — PRICE ONLY ~0.9 trades/day at net -0.19R
 (gross ~3 bps vs 15 bps costs); the 0.50% minimum stop rejects ~88% of triggers; the floor-stop sensitivity
 reaches 4.7/day at -0.28R; no volume rule adds edge on both validation windows. Paper only; no exchange
-client; `V9D-` reserved; holdout not read. V9 is closed; do not tune it.
+client; `V9D-` reserved; holdout not read. Stop-geometry sensitivity (`v9 stop-study`,
+`reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md`): floors 0.5-1.5% with +1R..+2R targets at constant risk never turn
+net positive (gross flat ~+0.02R; net -0.27R -> -0.08R is cost arithmetic only). V9 family is closed; do not tune it.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.

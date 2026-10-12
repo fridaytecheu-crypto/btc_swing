@@ -288,6 +288,12 @@
   stop rejects ~88% of triggers (structural stop ~0.2%); the floor-stop sensitivity reaches 4.7/day at
   -0.28R; no volume rule adds edge on both validation windows; accel not promoted.** Profitability FAIL,
   3-6/day FAIL. Locked holdout untouched; nothing activated; no order placed.
+- 2026-10-12 (V9 stop-geometry sensitivity, owner request; design section 12, `btc-swing v9 stop-study`,
+  `reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md`, `reports/v9/stop_study.json`): unchanged entry signal, floor-mode
+  stops 0.50/0.75/1.00/1.25/1.50%, exits +1R/+1.5R/+2R/split 1R+2R, constant 0.125% risk, identical time stop.
+  **No cell is net positive with PF > 1 on either validation window.** Net R rises monotonically with the floor
+  (-0.27 R -> -0.08 R on TRAIN) only because cost/R falls (28% -> 9.5%); gross R is flat at +0.01..+0.03 R; 75-80% of
+  wide-stop trades end on the time stop. Stop geometry is not the problem; V9 family closed; nothing adopted.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

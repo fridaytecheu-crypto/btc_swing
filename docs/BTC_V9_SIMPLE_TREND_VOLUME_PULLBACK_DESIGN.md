@@ -214,3 +214,41 @@ is positive in only one of five TRAIN half-years. The 0.50% minimum stop rejects
 structural stop ~0.2%); the pre-declared floor mode reaches 4.5-4.8 trades/day but at -0.23 to -0.34 R net
 (0/5 folds positive). No volume rule adds edge on both validation windows; the accel gate is not promoted.
 Selection rule: no step qualified; B (highest TRAIN net R) was frozen and failed. Nothing tuned on validation.
+
+## 12. Stop-geometry sensitivity study (owner request 2026-10-12; pre-registered before the run)
+
+Question: do wider stops with proportionally larger targets turn the EXISTING V9 setup into a positive net
+strategy? The entry signal is unchanged (no new indicator, no threshold change, nothing tuned on
+validation, holdout untouched). Study module `btc_swing/v9/stop_study.py`, CLI `btc-swing v9 stop-study`,
+report `reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md`, table `reports/v9/stop_study.json`.
+
+- Bases (both pre-declared): the frozen specification `FROZEN_B_IMPULSE_RVOL` (primary) and PRICE ONLY (A,
+  larger sample, control). Everything except the stop floor and the target is byte-identical to section 4:
+  taker costs, 120-minute time stop with the 0.5R progress rule and 240-minute hard maximum, one position,
+  non-compounding reference equity, the frozen sizing ladder.
+- Stop floors 0.50 / 0.75 / 1.00 / 1.25 / 1.50% in FLOOR mode: stop = the structural stop when it is at least
+  the floor, otherwise exactly the floor (the pre-declared `floor` mode of section 4). Account risk is
+  constant at 0.125% of equity, so a wider stop MUST reduce the position size (qty = risk / stop distance);
+  USDT risk per trade never rises. A secondary table shows REJECT mode at the same floors (only trades whose
+  structural stop already exceeds the floor) for completeness.
+- Exits: full exit at +1.0R, +1.5R, +2.0R; split 50% at +1.0R and 50% at +2.0R. Matrix = 5 floors x 4
+  exits x 2 bases x 3 windows (120 simulations) plus one pre-declared time-stop sensitivity at the 1.00%
+  floor (time stop 180 min, hard maximum 360) for the +1.5R and +2.0R exits, to show whether the identical
+  120-minute time stop is what caps the wider geometries.
+- Reported per cell and window: trades/day, win rate, gross R, cost R (and cost as % of 1R), net R with a
+  day-cluster 95% CI, PF, max drawdown, median hold, stop-outs, TP hits, time exits (time stop + hard
+  maximum), LONG and SHORT separately (n, net R), mean actual stop %, and the one-position cost (trigger
+  attempts skipped because a position was open, per day).
+- Reading rules written now: the question is whether net expectancy improves monotonically or materially
+  from 0.50% toward 1.0-1.5%; a cell is useful only with net R > 0 AND PF > 1 on BOTH validation windows;
+  PF improving while net stays negative is not success. If every cell stays negative on validation, stop
+  geometry is not the problem and the strategy family is closed. This is a sensitivity matrix, not
+  parameter mining: no cell is selected, nothing is adopted.
+
+Outcome (2026-10-12; `reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md`, 162 simulations): **no stop/target cell is
+net positive with PF > 1 on either validation window, for either base.** Net R improves monotonically with the
+floor (frozen base, +1.5R, TRAIN: -0.27 R at 0.50% -> -0.08 R at 1.50%; Spearman 1.0 in 23 of 24 rows) exactly
+as the cost share of 1R falls (28% -> 9.5%), while gross R stays flat at +0.01 to +0.03 R at every width. At wide
+floors 75-80% of trades end on the identical 120-minute time stop; 180 minutes does not change the sign. Executed
+frequency stays 2.5-3.1/day (frozen) and 4.0-4.7/day (price only) with ~3-5 skipped triggers/day from the
+one-position rule. Stop geometry is not the problem; the V9 family is closed. Nothing adopted.
