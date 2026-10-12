@@ -1,0 +1,122 @@
+{
+ "armed": 0,
+ "armed_per_day": 0.0,
+ "blocked": 0,
+ "blockers": {},
+ "chains": {
+  "episodes": true
+ },
+ "checks": {
+  "duration >= min hours": true,
+  "journals hash-chain valid": true,
+  "liquidation feed received": true,
+  "liquidation side interpretation consistent (or too few to test)": true,
+  "no duplicate signal ids": true,
+  "no impossible order prices": true,
+  "no timestamp leakage (decision after trigger)": true,
+  "order book sequence integrity": true,
+  "risk sizing = 5 USDT on executed": true,
+  "stop within floor/cap on executed": true,
+  "trade feed received": true,
+  "warm-up reached": true
+ },
+ "counters": {
+  "armed": 0,
+  "blocked": 0,
+  "executed": 0,
+  "expired": 0,
+  "invalidated": 0,
+  "nearmiss": 0,
+  "triggered": 0
+ },
+ "duplicate_signals": 0,
+ "duration_s": 2612.23,
+ "executed": 0,
+ "executed_per_day": 0.0,
+ "expired": 0,
+ "family_armed": {
+  "A-LONG": 0,
+  "A-SHORT": 0,
+  "B-LONG": 0,
+  "B-SHORT": 0,
+  "C-LONG": 0,
+  "C-SHORT": 0
+ },
+ "family_triggered": {
+  "A-LONG": 0,
+  "A-SHORT": 0,
+  "B-LONG": 0,
+  "B-SHORT": 0,
+  "C-LONG": 0,
+  "C-SHORT": 0
+ },
+ "feed": {
+  "by_channel": {
+   "allLiquidation.BTCUSDT": 4,
+   "orderbook.50.BTCUSDT": 86686,
+   "publicTrade.BTCUSDT": 5902,
+   "tickers.BTCUSDT": 18135
+  },
+  "duplicate_trade_ids": 0,
+  "files": 1,
+  "first_rx": "2026-10-12T20:14:37.380000+00:00",
+  "largest_gap_min": 0.0,
+  "last_rx": "2026-10-12T20:58:19.556000+00:00",
+  "liquidation_side_check": {
+   "Buy": {
+    "median_60s_move_bps": null,
+    "n": 0,
+    "share_negative": null
+   },
+   "Sell": {
+    "median_60s_move_bps": 3.972055984323619,
+    "n": 5,
+    "share_negative": 0.0
+   }
+  },
+  "liquidation_side_consistent": null,
+  "liquidations": 5,
+  "orderbook": {
+   "deltas": 86685,
+   "gap_rate": 0.0,
+   "seq_gaps": 0,
+   "snapshots": 1
+  },
+  "receive_gap_minutes": 0.0,
+  "receive_gaps_over_5s": 0,
+  "trades": 13857
+ },
+ "generated_utc": "2026-10-12T20:58:21.244611+00:00",
+ "history_samples": {
+  "abs_delta_10": 260,
+  "abs_delta_30": 260,
+  "abs_delta_60": 260,
+  "abs_impact_30": 80,
+  "intensity_10": 260,
+  "intensity_30": 260,
+  "intensity_60": 260,
+  "liq_total_120": 260,
+  "liq_total_30": 260
+ },
+ "invalidated": 0,
+ "last_tick": "2026-10-12T20:58:08.042000+00:00",
+ "near_misses": 0,
+ "observation_start": "2026-10-12T20:14:35.812000+00:00",
+ "outcomes_appended": 0,
+ "run_id": "v10shadow-20261012T205821Z",
+ "sanity": {
+  "bad_price": 0,
+  "bad_risk": 0,
+  "bad_stop_pct": 0,
+  "bad_stop_side": 0,
+  "bad_ts": 0
+ },
+ "shadow_exit_reasons": {},
+ "shadow_net_r_mean": null,
+ "shadow_net_usd": 0,
+ "shadow_trades": 0,
+ "status": "PASSED",
+ "triggered": 0,
+ "triggers_per_day": 0.0,
+ "verification_root": true
+}

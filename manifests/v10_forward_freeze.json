@@ -1,0 +1,30 @@
+{
+ "code_version": "254c829baab9",
+ "config_hash": "21e310dac48ac674c695967bc69ee798c0ce11eef0a35ad4936c1a1685228b5b",
+ "config_yaml": "collector:\n  dedupe_cache_size: 20000\n  ping_seconds: 20.0\n  reconnect_backoff_seconds:\n  - 1.0\n  - 2.0\n  - 5.0\n  - 10.0\n  - 30.0\n  stale_seconds: 30.0\n  symbol: BTCUSDT\n  topics:\n  - publicTrade.BTCUSDT\n  - orderbook.50.BTCUSDT\n  - allLiquidation.BTCUSDT\n  - tickers.BTCUSDT\n  url: wss://stream.bybit.com/v5/public/linear\ncosts:\n  entry_slippage_bps: 1.0\n  exit_slippage_bps: 1.0\n  half_spread_fallback_bps: 0.5\n  stop_slippage_bps: 3.0\n  taker_fee_bps: 5.5\nexits:\n  hard_max_min: 240\n  progress_min_r: 0.5\n  time_stop_min: 150\n  tp1_frac: 0.5\n  tp1_r: 1.0\n  tp2_r: 2.0\nfamilies:\n  a:\n    absorption_flow_pct: 0.75\n    absorption_impact_pct: 0.25\n    expire_s: 180\n    flow_imbalance: 0.3\n    invalidate_atr5m: 0.5\n    liq_burst_pct: 0.98\n    liq_imbalance: 0.5\n    reversal_imbalance_10: 0.1\n    turn_atr1m: 0.1\n  b:\n    absorption_flow_pct: 0.75\n    absorption_impact_pct: 0.25\n    bid_replenish_min: 0.8\n    expire_s: 180\n    flow_imbalance: 0.3\n    flow_pct: 0.95\n    invalidate_atr5m: 0.5\n    location_atr5m: 0.5\n    reversal_imbalance_10: 0.1\n    turn_atr1m: 0.1\n  c:\n    arm_travel_max_atr5m: 1.0\n    ask_deplete_max: 0.7\n    chase_max_atr5m: 0.5\n    efficient_impact_pct: 0.75\n    expire_s: 120\n    flow_imbalance: 0.3\n    flow_pct: 0.95\n    intensity_pct_10: 0.9\nfeatures:\n  atr_period: 14\n  book_depth_bps: 10.0\n  book_max_age_s: 2.0\n  book_replenish_lookback_s: 30\n  flow_windows_s:\n  - 10\n  - 30\n  - 60\n  history_hours: 4.0\n  history_min_samples: 180\n  history_sample_s: 10\n  liq_windows_s:\n  - 30\n  - 120\n  local_extreme_min: 60\n  structure_range_min: 15\n  swing_k: 2\n  tick_seconds: 1.0\n  trade_feed_max_age_s: 5.0\noutcomes:\n  horizons_min:\n  - 5\n  - 15\n  - 30\n  - 60\n  - 120\n  - 180\n  nearmiss_dedupe_s: 60\nrisk:\n  allowed_leverage:\n  - 1.0\n  - 2.0\n  - 3.0\n  - 5.0\n  - 10.0\n  compounding: false\n  initial_equity: 5000.0\n  liquidation_atr_tf: 1h\n  maintenance_margin_rate: 0.005\n  margin_cap_frac: 0.25\n  max_leverage: 10.0\n  min_liquidation_distance_atr: 3.0\n  min_stop_to_liquidation_ratio: 3.0\n  risk_per_trade: 0.001\nsafety:\n  daily_stop_frac: 0.005\n  decision_max_delay_s: 5.0\n  max_consecutive_losses: 3\n  max_trades_rolling_24h: 5\nschedule:\n  daily_report_utc_minute: 5\n  outcomes_every_s: 300\nstop:\n  buffer_atr5m: 0.1\n  cap_pct: 1.5\n  floor_pct: 0.7\nstrategy_name: BTC_V10_LIVE_MICROSTRUCTURE_SNIPER\nsymbol: BTCUSDT\n",
+ "family_version": "v10-fam-1",
+ "feature_version": "v10-feat-1",
+ "frozen_at": "2026-10-12T20:58:21.795500+00:00",
+ "frozen_by_host": {
+  "host_id": "dc39bf1e25efdf45",
+  "hostname": "vm",
+  "os": "LINUX"
+ },
+ "frozen_items": [
+  "features v10-feat-1, families A/B/C v10-fam-1, stop/exit/risk v10-risk-1",
+  "no historical V10 backtest exists; no signal before observation_start",
+  "no rule is tuned during the first observation period"
+ ],
+ "mode": "FORWARD ONLY: shadow first; Bybit DEMO only after an owner activation event",
+ "observation_start": "2026-10-12T20:58:21.795500+00:00",
+ "observation_start_ms": 1791838701795,
+ "project": "BTC_V10_LIVE_MICROSTRUCTURE_SNIPER",
+ "risk_version": "v10-risk-1",
+ "shadow_verification": {
+  "duration_s": 2612.23,
+  "generated_utc": "2026-10-12T20:58:21.244611+00:00",
+  "run_id": "v10shadow-20261012T205821Z",
+  "status": "PASSED"
+ },
+ "version": "10.0.0-live-sniper"
+}
