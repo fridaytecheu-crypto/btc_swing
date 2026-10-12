@@ -124,3 +124,23 @@ written as a separate pre-registration only after the owner has read the discove
 Neighbourhoods are 3 points; no grid beyond section 5; combinations limited to the three engines;
 validation windows see only anchor definitions in Phase 1; the holdout is never read. The research tries
 to DISPROVE: matched controls, half-year sign consistency, long/short separation, regime and hour splits.
+
+## 8. Methods amendments recorded during harness construction (before any discovery result was read)
+
+A technical dry run of the pipeline on shifted windows (2022 only, pipeline check) exposed three
+mechanical problems; they were fixed before the pre-registered run and are recorded here:
+1. Matched controls. The +-60-minute exclusion around every event row left NO control candidates for
+   frequent states (an imbalance of |imb_5| >= 0.2 holds on about 60% of minutes). Controls are now
+   minutes where the state does NOT hold, outside a +-2-minute buffer around event rows; the five
+   matching keys (hour, volatility tercile, 15m-return tercile, 1h regime, structure tercile) are
+   unchanged.
+2. Bootstrap. Events and controls within a day overlap in time at 60-180-minute horizons, so an
+   observation-level bootstrap understates uncertainty. Intervals are now a cluster bootstrap by UTC
+   day (days resampled with replacement, difference of means recomputed).
+3. E1 "positive price response to delta" was implemented as a sign identity (always true for a
+   rising price). It now requires price and flow both moving with the trend and a response above the
+   rolling weak-response threshold.
+4. Outcomes in ATR units are undefined (excluded) when ATR5m is below 0.01% of price, a degenerate
+   bar state that produced a single 6.8-ATR outlier in the dry run.
+The report also states every effect in basis points next to ATR units so it can be read against the
+~15 bps round-trip cost. No threshold, window or decision standard changed.

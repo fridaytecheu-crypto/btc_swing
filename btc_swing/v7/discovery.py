@@ -24,6 +24,7 @@ from btc_swing.v7.features import V7Frame
 
 log = logging.getLogger(__name__)
 DAY_MS = 86_400_000
+ATR_FLOOR_FRAC = 1e-4  # outcomes are undefined when ATR5m < 0.01% of price (degenerate bars)
 
 
 def ms(s: str) -> int:
@@ -208,12 +209,13 @@ def _events_engines(cfg: V7Config, fr: V7Frame) -> list[tuple[EventDef, np.ndarr
         & (c["retrace"] >= lo_d)
         & (c["retrace"] <= hi_d)
     )
-    release = (
-        (c["tc_z"] >= a.engine_tc_z)
-        & (idir * c["imb_5"] >= a.engine_imbalance)
-        & (idir * c["impact_5"] * np.sign(c["delta_5"]) * idir > 0)
+    # positive price response to delta in the trend direction: flow and price both move with the
+    # trend and the response is not absorbed (above the rolling weak-response threshold)
+    response_ok = (
+        (idir * c["ret_5"] > 0) & (idir * c["delta_5"] > 0) & (c["resp_abs"] > c["resp_weak_thr"])
     )
-    e1 = base & release & (np.sign(c["ret_5"]) == idir)
+    release = (c["tc_z"] >= a.engine_tc_z) & (idir * c["imb_5"] >= a.engine_imbalance) & response_ok
+    e1 = base & release
     out.append(
         (
             EventDef(
@@ -346,6 +348,7 @@ class Outcomes:
     before: dict[
         tuple[float, float], np.ndarray
     ]  # 1 if +X hit before -Y within max horizon, 0 if -Y first, nan if neither
+    day: np.ndarray  # UTC day index of each row (cluster bootstrap unit)
 
 
 def forward_outcomes(
@@ -364,8 +367,13 @@ def forward_outcomes(
     before = {p: np.full(m, np.nan) for p in pairs}
     for q, (i, d) in enumerate(zip(idx, direction, strict=True)):
         i = int(i)
-        if i + maxh >= n or math.isnan(c[i]) or math.isnan(atr[i]) or atr[i] <= 0:
-            continue
+        if (
+            i + maxh >= n
+            or math.isnan(c[i])
+            or math.isnan(atr[i])
+            or atr[i] < ATR_FLOOR_FRAC * c[i]
+        ):
+            continue  # no price, or a degenerate ATR (data artefact): no outcome
         p0 = c[i]
         fh, fl, fc_ = h[i + 1 : i + maxh + 1], lo[i + 1 : i + maxh + 1], c[i + 1 : i + maxh + 1]
         fav = (fh - p0) if d > 0 else (p0 - fl)  # favourable excursion path
@@ -388,7 +396,7 @@ def forward_outcomes(
                 before[(x, y)][q] = (
                     1.0 if tu < td else 0.0
                 )  # ties (same minute) count as adverse first
-    return Outcomes(ret, mfe, mae, ret_atr, before)
+    return Outcomes(ret, mfe, mae, ret_atr, before, fr.cols["day"][idx])
 
 
 # ----------------------------------------------------------------------------- controls / stats
@@ -424,8 +432,11 @@ def sample_controls(
     c = fr.cols
     cand = np.arange(i0, i1 - cfg.discovery.max_horizon_min)
     near = np.zeros(len(fr), dtype=bool)
-    for i in all_event_rows:
-        near[max(0, i - excl) : i + excl + 1] = True
+    near[all_event_rows] = True  # controls are minutes where the state does NOT hold ...
+    base_near = near.copy()
+    for sh in range(1, excl + 1):  # ... outside a small symmetric buffer around every event row
+        near[sh:] |= base_near[:-sh]
+        near[:-sh] |= base_near[sh:]
     cand = cand[~near[cand] & fr.valid[cand]]
     ckey = np.stack(
         [
@@ -456,14 +467,25 @@ def sample_controls(
 
 
 def _boot_diff(
-    a: np.ndarray, b: np.ndarray, n: int, rng: np.random.RandomState
+    a: np.ndarray, b: np.ndarray, da: np.ndarray, db: np.ndarray, n: int, rng: np.random.RandomState
 ) -> tuple[float, float]:
-    a, b = a[~np.isnan(a)], b[~np.isnan(b)]
+    """Cluster bootstrap by UTC day (events and controls inside a day overlap in time): resample
+    days with replacement and recompute the difference of means."""
+    oka, okb = ~np.isnan(a), ~np.isnan(b)
+    a, da, b, db = a[oka], da[oka], b[okb], db[okb]
     if len(a) < 5 or len(b) < 5:
         return math.nan, math.nan
-    ia = rng.randint(0, len(a), size=(n, len(a)))
-    ib = rng.randint(0, len(b), size=(n, len(b)))
-    d = a[ia].mean(axis=1) - b[ib].mean(axis=1)
+    days = np.unique(np.concatenate([da, db]))
+    ia = np.searchsorted(days, da)
+    ib = np.searchsorted(days, db)
+    sa = np.bincount(ia, weights=a, minlength=len(days))
+    ca = np.bincount(ia, minlength=len(days)).astype(np.float64)
+    sb = np.bincount(ib, weights=b, minlength=len(days))
+    cb = np.bincount(ib, minlength=len(days)).astype(np.float64)
+    pick = rng.randint(0, len(days), size=(n, len(days)))
+    ma = sa[pick].sum(axis=1) / np.maximum(ca[pick].sum(axis=1), 1.0)
+    mb = sb[pick].sum(axis=1) / np.maximum(cb[pick].sum(axis=1), 1.0)
+    d = ma - mb
     return float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5))
 
 
@@ -474,7 +496,7 @@ def compare(
     nb = cfg.discovery.bootstrap_resamples
     for k in cfg.discovery.horizons_min:
         a, b = ev.ret_atr[k], ct.ret_atr[k]
-        lo_, hi_ = _boot_diff(a, b, nb, rng)
+        lo_, hi_ = _boot_diff(a, b, ev.day, ct.day, nb, rng)
         sd = float(np.nanstd(b)) if np.isfinite(b).any() else math.nan
         out["horizons"][k] = {
             "n_event": int(np.isfinite(a).sum()),
@@ -507,7 +529,7 @@ def compare(
             float(np.nanmean(a)) if np.isfinite(a).any() else math.nan,
             float(np.nanmean(b)) if np.isfinite(b).any() else math.nan,
         )
-        lo_, hi_ = _boot_diff(a, b, nb, rng)
+        lo_, hi_ = _boot_diff(a, b, ev.day, ct.day, nb, rng)
         out["before"][f"+{pair[0]:.2f}%_before_-{pair[1]:.2f}%"] = {
             "event_p": pe,
             "control_p": pc,
@@ -641,6 +663,7 @@ def _sub(o: Outcomes, sel: np.ndarray) -> Outcomes:
         {k: v[sel] for k, v in o.mae.items()},
         {k: v[sel] for k, v in o.ret_atr.items()},
         {k: v[sel] for k, v in o.before.items()},
+        o.day[sel],
     )
 
 
@@ -757,6 +780,17 @@ def _summarise(
             "fic_per_day": r["first_in_cluster_per_day"],
             "n_fic": r["n_first_in_cluster"],
             "diff_atr_60": h.get(60, {}).get("diff_atr", math.nan) if h else math.nan,
+            "event_ret_bps_60": 100.0 * h.get(60, {}).get("event_ret_pct", math.nan)
+            if h
+            else math.nan,
+            "diff_bps_60": 100.0
+            * (
+                h.get(60, {}).get("event_ret_pct", math.nan)
+                - h.get(60, {}).get("control_ret_pct", math.nan)
+            )
+            if h
+            else math.nan,
+            "share_long": r.get("share_long", math.nan),
             "ci_60": h.get(60, {}).get("diff_ci", [math.nan, math.nan])
             if h
             else [math.nan, math.nan],

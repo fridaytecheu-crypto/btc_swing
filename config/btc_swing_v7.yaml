@@ -39,7 +39,7 @@ discovery:
   before_pairs: [[0.25, 0.25], [0.40, 0.40], [0.50, 0.50], [0.75, 0.75], [1.00, 1.00], [0.50, 0.25], [0.75, 0.50]]
   cluster_min: 15               # first-in-cluster events: no same event in the previous 15 minutes
   controls_per_event: 5
-  control_exclusion_min: 60     # a control is never within +-60 min of an event of the same definition
+  control_exclusion_min: 2      # controls are minutes where the state does NOT hold, +-2 min buffer around event rows
   bootstrap_resamples: 1000
   seed: 17
   decision:

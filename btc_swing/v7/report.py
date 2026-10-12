@@ -40,8 +40,12 @@ def _table(headers: list[str], rows: list[list[Any]]) -> str:
     return "\n".join(out)
 
 
+def _pv(param: str, value: Any) -> str:
+    return f"{param}{value}" if param.endswith(("=", ">", "<")) else f"{param}: {value}"
+
+
 def _label(d: dict[str, Any]) -> str:
-    return f"{d['name']} ({d['param']}{d['value']})"
+    return f"{d['name']} ({_pv(d['param'], d['value'])})"
 
 
 def _horizon_table(r: dict[str, Any]) -> str:
@@ -147,7 +151,9 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
                 "first-in-cluster/day",
                 "n",
                 "Δ60 ATR",
-                "95% CI",
+                "95% CI (day-cluster bootstrap)",
+                "Δ60 bps",
+                "event ret 60 bps",
                 "effect",
                 "best horizon",
                 "Δ best",
@@ -157,13 +163,15 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
             ],
             [
                 [
-                    f"{r['name']} {r['param']}{r['value']}",
+                    f"{r['name']} {_pv(r['param'], r['value'])}",
                     _n(r["anchor"]),
                     _n(r["events_per_day"], 1),
                     _n(r["fic_per_day"], 2),
                     r["n_fic"],
                     _n(r["diff_atr_60"], 3),
                     _ci(r["ci_60"]),
+                    _n(r.get("diff_bps_60"), 1),
+                    _n(r.get("event_ret_bps_60"), 1),
                     _n(r["effect_60"], 2),
                     f"{r['best_horizon']} min" if r["best_horizon"] else "-",
                     _n(r["diff_best"], 3),
@@ -175,6 +183,13 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
             ],
         )
     )
+    out.append(
+        "\nScale: Δ60 in ATR5m units and in basis points of price; the Bybit round trip costs about 15 bps (taker 5.5 x 2 + slippage), so every effect must be read against that before any engine is considered.\n"
+    )
+    out.append(
+        "\nScale: Δ60 in ATR5m units and in basis points of price; the Bybit round trip costs about 15 bps "
+        "(taker 5.5 x 2 + slippage), so every effect must be read against that before any engine is considered.\n"
+    )
     # long/short
     out.append("\n## 3. Long versus short (Δ60 ATR, discovery)\n")
     out.append(
@@ -182,7 +197,7 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
             ["definition", "long Δ60", "short Δ60"],
             [
                 [
-                    f"{r['name']} {r['param']}{r['value']}",
+                    f"{r['name']} {_pv(r['param'], r['value'])}",
                     _n(r["long_diff_60"], 3),
                     _n(r["short_diff_60"], 3),
                 ]
@@ -239,7 +254,7 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
             ],
             [
                 [
-                    f"{r['name']} {r['param']}{r['value']}",
+                    f"{r['name']} {_pv(r['param'], r['value'])}",
                     _n(r["diff_atr_60"], 3),
                     _ci(r["ci_60"]),
                     _n(r["v1_diff_atr_60"], 3),
@@ -356,10 +371,10 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
             ["definition", "events/day", "first-in-cluster/day", "share long"],
             [
                 [
-                    f"{r['name']} {r['param']}{r['value']}",
+                    f"{r['name']} {_pv(r['param'], r['value'])}",
                     _n(r["events_per_day"], 1),
                     _n(r["fic_per_day"], 2),
-                    "-",
+                    _pct(r.get("share_long")),
                 ]
                 for r in rows
             ],
@@ -374,6 +389,6 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
         )
     else:
         out.append(
-            f"{len(rep)} definitions meet the discovery standard ({', '.join(r['name'] + ' ' + r['param'] + str(r['value']) for r in rep)}); {len(surv)} of the anchors also survive 2025 ({', '.join(r['name'] + ' ' + r['param'] + str(r['value']) for r in surv) or 'none'}). Only these are candidates for the Phase 2 engines; effect sizes above are in ATR5m per trade before any cost — a Phase 2 engine must convert them into stops of at least ~75 bps to keep the 15 bps round trip under 20% of risk, which constrains the achievable frequency (see the first-in-cluster rates)."
+            f"{len(rep)} definitions meet the discovery standard ({', '.join(r['name'] + ' ' + _pv(r['param'], r['value']) for r in rep)}); {len(surv)} of the anchors also survive 2025 ({', '.join(r['name'] + ' ' + _pv(r['param'], r['value']) for r in surv) or 'none'}). Only these are candidates for the Phase 2 engines; effect sizes above are in ATR5m per trade before any cost — a Phase 2 engine must convert them into stops of at least ~75 bps to keep the 15 bps round trip under 20% of risk, which constrains the achievable frequency (see the first-in-cluster rates)."
         )
     return "\n".join(out) + "\n"
