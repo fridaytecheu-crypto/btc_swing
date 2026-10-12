@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6/V6.1/V7 negative; V8 ranking superseded before any run; V9 SIMPLE TREND + VOLUME PULLBACK run; locked holdout unspent; V5.1 pending on the Mac)
+# Handoff — state of work and next steps (2026-10-12, V6..V9 closed; V10 LIVE MICROSTRUCTURE SNIPER built, shadow-verified, awaiting owner Demo activation on the Mac; locked holdout unspent)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -294,6 +294,20 @@
   **No cell is net positive with PF > 1 on either validation window.** Net R rises monotonically with the floor
   (-0.27 R -> -0.08 R on TRAIN) only because cost/R falls (28% -> 9.5%); gross R is flat at +0.01..+0.03 R; 75-80% of
   wide-stop trades end on the time stop. Stop geometry is not the problem; V9 family closed; nothing adopted.
+- 2026-10-12 (V10 LIVE MICROSTRUCTURE SNIPER, forward-only; owner spec): feed audit done on the stored cloud
+  recording + Bybit docs (design section 1; liquidation side verified: `S=Buy` -> long liquidated; orderbook.50
+  gap rate 1e-5, 50/50 levels, never crossed; trades 10-25/s; latency p50 ~40 ms); design
+  `docs/BTC_V10_LIVE_MICROSTRUCTURE_DESIGN.md`; harness `btc_swing/v10/` (own feed + raw store, 1-s features,
+  families A/B/C state machines, shadow fills, hash-chained journals for episodes / signals / near-misses /
+  shadow trades / outcomes, daily safety, Demo executor gated by `STRATEGY_DEMO_V10_ACTIVATED`, activation
+  gates incl. V5/V5.1 conflicts, status/diagnostic/shadow-report/freeze CLI, macOS LaunchAgent). Shadow
+  verification was run in the cloud container (verification root, no orders); result and the freeze are in
+  `reports/forward_v10/` and `manifests/v10_forward_freeze.json` once written. NOTHING ACTIVATED. Owner steps on
+  the Mac (in this order): `git pull`; `uv sync --all-extras`; `bash deploy/macos/install_v10_macos.sh` (loads
+  the V10 agent; V5/V5.1 agent untouched); `uv run btc-swing v10 forward status --live`; let it shadow for a
+  few hours; `uv run btc-swing v10 forward shadow-report --verification false`; review; then and only then
+  `uv run btc-swing v10 demo activate --note "<why>"` (every gate must pass; requires V5.1 STRATEGY_DEMO
+  inactive: `uv run btc-swing v51 demo deactivate --note "<why>"` is the owner command, never automatic).
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

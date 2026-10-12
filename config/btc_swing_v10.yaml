@@ -1,0 +1,107 @@
+# BTC V10 — LIVE MICROSTRUCTURE SNIPER (forward-only; docs/BTC_V10_LIVE_MICROSTRUCTURE_DESIGN.md).
+# Paper / Bybit DEMO only. No historical backtest exists for V10.
+strategy_name: BTC_V10_LIVE_MICROSTRUCTURE_SNIPER
+symbol: BTCUSDT
+
+collector:
+  url: wss://stream.bybit.com/v5/public/linear
+  symbol: BTCUSDT
+  topics: [publicTrade.BTCUSDT, orderbook.50.BTCUSDT, allLiquidation.BTCUSDT, tickers.BTCUSDT]
+  stale_seconds: 30
+  ping_seconds: 20
+  reconnect_backoff_seconds: [1, 2, 5, 10, 30]
+  dedupe_cache_size: 20000
+
+features:
+  tick_seconds: 1.0
+  flow_windows_s: [10, 30, 60]
+  liq_windows_s: [30, 120]
+  history_sample_s: 10            # normalisation history sampled every 10 s
+  history_hours: 4.0
+  history_min_samples: 180        # 30 minutes before any normalised feature exists
+  atr_period: 14
+  swing_k: 2
+  structure_range_min: 15         # highest high / lowest low of the previous 15 completed 1m bars
+  local_extreme_min: 60           # 60-minute low / high for family B location
+  book_depth_bps: 10.0
+  book_replenish_lookback_s: 30
+  book_max_age_s: 2.0
+  trade_feed_max_age_s: 5.0
+
+families:
+  a:
+    liq_burst_pct: 0.98
+    liq_imbalance: 0.5            # |liq_imb_30| >= 0.5 -> the burst is >= 75% one side
+    flow_imbalance: 0.30
+    absorption_flow_pct: 0.75
+    absorption_impact_pct: 0.25
+    reversal_imbalance_10: 0.10
+    turn_atr1m: 0.10
+    invalidate_atr5m: 0.5
+    expire_s: 180
+  b:
+    flow_pct: 0.95
+    flow_imbalance: 0.30
+    location_atr5m: 0.5
+    absorption_flow_pct: 0.75
+    absorption_impact_pct: 0.25
+    bid_replenish_min: 0.8
+    reversal_imbalance_10: 0.10
+    turn_atr1m: 0.10
+    invalidate_atr5m: 0.5
+    expire_s: 180
+  c:
+    flow_pct: 0.95
+    flow_imbalance: 0.30
+    efficient_impact_pct: 0.75
+    intensity_pct_10: 0.90
+    ask_deplete_max: 0.7
+    chase_max_atr5m: 0.5
+    arm_travel_max_atr5m: 1.0
+    expire_s: 120
+
+stop:
+  buffer_atr5m: 0.10
+  floor_pct: 0.70
+  cap_pct: 1.50
+
+exits:
+  tp1_r: 1.0
+  tp1_frac: 0.5
+  tp2_r: 2.0
+  time_stop_min: 150
+  progress_min_r: 0.5
+  hard_max_min: 240
+
+costs:                            # shadow fill model (taker; conservative)
+  taker_fee_bps: 5.5
+  half_spread_fallback_bps: 0.5
+  entry_slippage_bps: 1.0
+  exit_slippage_bps: 1.0
+  stop_slippage_bps: 3.0
+
+risk:
+  initial_equity: 5000.0          # reference equity (demo virtual accounting)
+  risk_per_trade: 0.001           # 0.10 % = 5 USDT planned stop risk
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 1h
+  compounding: false
+
+safety:
+  max_trades_rolling_24h: 5
+  daily_stop_frac: 0.005          # -0.50 % of reference equity realised on the UTC day
+  max_consecutive_losses: 3
+  decision_max_delay_s: 5.0       # trigger older than this at decision time -> BLOCKED (ENTRY_TOO_LATE)
+
+outcomes:
+  horizons_min: [5, 15, 30, 60, 120, 180]
+  nearmiss_dedupe_s: 60
+
+schedule:
+  outcomes_every_s: 300
+  daily_report_utc_minute: 5

@@ -84,6 +84,14 @@ before any code or run; kept on record.
 volume / taker imbalance / delta confirmation), conservative taker costs, the A/B/C/D volume ladder with the
 mandatory funnel, TRAIN-only selection, one pass per validation window. See the report for the result.
 
+**V10 LIVE MICROSTRUCTURE SNIPER** (`btc_swing/v10/`, `config/btc_swing_v10.yaml`,
+`docs/BTC_V10_LIVE_MICROSTRUCTURE_DESIGN.md`, `btc-swing v10 forward run|status|diagnostic|shadow-report|freeze`,
+`btc-swing v10 demo status|activate|deactivate|reconcile-ack`): forward-only, no backtest. Own Bybit public
+feed (trades, liquidations, 50-level book), 1-second features, three families (liquidation absorption
+reversal, flow absorption at a level, liquidity-break continuation) as explicit state machines, shadow fills,
+hash-chained journals with forward outcomes and near-misses, and a Bybit DEMO executor that is refused until
+the owner's activation event on the authoritative Mac.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -92,7 +100,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 257 tests, no database needed
+uv run pytest -q                                            # 266 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

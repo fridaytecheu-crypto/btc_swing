@@ -77,6 +77,21 @@ client; `V9D-` reserved; holdout not read. Stop-geometry sensitivity (`v9 stop-s
 `reports/BTC_SWING_V9_STOP_GEOMETRY_STUDY.md`): floors 0.5-1.5% with +1R..+2R targets at constant risk never turn
 net positive (gross flat ~+0.02R; net -0.27R -> -0.08R is cost arithmetic only). V9 family is closed; do not tune it.
 
+V10 LIVE MICROSTRUCTURE SNIPER (`btc_swing/v10/`, `config/btc_swing_v10.yaml`,
+`docs/BTC_V10_LIVE_MICROSTRUCTURE_DESIGN.md`, data `<BTC_DATA_DIR>/btc/forward_v10/` (observation) and
+`forward_v10_verify/` (pre-freeze shadow verification), reports `reports/forward_v10/`, freeze
+`manifests/v10_forward_freeze.json`, prefixes `V10D-`/`V10S-`/`V10E-`): FORWARD-ONLY. No historical backtest
+exists and none may be fabricated; every statistic starts at the freeze's observation_start. Own public WebSocket
+feed + own immutable raw store (trades, allLiquidation, orderbook.50, tickers; audit in design section 1:
+allLiquidation `S=Buy` = a LONG was liquidated, verified empirically), 1-second features, three families
+A (liquidation absorption reversal) / B (flow absorption at a level) / C (liquidity break continuation) as
+IDLE->ARMED->TRIGGERED->EXECUTED machines, immediate decision, shadow fills, Demo executor refused until the
+owner's `STRATEGY_DEMO_V10_ACTIVATED` event on the authoritative Mac (gates include V5/V5.1 inactive + flat,
+Demo flat, no open orders, lease held, freeze, tests, shadow report PASSED). CLI `btc-swing v10 forward
+run|status [--live]|diagnostic|shadow-report|freeze|report|verify-raw`, `v10 demo status|activate|deactivate|
+reconcile-ack`; macOS agent `com.btcswing.v10-forward` (`deploy/macos/install_v10_macos.sh`). Never modify
+V5/V5.1 for V10; never tune V10 rules during the first observation period; never activate from the cloud.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
