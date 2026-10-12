@@ -760,6 +760,22 @@ def _clean(d: Any) -> Any:
     return d
 
 
+def survives(row: dict[str, Any]) -> bool:
+    """Survival as declared in design section 4: repeatable on discovery, positive on validation 1
+    AND on the recent window, with neither interval entirely below zero."""
+    if not row.get("repeatable_discovery"):
+        return False
+    for lab in ("v1", "recent"):
+        d = row.get(f"{lab}_diff_atr_60")
+        ci = row.get(f"{lab}_ci_60") or [math.nan, math.nan]
+        if d is None or (isinstance(d, float) and math.isnan(d)) or d <= 0:
+            return False
+        hi = ci[1]
+        if hi is not None and not (isinstance(hi, float) and math.isnan(hi)) and hi < 0:
+            return False
+    return True
+
+
 def _summarise(
     cfg: V7Config, disc: list[dict[str, Any]], val1: list[dict[str, Any]], rec: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -825,12 +841,8 @@ def _summarise(
                 hh.get(60, {}).get("diff_ci", [math.nan, math.nan]) if hh else [math.nan, math.nan]
             )
             row[f"{lab}_fic_per_day"] = rr["first_in_cluster_per_day"] if rr else math.nan
-        row["survives_2025"] = (
-            bool(row["repeatable_discovery"])
-            and not math.isnan(row["recent_diff_atr_60"])
-            and row["recent_diff_atr_60"] > 0
-            and row["recent_ci_60"][1] > 0
-        )
+        # declared: same sign in BOTH validation windows and neither interval clearly reversed
+        row["survives_2025"] = survives(row)
         rows.append(row)
     repeatable = [r for r in rows if r["repeatable_discovery"]]
     return {

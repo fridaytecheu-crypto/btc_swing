@@ -6,7 +6,7 @@ import math
 from typing import Any
 
 from btc_swing.v7.config import V7Config
-from btc_swing.v7.discovery import V7Discovery
+from btc_swing.v7.discovery import V7Discovery, survives
 
 
 def _n(x: Any, d: int = 3) -> str:
@@ -121,13 +121,18 @@ def _before_table(r: dict[str, Any]) -> str:
 def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
     m, s = res.manifest, res.summary
     rows = s["rows"]
+    for r in rows:  # survival recomputed from the stored window results with the declared rule
+        r["survives_2025"] = survives(r)
+    rep_rows = [r for r in rows if r["repeatable_discovery"]]
+    rep_names = [f"{r['name']} {_pv(r['param'], r['value'])}" for r in rep_rows]
+    surv_names = [f"{r['name']} {_pv(r['param'], r['value'])}" for r in rows if r["survives_2025"]]
     out: list[str] = []
     out.append("# BTC V7 MICROSTRUCTURE SPECIALIST — Phase 1: edge discovery report\n")
     out.append(
-        f"**Repeatable effects on DISCOVERY (declared standard: Δ60 >= {cfg.discovery.decision.min_effect_atr_60} ATR5m vs matched controls, CI > 0, same sign in >= {cfg.discovery.decision.min_consistent_half_years} of 5 half-years): {s['n_repeatable_discovery']} of {len(rows)} definitions**"
-        + (f" — {', '.join(s['repeatable'])}" if s["repeatable"] else "")
-        + f". **Surviving 2025 (recent validation, anchors only): {len(s['survive_2025'])}**"
-        + (f" — {', '.join(s['survive_2025'])}" if s["survive_2025"] else "")
+        f"**Repeatable effects on DISCOVERY (declared standard: Δ60 >= {cfg.discovery.decision.min_effect_atr_60} ATR5m vs matched controls, CI > 0, same sign in >= {cfg.discovery.decision.min_consistent_half_years} of 5 half-years): {len(rep_rows)} of {len(rows)} definitions**"
+        + (f" — {', '.join(rep_names)}" if rep_names else "")
+        + f". **Surviving 2025 (recent validation, anchors only): {len(surv_names)}**"
+        + (f" — {', '.join(surv_names)}" if surv_names else "")
         + ".\n"
     )
     out.append(
@@ -378,6 +383,54 @@ def render_discovery(res: V7Discovery, cfg: V7Config) -> str:
                 ]
                 for r in rows
             ],
+        )
+    )
+    out.append(
+        "\n## 11. Cost-aware reading of the repeatable effects (bracket expectancy, anchors)\n"
+    )
+    out.append(
+        "Expected value of a bracket (+X target, -Y stop, first touch within 180 min) from the +X-before-Y probabilities: "
+        "EV_gross = p x X - (1 - p) x Y in bps; net subtracts the ~15 bps Bybit round trip. Unresolved cases are ignored, so this is an upper bound for the resolved population.\n"
+    )
+    brows = []
+    rep_names_set = {x["name"] for x in rows if x["repeatable_discovery"]}
+    for r in res.discovery:
+        d = r["definition"]
+        if not d["anchor"] or "all" not in r or d["name"] not in rep_names_set:
+            continue
+        for key, v in r["all"]["before"].items():
+            x = float(key.split("%")[0].lstrip("+"))
+            y = float(key.split("_-")[1].rstrip("%"))
+            pe, pc = v["event_p"], v["control_p"]
+            if pe is None or pc is None:
+                continue
+            ev_e = (pe * x - (1 - pe) * y) * 100.0
+            ev_c = (pc * x - (1 - pc) * y) * 100.0
+            brows.append(
+                [
+                    d["name"],
+                    key,
+                    _pct(pe),
+                    _pct(pc),
+                    _n(ev_e, 1),
+                    _n(ev_c, 1),
+                    _n(ev_e - 15.0, 1),
+                    v["event_resolved"],
+                ]
+            )
+    out.append(
+        _table(
+            [
+                "definition",
+                "bracket",
+                "P(event)",
+                "P(control)",
+                "EV gross event (bps)",
+                "EV gross control (bps)",
+                "EV net event after 15 bps",
+                "resolved events",
+            ],
+            brows,
         )
     )
     out.append("\n## Reading\n")

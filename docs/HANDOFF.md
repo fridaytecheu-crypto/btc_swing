@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6 and V6.1 both failed their gates; locked holdout unspent; V5.1 pending on the Mac)
+# Handoff — state of work and next steps (2026-10-12, V6/V6.1 failed their gates; V7 Phase 1 edge discovery done: almost no microstructure edge; locked holdout unspent; V5.1 pending on the Mac)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -256,6 +256,18 @@
   the count, not the edge; without the cost filter 4.2 trades/day at -0.56R.** Recommendation: do NOT spend the
   locked holdout (unspent, never downloaded by V6/V6.1). Design section 17 and report section 14 record the
   reading. V5/V5.1/V6 untouched; nothing activated; no order placed.
+- 2026-10-12 (V7 MICROSTRUCTURE SPECIALIST, Phase 1 only): `docs/BTC_V7_MICROSTRUCTURE_DESIGN.md` frozen at
+  d419f3c before any result (windows discovery 2022-01..2024-06 / validation 1 2024 H2 / recent 2025 H1,
+  holdout untouched); second streaming pass of the Bybit archive into 1m microstructure bars with PIT
+  large-trade thresholds (`btc-swing v7 ingest`, `manifests/v7_bybit_1m_dataset_manifest.json`, 1.9 M
+  rows); matched-control edge discovery (`btc-swing v7 discover`, `btc_swing/v7/`, methods amendments in
+  design section 8). Result `reports/BTC_SWING_V7_EDGE_DISCOVERY.md`: intensity bursts, taker imbalance,
+  large-trade imbalance, delta acceleration and efficient flow carry no incremental information (Δ60 within
+  +-0.03 ATR5m, < 1 bp, of matched controls); FAILED_BREAK reversal (+0.12 ATR, ~2 bps, 5/5 half-years,
+  survives both validation windows) and E1 TREND_PULLBACK_RELEASE (+0.17 ATR, ~3 bps, 3.6 events/day,
+  wide intervals, only +-1% brackets positive after costs at ~+6 bps) are the only repeatable effects;
+  absorption is a ~1.5 bp effect that fails validation 1; compression breaks reverse; E2/E3 unsupported.
+  STOPPED at the discovery report as instructed; no engine built; nothing activated; no order placed.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -289,6 +301,8 @@ uv run btc-swing v5 forward status                                          # li
 uv run btc-swing v6 research                                                # V6 development + validation (~6 min); --oos --confirm-once-only-oos spends the OOS window once
 uv run btc-swing v6 render                                                  # re-render the V6 report from reports/v6/summary.json
 uv run btc-swing v61 ingest                                                 # Bybit trade archive -> 5m rows 2021-11-15..2025-06-30 (~1 h; holdout refused)
+uv run btc-swing v7 ingest                                                  # Bybit trade archive -> 1m microstructure bars (~1.5 h; holdout refused)
+uv run btc-swing v7 discover                                                # V7 Phase 1 edge discovery (~6 min); stops at the report
 uv run btc-swing v61 research                                               # V6.1 development + validation (~4 min); stops before the holdout
 bash scripts/check.sh
 ```

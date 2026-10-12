@@ -1,0 +1,32 @@
+{
+ "code_version": "91e625cff891",
+ "config_hash": "4142820876a369b98a7697f48f1ddeccee2c12ca0ea3e9d7bb4a42bc79f47336",
+ "data_hash_bybit_1m": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+ "frame_meta": {
+  "days": 1322,
+  "feature_version": "v7-feat-1",
+  "first_open_ms": 1637107200000,
+  "last_close_ms": 1751328000000,
+  "rows": 1903680,
+  "valid_rows": 1903640
+ },
+ "n_definitions": 25,
+ "ran_at": "2026-10-12T10:25:36.831018+00:00",
+ "research_hash": "a319f4e8d750404cc915d19240608b7d74b95867a6068417695327b9f8c6489d",
+ "strategy_name": "btc_swing_v7_microstructure_discovery",
+ "windows": {
+  "discovery": {
+   "end_exclusive": "2024-07-01 00:00",
+   "start": "2022-01-01 00:00"
+  },
+  "locked_holdout": "not read",
+  "recent_validation": {
+   "end_exclusive": "2025-07-01 00:00",
+   "start": "2025-01-01 00:00"
+  },
+  "validation_1": {
+   "end_exclusive": "2025-01-01 00:00",
+   "start": "2024-07-01 00:00"
+  }
+ }
+}

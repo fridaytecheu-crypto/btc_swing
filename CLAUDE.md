@@ -54,6 +54,14 @@ FAIL (net -0.27R, PF 0.51; gross negative; Binance identical) — do NOT spend t
 2025-07..2026-09 is NOT downloaded or run by this track; spending it needs an explicit owner decision. Paper only; no
 exchange client.
 
+V7 MICROSTRUCTURE SPECIALIST (`btc_swing/v7/`, `config/btc_swing_v7.yaml`, `docs/BTC_V7_MICROSTRUCTURE_DESIGN.md`
+frozen at d419f3c, `reports/BTC_SWING_V7_EDGE_DISCOVERY.md`, tables `reports/v7/`): Phase 1 edge discovery only
+(no engine). Bybit-native 1m microstructure dataset `data/btc/datasets/bybit_trades_1m/` (PIT large-trade
+thresholds; `btc-swing v7 ingest`; holdout days refused). Result: almost no incremental microstructure edge
+(flow features within 1 bp of matched controls; failed-break reversal ~2 bps and trend-pullback release ~3 bps
+are the only repeatable effects). CLI `btc-swing v7 ingest|discover|render`. Paper only; nothing activated;
+any Phase 2 needs a new owner pre-registration.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

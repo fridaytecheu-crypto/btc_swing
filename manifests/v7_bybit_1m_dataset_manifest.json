@@ -1,0 +1,47 @@
+{
+ "archive_bytes": 56330981318,
+ "daily_quantile_rows": 1324,
+ "dataset": "bybit_trades_1m",
+ "days": 1324,
+ "days_without_pit_thresholds": [
+  "2021-11-15",
+  "2021-11-16",
+  "2021-11-17",
+  "2021-11-18",
+  "2021-11-19",
+  "2021-11-20",
+  "2021-11-21"
+ ],
+ "example_thresholds": {
+  "2022-01-03": {
+   "q90": 0.349,
+   "q95": 0.784,
+   "q975": 1.444
+  },
+  "2023-06-15": {
+   "q90": 0.4,
+   "q95": 0.733,
+   "q975": 1.06
+  },
+  "2024-06-28": {
+   "q90": 0.202,
+   "q95": 0.4,
+   "q975": 0.659
+  },
+  "2025-06-30": {
+   "q90": 0.11,
+   "q95": 0.258,
+   "q975": 0.5
+  }
+ },
+ "first_day": "2021-11-15",
+ "holdout_policy": "days >= 2025-07-01 refused without --allow-holdout; none downloaded",
+ "large_trade_threshold_rule": "median of the previous 7 days' p90/p95/p97.5 trade size; day D never influences its own threshold",
+ "last_day": "2025-06-30",
+ "manifest_hash": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+ "per_day_manifest": "data/btc/raw/manifest_bybit_trades_1m.jsonl",
+ "rows_1m": 1906520,
+ "source": "https://public.bybit.com/trading/BTCUSDT/ (daily gzip tick trades; raw not retained)",
+ "symbol": "BTCUSDT",
+ "trades": 1522116900
+}

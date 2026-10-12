@@ -66,6 +66,13 @@ Bybit-native 5m dataset streamed from the public trade archive (`data/btc/datase
 structure-first families with a structure-only control, cost-share eligibility, taker/maker/maker-first entry
 models and time stops: **>= 2 trades/day FAIL (0.40/day), net edge FAIL (gross -0.12R, net -0.27R, PF 0.51 on
 validation; Binance robustness identical)**; the locked holdout stays unspent.
+**V7 MICROSTRUCTURE SPECIALIST, Phase 1** (`btc_swing/v7/`, `config/btc_swing_v7.yaml`,
+`docs/BTC_V7_MICROSTRUCTURE_DESIGN.md`, `btc-swing v7 ingest|discover|render`,
+`reports/BTC_SWING_V7_EDGE_DISCOVERY.md`): matched-control edge discovery on Bybit-native 1m microstructure
+bars (trade intensity, taker and PIT large-trade imbalance, delta, price response to delta, compression,
+structure). **Almost no incremental microstructure edge**: flow features sit within 1 bp of matched
+controls; only a failed-range-break reversal (~2 bps at 60 min) and a trend-pullback release (~3 bps,
+3.6 events/day) are repeatable, both far below the ~15 bps round trip. Stopped at the report.
 
 ## Quick start
 ```
@@ -75,7 +82,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 247 tests, no database needed
+uv run pytest -q                                            # 252 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

@@ -144,3 +144,30 @@ mechanical problems; they were fixed before the pre-registered run and are recor
    bar state that produced a single 6.8-ATR outlier in the dry run.
 The report also states every effect in basis points next to ATR units so it can be read against the
 ~15 bps round-trip cost. No threshold, window or decision standard changed.
+
+## 9. Phase 1 outcome (2026-10-12; `reports/BTC_SWING_V7_EDGE_DISCOVERY.md`, tables `reports/v7/`)
+
+Executed as pre-registered on the Bybit-native 1m dataset (1,324 days, 1.52 bn trades, manifest
+`manifests/v7_bybit_1m_dataset_manifest.json`); 25 event definitions, 1.9 M minutes, day-cluster
+bootstrap, matched controls. Headline: **the microstructure states studied carry almost no incremental
+information about future displacement once hour, volatility, recent return, regime and structure are
+held fixed.** Trade-intensity bursts, taker imbalance, large-trade imbalance, delta acceleration and
+efficient flow all show Δ60 within +-0.03 ATR5m (under 1 bp) of their matched controls. Three
+definitions meet the declared discovery standard, and they are small:
+
+| definition | first-in-cluster/day | Δ60 ATR5m [95% CI] | Δ60 bps | half-years + | val 1 Δ60 | 2025 Δ60 | survives both |
+|---|---|---|---|---|---|---|---|
+| FAILED_BREAK (reversal after a failed 60-min range break) | 25.8 | 0.119 [0.077, 0.161] | 2.1 | 5/5 | +0.108 [0.036, 0.176] | +0.063 [-0.007, 0.142] | yes |
+| E1 TREND_PULLBACK_RELEASE | 3.6 | 0.165 [0.032, 0.300] | 3.0 | 4/5 (2022H1 negative) | +0.183 [-0.078, 0.427] | +0.238 [-0.023, 0.476] | yes (intervals include 0) |
+| ABSORPTION (strong flow, weak response, traded against the flow) | 26.2 | 0.064 [0.029, 0.093] | 1.6 | 4/5 | -0.049 [-0.118, 0.019] | +0.019 [-0.047, 0.086] | no |
+
+Cost-aware reading: the only bracket with positive expectancy after the ~15 bps round trip is E1 with
++-1.0% levels (P(+1% before -1%) 60.4% vs 55.3% control, about +6 bps net per resolved event), at
+3.6 raw first-in-cluster events per day; FAILED_BREAK improves the +X-before-Y probabilities by about
+2 pp but its brackets stay negative after costs; absorption is detectable only as a ~1.5 bp mean
+effect that fails validation 1. Compression breaks REVERSE on average (Δ60 -0.07 to -0.15 ATR), so
+E3 as hypothesised has no support; E2 (sweep + absorption) is positive on discovery but negative on
+both validation windows. Large-trade clusters add nothing beyond plain imbalance; intensity bursts
+have no continuation edge. Answers to the ten questions are in report sections 6-11. Phase 1 stops
+here; whether an E1-only Phase 2 (one engine, wide structural stops, expected frequency well below
+the 3-6/day objective) is worth pre-registering is the owner's decision.
