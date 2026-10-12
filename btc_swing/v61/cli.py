@@ -31,3 +31,58 @@ def v61_ingest(
     stats_out.parent.mkdir(parents=True, exist_ok=True)
     stats_out.write_text(json.dumps(st.as_dict(), indent=1, sort_keys=True))
     typer.echo(json.dumps(st.as_dict()))
+
+
+@v61_app.command("research")
+def v61_research(
+    config: Path = Path("config/btc_swing_v6_1.yaml"),
+    out_dir: Path = Path("reports/v61"),
+    report: Path = Path("reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md"),
+) -> None:
+    """Development + validation with the pre-registered protocol; STOPS before the locked holdout."""
+    from btc_swing.v61.config import load_v61_config
+    from btc_swing.v61.report import render_report_v61
+    from btc_swing.v61.research import run_v61_research
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    cfg = load_v61_config(config)
+    res = run_v61_research(cfg, get_settings().data_dir, out_dir)
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(render_report_v61(res, cfg))
+    v = res.verdict
+    typer.echo(
+        json.dumps(
+            {
+                "frequency_pass": v["frequency_pass"],
+                "net_edge_pass": v["net_edge_pass"],
+                "recommendation": v["recommendation"],
+                "report": str(report),
+            }
+        )
+    )
+
+
+@v61_app.command("render")
+def v61_render(
+    config: Path = Path("config/btc_swing_v6_1.yaml"),
+    out_dir: Path = Path("reports/v61"),
+    report: Path = Path("reports/BTC_SWING_V6_1_STRUCTURE_FLOW_RESEARCH.md"),
+) -> None:
+    """Re-render the report from the persisted summary.json / manifest.json."""
+    from btc_swing.v61.config import load_v61_config
+    from btc_swing.v61.report import render_report_v61
+    from btc_swing.v61.research import V61Research
+
+    cfg = load_v61_config(config)
+    summary = json.loads((out_dir / "summary.json").read_text())
+    manifest = json.loads((out_dir / "manifest.json").read_text())
+    res = V61Research(
+        manifest,
+        summary["development"],
+        summary["validation"],
+        summary["frozen"],
+        summary["final"],
+        summary["verdict"],
+    )
+    report.write_text(render_report_v61(res, cfg))
+    typer.echo(str(report))

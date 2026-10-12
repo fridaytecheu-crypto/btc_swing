@@ -162,7 +162,9 @@ reporting grid (section 10). Longs are written; shorts are the exact mirror.
   predicate: sweep bar imbalance_5m <= -0.10 (aggression into the low) AND trigger bar
   imbalance_5m >= 0.10 (exhaustion/flip); OI confirmation (oi_chg_15m <= 0 at trigger) reported
   only.
-- Stop: sweep low - 0.1 ATR5. Invalidation: close below the sweep low.
+- Stop: sweep low - 0.1 ATR5. Invalidation: close below the sweep low. Structural target (exit
+  variant S): reference + 2 x sweep depth, but at least 1.0 ATR15 beyond the trigger close (a shallow
+  sweep would otherwise put the target below the entry).
 
 **D. RANGE_EDGE_MEAN_REVERSION** (regime RANGE only)
 - Structural range: hi_4h/lo_4h with width 1.5-5 ATR15, each edge tested >= 2 times
@@ -180,7 +182,9 @@ reporting grid (section 10). Longs are written; shorts are the exact mirror.
 - Consolidation: the next 3-12 bars have total range <= 0.8 ATR15, mean rel_vol_5m <= 1.0 and a
   low above origin + 50% of the impulse (holds the upper half).
 - Trigger: 5m close above the consolidation high with extension (close - origin) <= 3.5 ATR15
-  (strict). Flow predicate: imbalance_5m >= 0.15 and rel_vol_5m >= 1.2 (renewed flow).
+  (strict). Bars that make a new impulse extreme belong to the impulse: the consolidation count
+  restarts after them (the impulse is complete only when a bar fails to extend). Flow predicate:
+  imbalance_5m >= 0.15 and rel_vol_5m >= 1.2 (renewed flow).
 - Stop: consolidation low - 0.1 ATR5. Invalidation: close < consolidation low - 0.25 ATR15, or
   the consolidation exceeds 12 bars.
 
@@ -219,7 +223,8 @@ distances are reported in buckets < 0.5%, 0.5-0.75%, 0.75-1.0%, 1.0-1.25%, > 1.2
 Variants (one chosen on development by the declared rule, then frozen): P1 partial 0.75R (30%) /
 1.5R (30%) / runner on the 15m swing trail; P2 partial 1R (40%) / 2R (30%) / trail; S full exit at the
 structural target (family-specific: impulse high for A/E, level + range width for B, reference +
-sweep depth x 2 for C, range midpoint for D) with breakeven after +1R; T trail (15m swing - 0.25
+sweep depth x 2 (at least 1 ATR15 beyond the entry) for C, range midpoint for D; for E the
+consolidation break targets impulse extreme + 0.5 x impulse size) with breakeven after +1R; T trail (15m swing - 0.25
 ATR15) activated after +1R MFE, no targets. Time stop: if MFE < 0.5R after T hours, exit at the
 close; T in {2, 4, 6} h plus the 8 h hard cap always. Selection rule on development, declared now:
 among (variant, time stop) pairs with >= 2.0 trades per calendar day, the highest net R per day

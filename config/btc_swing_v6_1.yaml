@@ -1,0 +1,175 @@
+# BTC V6.1 — STRUCTURE + FLOW INTRADAY. Pre-registered configuration (docs/BTC_V6_1_STRUCTURE_FLOW_DESIGN.md).
+# Paper/backtest only; no exchange client exists in this track. Every threshold was declared before
+# any V6.1 result was read; grids are stability reports, the scalar next to a grid is the primary.
+strategy_name: btc_swing_v6_1_structure_flow
+
+instrument:
+  symbol: BTCUSDT
+  quote: USDT
+  primary_venue: bybit_linear_perp
+  robustness_venue: binance_um_perp
+  aux_venue_note: "open interest, funding and premium are Binance USDT-M series (Bybit history not reachable); confirmation features only"
+
+features:
+  atr_period: 14
+  ema_fast: 21
+  ema_slow: 50
+  swing_k: 2
+  rel_vol_days: 20
+  min_baseline_days: 10
+  rv_rank_days: 30
+  prem_z_window: 8640
+  prem_z_min_periods: 2880
+  trend_slope_bars_1h: 6
+  edge_touch_atr15: 0.25
+
+families:
+  trend_pullback_reclaim:         # A (regime TREND in the trade direction)
+    enabled: true
+    impulse_lookback_bars: 24
+    impulse_min_atr15: 1.5
+    impulse_grid: [1.25, 1.5, 2.0]
+    retrace_min: 0.38
+    retrace_max: 0.62
+    retrace_invalid: 0.786
+    level_proximity_atr15: 0.5    # within this of EMA21(15m) / session VWAP / broken prior-1h high
+    pullback_range_max_atr5: 2.0  # last 3 bars' total range (momentum loss) ...
+    pullback_max_rel_vol: 1.0     # ... or contracting volume
+    min_bars_after_high: 3
+    flow_imbalance_5m: 0.10
+  breakout_retest_continuation:   # B (any regime)
+    enabled: true
+    range_min_atr15: 1.5
+    range_max_atr15: 6.0
+    break_min_atr15: 0.1
+    retest_window_bars: 12
+    retest_below_atr15: 0.3
+    retest_above_atr15: 0.5
+    hold_below_atr15: 0.1
+    extended_atr15: 1.5
+    max_trigger_ext_atr15: 1.0
+    invalidation_atr15: 0.5
+    flow_rel_vol: 1.2
+    flow_imbalance_5m: 0.10
+    rel_vol_grid: [1.0, 1.2, 1.5]
+  liquidity_sweep_reversal:       # C (any regime; location first)
+    enabled: true
+    reference_lookback_bars: 48
+    reference_exclude_bars: 6
+    sweep_min_atr15: 0.05
+    sweep_grid: [0.0, 0.05, 0.15]
+    flow_sweep_imbalance: -0.10
+    flow_trigger_imbalance: 0.10
+  range_edge_mean_reversion:      # D (regime RANGE only)
+    enabled: true
+    range_min_atr15: 1.5
+    range_max_atr15: 5.0
+    min_edge_touches: 2
+    min_opposite_distance_atr15: 1.2
+    edge_zone: 0.20
+    trigger_zone: 0.30
+    touch_atr15: 0.1
+    invalidation_atr15: 0.5
+    flow_imbalance_5m: 0.10
+    edge_zone_grid: [0.15, 0.20, 0.25]
+  impulse_consolidation_break:    # E (regime TREND in the trade direction)
+    enabled: true
+    impulse_bars: 12
+    impulse_min_atr15: 2.0
+    impulse_grid: [1.5, 2.0, 2.5]
+    min_efficiency: 0.6
+    consolidation_min_bars: 3
+    consolidation_max_bars: 12
+    consolidation_max_range_atr15: 0.8
+    consolidation_max_rel_vol: 1.0
+    hold_share: 0.5
+    max_extension_atr15: 3.5
+    invalidation_atr15: 0.25
+    flow_imbalance_5m: 0.15
+    flow_rel_vol: 1.2
+
+stops:
+  buffer_atr5: 0.10
+  floor_atr15: 1.0
+  max_atr15: 3.0
+  floor_pct_grid: [0.0, 0.5, 0.75, 1.0, 1.25]   # 0 = structural + ATR floor (primary)
+  bucket_edges_pct: [0.5, 0.75, 1.0, 1.25]
+
+episode:
+  max_age_bars: 24
+  entry_window_bars: 6
+  cooldown_after_close_bars: 3
+  cooldown_after_invalidation_bars: 3
+  cooldown_after_two_losses_bars: 12
+  cluster_bars: 12
+  family_priority: [TREND_PULLBACK_RECLAIM, LIQUIDITY_SWEEP_REVERSAL, BREAKOUT_RETEST_CONTINUATION, IMPULSE_CONSOLIDATION_BREAK, RANGE_EDGE_MEAN_REVERSION]
+  one_position: true
+  pyramiding: false
+  averaging: false
+
+risk:
+  initial_equity: 5000.0
+  risk_per_trade: 0.0015
+  risk_grid: [0.001, 0.00125, 0.0015, 0.002, 0.0025]
+  allowed_leverage: [1, 2, 3, 5, 10]
+  max_leverage: 10
+  margin_cap_frac: 0.25
+  maintenance_margin_rate: 0.005
+  min_stop_to_liquidation_ratio: 3.0
+  min_liquidation_distance_atr: 3.0
+  liquidation_atr_tf: 4h
+  compounding: false
+
+overlay:
+  max_full_risk_losses_per_day: 5
+  max_daily_loss_frac: 0.0075
+  full_risk_loss_r: -0.9
+
+exits:
+  variants:
+    P1: {name: P1, tp1_r: 0.75, tp1_frac: 0.3, tp2_r: 1.5, tp2_frac: 0.3, description: "partial 0.75R 30% / 1.5R 30% / runner on the 15m swing trail"}
+    P2: {name: P2, tp1_r: 1.0, tp1_frac: 0.4, tp2_r: 2.0, tp2_frac: 0.3, description: "partial 1R 40% / 2R 30% / runner on the 15m swing trail"}
+    S:  {name: S, structural_target: true, breakeven_after_r: 1.0, description: "full exit at the family's structural target; breakeven after +1R"}
+    T:  {name: T, trail_after_r: 1.0, description: "15m swing trail activated after +1R MFE, no targets"}
+  default_variant: P1
+  time_stop_hours_grid: [2, 4, 6]
+  default_time_stop_hours: 4
+  time_stop_min_mfe_r: 0.5        # time stop fires only if MFE < this after the time
+  trail_atr15_buffer: 0.25
+  max_hold_hours: 8
+
+costs:                            # Bybit standard account fees
+  taker_fee_bps: 5.5
+  maker_fee_bps: 2.0
+  entry_slippage_bps: 1.0
+  stop_slippage_bps: 3.0
+  spread_ticks: 1.0
+  tick_size: 0.1
+  apply_funding: true
+  entry_mode: TAKER               # primary; MAKER and MAKER_FIRST compared
+  maker_timeout_bars: 2
+  maker_first_max_drift_atr15: 1.0
+  cost_share_stop_max: 0.20       # primary theta: round-trip cost / stop distance
+  cost_share_grid: [0.15, 0.20, 0.25, 0.30, 0.0]   # 0 = no filter
+
+research:
+  development: {start: "2022-01-01", end_exclusive: "2024-07-01"}
+  validation: {start: "2024-07-01", end_exclusive: "2025-07-01"}
+  locked_holdout: {start: "2025-07-01", end_exclusive: "2026-10-01"}   # NOT run in this phase
+  warmup_days: 45
+  dev_folds: 6
+  val_folds: 2
+  null_k: 20
+  bootstrap_resamples: 1000
+  seed: 11
+  gate:
+    min_trades_per_calendar_day: 2.0
+    preferred_trades_per_day: [2.0, 4.0]
+    min_net_expectancy_r: 0.0
+    min_profit_factor: 1.0
+    preferred_profit_factor: 1.1
+    max_drawdown_frac: 0.10
+    min_positive_dev_folds: 4
+    min_positive_val_halves: 1
+    max_single_family_share: 0.80
+    exit_selection_min_positive_folds: 4
