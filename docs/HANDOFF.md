@@ -341,6 +341,17 @@
   observation_start = freeze time). Owner steps on the Mac (ONLY the V11 shadow agent; V10 untouched):
   `git pull`; `uv sync --all-extras`; `bash deploy/macos/install_v11_macos.sh`;
   `uv run btc-swing v11 forward status`. There is no V11 Demo command and nothing to activate.
+- 2026-10-13 (V11 freeze): `manifests/v11_forward_freeze.json` written at 11:37:48 UTC (observation_start =
+  frozen_at; code 98445d6; strategy hash `a324dbcb0394…`, config hash `74472b51dab0…`; versions v11-feat-1 /
+  v11-score-1 / v11-exit-1). Cloud live-feed verification (verification root, 9 min foreground + two earlier
+  short runs; `reports/forward_v11/`): 33,910 messages in 540 s, 0 reconnects / gaps / duplicates / engine errors,
+  latency p50 13 ms, p99 38 ms; 1m bars completed and persisted; microstructure histories populated; journals
+  verify. NOT proven live in the cloud: indicator / score population on real bars, because the frame needs 120
+  completed live bars (2 h) and a cloud run cannot outlive a session turn (the container's outbound proxy is
+  torn down between turns, which killed the 2h25m attempt at 09:07 UTC after 5.5 min). That path is covered by
+  `tests/v11` (the real live code path driven with 1000 bars) and will be visible on the Mac after ~2 h of
+  shadow observation (`v11 forward status`; sizing additionally needs ~15 h for ATR(1h)). The freeze records the
+  shadow verification as NOT_PASSED for that reason; nothing in the strategy depends on it.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

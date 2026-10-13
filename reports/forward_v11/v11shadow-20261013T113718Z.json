@@ -1,0 +1,36 @@
+{
+ "blocked": 0,
+ "candidates": 0,
+ "chains": {
+  "episodes": true
+ },
+ "checks": {
+  "bars updating": false,
+  "duration >= min hours": false,
+  "indicators populate": true,
+  "journals valid": true,
+  "no exchange order path": true,
+  "risk / stop sanity on executed": true
+ },
+ "counters": {
+  "armed": 0,
+  "blocked": 0,
+  "candidates": 0,
+  "executed": 0,
+  "nearmiss": 0,
+  "skipped_while_open": 0,
+  "triggers": 0
+ },
+ "duration_s": 0.0,
+ "executed": 0,
+ "generated_utc": "2026-10-13T11:37:18.135012+00:00",
+ "last_bar": "n/a",
+ "near_misses": 0,
+ "observation_start": "2026-10-13 11:28:07",
+ "outcomes": 0,
+ "run_id": "v11shadow-20261013T113718Z",
+ "shadow_net_usd": 0,
+ "shadow_trades": 0,
+ "signals": 0,
+ "status": "NOT_PASSED"
+}
