@@ -69,6 +69,7 @@ class EngineThread(threading.Thread):
         self.allow_demo = allow_demo
         self.engine = V10Engine(cfg, paths, observation_start_ms, mode="SHADOW")
         self.errors = 0
+        self.diag_errors = 0
         self.refused: str | None = None
         self._last_report_day = ""
 
@@ -122,7 +123,14 @@ class EngineThread(threading.Thread):
                     next_tick = now + tick_s
                 if now - last_diag >= 5:
                     last_diag = now
-                    self._write_diag()
+                    try:
+                        self._write_diag()
+                    except Exception as e:  # reporting only: never stall the engine
+                        self.diag_errors += 1
+                        if self.diag_errors in (1, 10, 100, 1000):
+                            log.exception(
+                                "diagnostic snapshot failed (%s): %s", self.diag_errors, e
+                            )
                 if now - last_save >= 30:
                     last_save = now
                     self.engine.save()
@@ -141,12 +149,15 @@ class EngineThread(threading.Thread):
     def _write_diag(self) -> None:
         d = self.engine.diagnostic() | {
             "written_at": datetime.now(UTC).isoformat(),
+            "written_ms": int(time.time() * 1000),
             "queue": len(self.queue),
             "mode": self.engine.mode,
             "demo_refused": self.refused,
+            "engine_errors": self.errors,
+            "diag_errors": self.diag_errors,
         }
         tmp = self.paths.derived / "diagnostic.tmp"
-        tmp.write_text(json.dumps(_clean(d), sort_keys=True))
+        tmp.write_text(json.dumps(_clean(d), sort_keys=True, default=str))
         tmp.replace(self.paths.derived / "diagnostic.json")
 
     def _daily_report(self) -> None:

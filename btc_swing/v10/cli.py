@@ -85,14 +85,19 @@ def forward_diagnostic(config: Path = CFG, verification: bool = False) -> None:
 @forward10.command("shadow-report")
 def forward_shadow_report(
     config: Path = CFG,
-    verification: bool = True,
+    verification: bool = typer.Option(
+        True,
+        "--verification/--no-verification",
+        help="root: --verification (pre-freeze, default) or --no-verification (observation)",
+    ),
+    observation: bool = typer.Option(False, "--observation", help="alias for --no-verification"),
     min_hours: float = 3.0,
     out_dir: Path = Path("reports/forward_v10"),
 ) -> None:
     """Shadow verification checklist (feed, mechanics, sanity); writes JSON + markdown."""
     from btc_swing.v10.report import render_shadow_report, shadow_report
 
-    cfg, paths = _ctx(config, verification)
+    cfg, paths = _ctx(config, verification and not observation)
     rep = shadow_report(cfg, paths, min_hours)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{rep['run_id']}.json").write_text(
@@ -136,6 +141,48 @@ def forward_report(
 
     cfg, paths = _ctx(config, verification)
     typer.echo(daily_report(cfg, paths, day))
+
+
+@forward10.command("warmup")
+def forward_warmup(config: Path = CFG, verification: bool = False) -> None:
+    """When the engine's warm-up completed, reconstructed from persisted state and bars (read-only)."""
+    from btc_swing.v10.status import warmup_reconstruction
+
+    cfg, paths = _ctx(config, verification)
+    typer.echo(json.dumps(warmup_reconstruction(cfg, paths), indent=1, default=str))
+
+
+@forward10.command("trades")
+def forward_trades(config: Path = CFG, verification: bool = False) -> None:
+    """Closed shadow trades with their decision records (warm / valid flags at trigger; read-only)."""
+    from btc_swing.v10.status import trades_table
+
+    cfg, paths = _ctx(config, verification)
+    rows = trades_table(cfg, paths)
+    if not rows:
+        typer.echo("no closed shadow trades")
+        return
+    typer.echo(
+        "| # | decision | family | side | entry ref/fill | stop (%, note) | tp1 | tp2 | exit | reason | legs | "
+        "net USDT | net R | hold min | warm@trigger | atr5 | book | trade age s |"
+    )
+    typer.echo("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for i, r in enumerate(rows, 1):
+        typer.echo(
+            f"| {i} | {r['decision_ts']} | {r['family']} | {r['side']} | {r['entry_ref']:.1f} / {r['entry_fill']:.1f} | "
+            f"{r['stop']:.1f} ({r['stop_pct']:.2f}, {r['stop_note']}) | {r['tp1']:.1f} | {r['tp2']:.1f} | {r['exit_ts']} | "
+            f"{r['exit_reason']} | {r['legs']} | {r['net_usd']:.2f} | {r['net_r']:.2f} | {r['hold_min']:.0f} | "
+            f"{r['warm_at_trigger']} | {r['atr5_at_trigger']} | {r['book_valid_at_trigger']} | {r['trade_age_s_at_trigger']} |"
+        )
+    typer.echo(
+        json.dumps(
+            {
+                "trades": len(rows),
+                "all_warm_at_trigger": all(r["warm_at_trigger"] == 1.0 for r in rows),
+                "net_usd": sum(r["net_usd"] for r in rows),
+            }
+        )
+    )
 
 
 @forward10.command("verify-raw")

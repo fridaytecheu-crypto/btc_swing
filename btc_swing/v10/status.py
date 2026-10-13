@@ -68,12 +68,114 @@ def exchange_snapshot(cfg_demo_path: str = "config/btc_swing_v5_demo.yaml") -> d
         return {"reachable": False, "credentials": True, "error": str(e)[:200]}
 
 
+def warmup_reconstruction(cfg: V10Config, paths: V10Paths) -> dict[str, Any]:
+    """When the live engine's `warm` flag first held, reconstructed from persisted facts (read-only):
+    histories need `history_min_samples` 10-s samples (= observation start + 30 min with continuous
+    ticks), ATR1m needs 15 completed 1m bars, ATR5m needs 15 completed aligned 5m bars (+2 s grace).
+    Exact to the second for the bar parts; the history part assumes uninterrupted ticks."""
+    fc = cfg.features
+    st = json.loads(paths.state.read_text()) if paths.state.exists() else {}
+    start = st.get("observation_start_ms")
+    rows = read_jsonl(paths.bars_1m)
+    opens = sorted(int(r["open_ms"]) for r in rows)
+    open_set = set(opens)
+    out: dict[str, Any] = {"observation_start": _iso(start), "bars_1m": len(opens)}
+    hist_ms = int(start) + fc.history_min_samples * fc.history_sample_s * 1000 if start else None
+    out["histories_ready_at"] = _iso(hist_ms)
+    need = fc.atr_period + 1
+    atr1_ms = opens[need - 1] + 60_000 + 2000 if len(opens) >= need else None
+    out["atr1_ready_at"] = _iso(atr1_ms)
+    done5 = [
+        k
+        for k in sorted({(o // 300_000) * 300_000 for o in opens})
+        if all((k + i * 60_000) in open_set for i in range(5))
+    ]
+    atr5_ms = done5[need - 1] + 300_000 + 2000 if len(done5) >= need else None
+    out["atr5_ready_at"] = _iso(atr5_ms)
+    out["completed_5m_bars"] = len(done5)
+    parts = [x for x in (hist_ms, atr1_ms, atr5_ms) if x is not None]
+    out["warm_at"] = _iso(max(parts)) if len(parts) == 3 else None
+    hist = st.get("history") or {}
+    out["warm_now_by_state"] = bool(
+        hist
+        and all(
+            len(v) >= fc.history_min_samples
+            for k, v in hist.items()
+            if not k.startswith("abs_impact")
+        )
+        and atr5_ms is not None
+        and atr1_ms is not None
+    )
+    out["history_samples"] = {k: len(v) for k, v in hist.items()}
+    return out
+
+
+def trades_table(cfg: V10Config, paths: V10Paths) -> list[dict[str, Any]]:
+    """Every closed shadow trade joined with its decision record (warm / valid flags at trigger)."""
+    sigs = {
+        r["data"]["signal_id"]: r["data"]
+        for r in read_jsonl(paths.signals)
+        if r["kind"].startswith("SIGNAL_")
+    }
+    out = []
+    for r in read_jsonl(paths.shadow_trades):
+        if r["kind"] != "SHADOW_CLOSED":
+            continue
+        t = r["data"]
+        sg = sigs.get(t["signal_id"], {})
+        f = sg.get("features") or {}
+        fa = sg.get("arm_features") or {}
+        out.append(
+            {
+                "signal_id": t["signal_id"],
+                "decision_ts": sg.get("decision_ts"),
+                "armed_ts": sg.get("armed_ts"),
+                "family": t["family"],
+                "side": "LONG" if int(t["side"]) > 0 else "SHORT",
+                "entry_ref": t["entry_ref"],
+                "entry_fill": t["entry_fill"],
+                "stop": t["stop"],
+                "tp1": t["tp1"],
+                "tp2": t["tp2"],
+                "exit_ts": _iso(t["exit_ms"]),
+                "exit_reason": t["exit_reason"],
+                "legs": [(lg["kind"], lg["ref"]) for lg in t["legs"]],
+                "net_usd": t["net_usd"],
+                "net_r": t["net_r"],
+                "hold_min": t["hold_min"],
+                "warm_at_trigger": f.get("warm"),
+                "atr5_at_trigger": f.get("atr5"),
+                "atr1_at_trigger": f.get("atr1"),
+                "book_valid_at_trigger": f.get("book_valid"),
+                "trade_age_s_at_trigger": f.get("trade_age_s"),
+                "warm_at_arm": fa.get("warm"),
+                "stop_pct": sg.get("stop_pct"),
+                "stop_note": sg.get("stop_note"),
+                "risk_usdt": sg.get("risk_usdt"),
+                "blockers": sg.get("blockers"),
+            }
+        )
+    return out
+
+
 def status_rows(cfg: V10Config, paths: V10Paths, live: bool = False) -> list[tuple[str, str]]:
     st = json.loads(paths.state.read_text()) if paths.state.exists() else {}
     alive, pid = runner_alive(paths)
     raw_age = latest_raw_age_s(paths)
     diag = diagnostic_snapshot(paths) or {}
     f = diag.get("features") or {}
+    diag_age: float | None = None
+    if diag.get("written_ms"):
+        diag_age = (time.time() * 1000 - float(diag["written_ms"])) / 1000
+    elif diag.get("written_at"):
+        try:
+            diag_age = (
+                datetime.now(UTC) - datetime.fromisoformat(diag["written_at"])
+            ).total_seconds()
+        except ValueError:
+            diag_age = None
+    wu = warmup_reconstruction(cfg, paths)
+    stale = alive and diag_age is not None and diag_age > 60
     fz = load_freeze()
     act = activation_state(paths)
     eff = effective_activation(paths)
@@ -174,8 +276,15 @@ def status_rows(cfg: V10Config, paths: V10Paths, live: bool = False) -> list[tup
             f"{f.get('book_age_ms', 'n/a')} ms / {f.get('book_valid', 'n/a')}",
         ),
         (
-            "warm-up",
-            f"{'READY' if f.get('warm') == 1.0 else 'WARMING'} {json.dumps(diag.get('history') or {})}",
+            "warm-up (from state + bars)",
+            f"{'READY' if wu['warm_now_by_state'] else 'WARMING'} since {wu['warm_at']} "
+            f"(histories {wu['histories_ready_at']}, atr1 {wu['atr1_ready_at']}, atr5 {wu['atr5_ready_at']}); "
+            f"samples {json.dumps(wu['history_samples'])}",
+        ),
+        (
+            "diagnostic snapshot",
+            f"written {diag.get('written_at')} ({'n/a' if diag_age is None else f'{diag_age:.0f} s ago'})"
+            f"{' STALE: runner alive but snapshot old' if stale else ''}; snapshot warm flag {f.get('warm')}",
         ),
         (
             "reconciliation (V10 demo)",

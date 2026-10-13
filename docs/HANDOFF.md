@@ -308,6 +308,16 @@
   few hours; `uv run btc-swing v10 forward shadow-report --verification false`; review; then and only then
   `uv run btc-swing v10 demo activate --note "<why>"` (every gate must pass; requires V5.1 STRATEGY_DEMO
   inactive: `uv run btc-swing v51 demo deactivate --note "<why>"` is the owner command, never automatic).
+- 2026-10-13 (V10 diagnostic freshness bug, reporting only): on the Mac observation run `v10 forward diagnostic`
+  froze at 22:14 UTC (bars_1m 72) and `status` kept printing WARMING although the engine had armed, triggered and
+  executed shadow trades. Cause (reproduced by replay): family B's location condition compares a numpy float, which
+  yields `numpy.bool_`; the 5-second diagnostic snapshot writer then failed on `json.dumps`, and the engine loop's
+  generic handler slept 1 s per failure. The engine, journals and state kept running (journals use `default=str`).
+  Fix (no strategy change): `_clean` converts numpy scalars, condition dicts are plain bools, the snapshot writer is
+  isolated from the tick loop (no stall), `status` derives warm-up from state.json + bars_1m.jsonl and flags a stale
+  snapshot; new read-only `v10 forward warmup` and `v10 forward trades`; `shadow-report` accepts `--no-verification`
+  or `--observation` for the observation root. The fix takes effect on the Mac only after the owner restarts the V10
+  agent (`launchctl kickstart -k gui/$(id -u)/com.btcswing.v10-forward`), at a moment of their choosing.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

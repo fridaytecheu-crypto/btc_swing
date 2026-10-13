@@ -295,3 +295,28 @@ def test_v10_link_ids_and_activation_refusals(tmp_path: Path) -> None:
         raise AssertionError("must refuse")
     except RuntimeError:
         pass
+
+
+def test_diagnostic_serialises_numpy_bools_and_status_warmup(tmp_path: Path) -> None:
+    import numpy as np
+
+    from btc_swing.v10.engine import _clean
+    from btc_swing.v10.status import status_rows, trades_table, warmup_reconstruction
+
+    c = cfg()
+    fam = Family("B", 1, c)
+    f = {"warm": 1.0, "abs_delta_pct_30": 0.99, "imb_30": -0.5, "dist_lo": np.float64(0.2)}
+    conds = fam.arm_conditions(f)
+    assert all(type(v) is bool for v in conds.values()) and conds["at_location"] is True
+    json.dumps(
+        _clean({"x": np.bool_(True), "y": np.float64(1.5), "z": np.int64(3), "n": float("nan")})
+    )
+    paths = V10Paths(tmp_path, "BTCUSDT", verification=True)
+    eng = V10Engine(c, paths, observation_start_ms=T0, mode="SHADOW")
+    eng.tick(T0)
+    eng.save()
+    wu = warmup_reconstruction(c, paths)
+    assert wu["warm_now_by_state"] is False and wu["warm_at"] is None
+    rows = dict(status_rows(c, paths))
+    assert rows["warm-up (from state + bars)"].startswith("WARMING")
+    assert trades_table(c, paths) == []

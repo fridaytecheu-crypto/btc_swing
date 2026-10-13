@@ -13,6 +13,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+import numpy as np
+
 from btc_swing.core.enums import Side
 from btc_swing.risk.sizing import size_position
 from btc_swing.v5.demo.journal import HashChainJournal
@@ -46,8 +48,14 @@ def _iso(ms: int | float | None) -> str | None:
 
 
 def _clean(v: Any) -> Any:
-    if isinstance(v, float):
-        return None if (math.isnan(v) or math.isinf(v)) else v
+    """JSON-safe copy: NaN/inf -> None, numpy scalars (incl. numpy.bool_) -> Python scalars."""
+    if isinstance(v, bool | np.bool_):
+        return bool(v)
+    if isinstance(v, float | np.floating):
+        x = float(v)
+        return None if (math.isnan(x) or math.isinf(x)) else x
+    if isinstance(v, np.integer):
+        return int(v)
     if isinstance(v, dict):
         return {str(k): _clean(x) for k, x in v.items()}
     if isinstance(v, list | tuple):

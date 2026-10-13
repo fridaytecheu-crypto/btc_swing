@@ -46,6 +46,11 @@ class Transition:
     detail: dict[str, Any]
 
 
+def _bools(c: Conds) -> Conds:
+    """Plain Python bools (a comparison on a numpy float yields numpy.bool_, which json refuses)."""
+    return {k: bool(v) for k, v in c.items()}
+
+
 def absorption(f: dict[str, float], flow_pct: float, impact_pct: float) -> bool:
     return (
         _ok(f.get("abs_delta_pct_30", math.nan))
@@ -64,6 +69,9 @@ class Family:
 
     # ------------------------------------------------------------------ conditions
     def arm_conditions(self, f: dict[str, float]) -> Conds:
+        return _bools(self._arm_conditions(f))
+
+    def _arm_conditions(self, f: dict[str, float]) -> Conds:
         s = self.s
 
         def g(k: str) -> float:
@@ -104,6 +112,9 @@ class Family:
         }
 
     def trigger_conditions(self, f: dict[str, float]) -> Conds:
+        return _bools(self._trigger_conditions(f))
+
+    def _trigger_conditions(self, f: dict[str, float]) -> Conds:
         s, st = self.s, self.st
 
         def g(k: str) -> float:
