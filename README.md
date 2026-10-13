@@ -103,6 +103,14 @@ three families (trend pullback, breakout / volatility expansion, liquidity sweep
 RESEARCH + SHADOW ONLY: no exchange client, no Demo authority, fully isolated from V10 (own feed, journals,
 state, LaunchAgent `com.btcswing.v11-forward`).
 
+**V11.1 COST-AWARE HIGH-CONVICTION INTRADAY** (`btc_swing/v11_1/`, `config/btc_swing_v11_1.yaml`,
+`docs/BTC_V11_1_COST_AWARE_INTRADAY_DESIGN.md`, `btc-swing v111 config|research|render`,
+`reports/BTC_V11_1_COST_AWARE_INTRADAY_BACKTEST.md`): the V11 information groups unchanged, plus independent
+evidence (>= 4 directional groups), no trend contradiction, tightened A/B/C requirements, failed-breakout
+rejection, 0.55% stop floor / 1.00% cap and a cost-in-R filter (reject above 0.25R). ONE pre-registered run:
+classification C (validation 0.10 trades/day, net -0.20R, PF 0.36; cost/R fell from 0.36 to 0.20 but gross
+stayed ~0). RESEARCH ONLY: no shadow runner was built; V10 and V11 untouched.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -111,7 +119,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 287 tests, no database needed
+uv run pytest -q                                            # 300 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

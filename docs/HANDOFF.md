@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-13, V6..V9 closed; V10 ACTIVE on Bybit Demo on the Mac (sacrosanct); V11 FAST MULTI-FACTOR INTRADAY built, historical C, shadow-only; locked holdout unspent)
+# Handoff — state of work and next steps (2026-10-13, V6..V9 closed; V10 ACTIVE on Bybit Demo on the Mac (sacrosanct); V11 frozen shadow benchmark (historical C); V11.1 cost-aware follow-up: C, research only; locked holdout unspent)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -352,6 +352,21 @@
   `tests/v11` (the real live code path driven with 1000 bars) and will be visible on the Mac after ~2 h of
   shadow observation (`v11 forward status`; sizing additionally needs ~15 h for ATR(1h)). The freeze records the
   shadow verification as NOT_PASSED for that reason; nothing in the strategy depends on it.
+- 2026-10-13 (V11.1 COST-AWARE HIGH-CONVICTION INTRADAY, owner follow-up experiment, RESEARCH ONLY): design
+  `docs/BTC_V11_1_COST_AWARE_INTRADAY_DESIGN.md` pre-registered before the run (H1 entry quality: >= 4 independent
+  directional groups, no trend contradiction, tightened A/B/C rules, failed-breakout rejection; H2 stop geometry:
+  0.55% floor / 1.00% cap, 0.20 ATR buffers, cost filter 14 bps / stop <= 0.25R). `btc_swing/v11_1/` subclasses
+  the V11 engine (V11 imported read-only; V10 and V11 files hash-identical before and after; neither runner
+  touched). ONE run (`btc-swing v111 research`) on the V11 windows: classification C — VALIDATION 36 trades
+  (0.10/day, 91% zero-trade days), gross +0.003R, cost 0.204R, net -0.201R, PF 0.36, max DD 1.1%, median hold
+  26 min; TRAIN 64 trades (0.07/day), gross -0.036R, cost 0.204R, net -0.240R, PF 0.40. Versus V11 validation
+  (2.67/day, gross -0.051R, cost 0.364R, net -0.415R, PF 0.19): cost/R -0.16R (wider stops work as cost
+  arithmetic), gross +0.05R (not an edge), frequency -96%; families B and C produced zero trades under the
+  pre-registered gates (B: failed-breakout / RVOL / momentum rules; C: extension rule plus evidence and trend
+  contradiction); COST_TOO_HIGH rejected 227 (validation) / 543 (train) otherwise-valid decisions, STOP_TOO_WIDE
+  16 / 36. Nothing was tuned after the run (the engine's evidence counter was switched to the vectorised array
+  during the run; both derive from the same confirmation flags, so results are identical). No V11.1 shadow
+  runner, no freeze, no V11.2. `tests/v11_1` (13 tests). Next step: the owner's decision; nothing is proposed.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -392,6 +407,7 @@ bash scripts/check.sh
 uv run btc-swing v11 research                                            # ONE pre-registered historical experiment (done; C)
 uv run btc-swing v11 forward run --shadow-verification --duration 600       # live-feed verification (verification root)
 uv run btc-swing v11 forward status | diagnostic | shadow-report | trades   # read-only; --verification / --no-verification
+uv run btc-swing v111 research                                           # V11.1 ONE pre-registered experiment (done; C)
 ```
 
 ## Known data facts

@@ -111,6 +111,17 @@ config|research|render`, `v11 forward run [--shadow-verification]|status|diagnos
 macOS agent `com.btcswing.v11-forward` (`deploy/macos/install_v11_macos.sh`, installs ONLY the V11 agent).
 Never modify V10 (or V5/V5.1) for V11; never activate any V11 Demo execution (none exists).
 
+V11.1 COST-AWARE HIGH-CONVICTION INTRADAY (`btc_swing/v11_1/`, `config/btc_swing_v11_1.yaml` strategy hash
+`b1c55b9b968d…`, `docs/BTC_V11_1_COST_AWARE_INTRADAY_DESIGN.md` pre-registered before the run,
+`reports/BTC_V11_1_COST_AWARE_INTRADAY_BACKTEST.md/.json`, tables `reports/v11_1/`, prefix `V111S-`): RESEARCH
+ONLY, a subclass of the V11 engine (V11 imported read-only; V11 files, freeze and journals untouched). H1 entry
+quality (>= 4 independent directional groups with sub-score >= 0.60 and 0.20 margin, no trend contradiction,
+tightened family rules, failed-breakout rejection) + H2 stop geometry (0.55% floor, 1.00% cap ->
+`STOP_TOO_WIDE_V11_1`, cost filter 14 bps / stop > 0.25R -> `COST_TOO_HIGH`); exits, risk, costs as V11. ONE run
+on the V11 windows: classification C — VALIDATION 36 trades (0.10/day), gross +0.003R, cost 0.204R, net -0.201R,
+PF 0.36; TRAIN 64 trades (0.07/day), net -0.240R, PF 0.40; families B and C never passed the gates. Cost/R
+halved, gross edge did not appear. No shadow runner, no V11.2, no tuning. CLI `btc-swing v111 config|research|render`.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
