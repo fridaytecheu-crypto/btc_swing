@@ -122,6 +122,20 @@ on the V11 windows: classification C — VALIDATION 36 trades (0.10/day), gross 
 PF 0.36; TRAIN 64 trades (0.07/day), net -0.240R, PF 0.40; families B and C never passed the gates. Cost/R
 halved, gross edge did not appear. No shadow runner, no V11.2, no tuning. CLI `btc-swing v111 config|research|render`.
 
+V11-WARM WARM-STARTED V11 SHADOW (`btc_swing/v11_warm/`, `config/btc_swing_v11_warm.yaml`, `docs/BTC_V11_WARM_START.md`,
+freeze `manifests/v11_warm_forward_freeze.json`, bootstrap `manifests/v11_warm_bootstrap_1m.parquet` (30 days of exact
+Bybit 1m bars 2026-09-13..2026-10-12, content hash `3132d3410b54…`), data `<BTC_DATA_DIR>/btc/forward_v11_warm/` and
+`forward_v11_warm_verify/`, reports `reports/forward_v11_warm/`): NOT a strategy; the frozen V11 strategy object
+(every load asserts the V11 strategy hash equals the V11 freeze) run by a subclass of the V11 live scorer with a
+31-day rolling frame seeded from the bootstrap bars, open-time bar detection, and a 30-min live warm-up before
+observation_start. Gap-fill between the archive end and the seed instant uses Bybit PUBLIC klines (Mac only; price /
+volume exact, taker split NaN, trade count placeholder 1). Never backfilled: order book, liquidations, live
+microstructure; derivatives warm live. CLI `btc-swing v11w config|bootstrap|seed`, `v11w forward
+run|status|diagnostic|verify-warm|shadow-report|freeze|trades`; macOS agent `com.btcswing.v11-warm-forward`
+(`deploy/macos/install_v11_warm_macos.sh`, installs ONLY this agent). Known V11 finding (reported, NOT changed): the
+V11 live loop detects new bars by deque length and will stop scoring once 22 days of live bars fill its deque.
+Never modify V10 / V11 for V11-WARM; no Demo execution exists.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

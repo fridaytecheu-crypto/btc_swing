@@ -1,0 +1,15 @@
+# BTC V11-WARM — WARM-STARTED V11 SHADOW. Operational experiment, NOT a new strategy: every strategy
+# section is V11's own config (config/btc_swing_v11.yaml), hash-checked against manifests/v11_forward_freeze.json.
+# The only difference to the frozen V11 shadow is the PIT-safe feature warm-start described in
+# docs/BTC_V11_WARM_START.md. Shadow only: no exchange client, no Demo authority.
+strategy_name: BTC_V11_WARM_SHADOW
+v11_config: config/btc_swing_v11.yaml
+
+warm:
+  bootstrap_days: 30            # recent public-archive 1m bars ending strictly before observation_start
+  window_days: 31               # rolling frame the live scorer rebuilds each minute (RVOL needs > 20 days)
+  live_warmup_min: 30           # observation_start = frozen_at + this; covers flow windows (<= 20 min)
+                                # and the V10 microstructure normalisation history (180 samples x 10 s)
+  gapfill_max_hours: 48         # kline gap-fill (price/volume only, taker split unknown) allowed span
+  required_warm_fields: [ema50, rsi7, rsi14, adx14, rvol5, vol_tercile, atr5, atr1h, vwap, struct15, hi60]
+  required_warm_groups: [trend, momentum, volatility, volume, location]
