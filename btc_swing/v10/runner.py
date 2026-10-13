@@ -93,6 +93,7 @@ class EngineThread(threading.Thread):
                 self.engine.j_sig.append(
                     "DEMO_EXECUTOR_ATTACHED", {"activated_at": act["activated_at"]}
                 )
+                self.engine.start_demo_regime(str(act["activated_at"]))
             except Exception as e:
                 msg = f"{type(e).__name__}: {e}"[:300]
                 if msg != self.refused:

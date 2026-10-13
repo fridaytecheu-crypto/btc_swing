@@ -266,7 +266,15 @@ def status_rows(cfg: V10Config, paths: V10Paths, live: bool = False) -> list[tup
             "daily safety",
             f"BLOCKED until {_iso(st.get('blocked_until_ms'))} ({st.get('blocked_reason')})"
             if st.get("blocked_until_ms") and now_ms < int(st["blocked_until_ms"])
-            else f"OK (executed in 24h: {len(st.get('executed_ms') or [])}/{cfg.safety.max_trades_rolling_24h}, day realised {float(st.get('day_realised_usd') or 0):.2f} USDT)",
+            else f"OK (day realised {float(st.get('day_realised_usd') or 0):.2f} USDT)",
+        ),
+        (
+            "shadow executions 24h",
+            f"{len(st.get('executed_ms') or [])} (shadow cap {cfg.safety.max_trades_rolling_24h}; never consumes the Demo allowance)",
+        ),
+        (
+            "demo executions 24h",
+            f"{len(st.get('demo_executed_ms') or [])}/{cfg.safety.demo_max_trades_rolling_24h}",
         ),
         ("feed gaps (receive > 5 s)", str(diag.get("receive_gaps", "see shadow-report"))),
         ("trade feed age", f"{f.get('trade_age_s', 'n/a')} s"),

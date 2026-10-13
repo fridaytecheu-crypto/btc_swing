@@ -107,7 +107,8 @@ class V10Engine:
             "observation_start_ms": self.observation_start_ms,
             "families": {},
             "shadow_position": None,
-            "executed_ms": [],  # rolling 24h executed decisions
+            "executed_ms": [],  # rolling 24h SHADOW executions
+            "demo_executed_ms": [],  # rolling 24h DEMO executions (separate allowance)
             "day": None,
             "day_realised_usd": 0.0,
             "consecutive_full_losses": 0,
@@ -251,6 +252,9 @@ class V10Engine:
                 self.state["blocked_until_ms"] = None
                 self.state["blocked_reason"] = None
         self.state["executed_ms"] = [t for t in self.state["executed_ms"] if now - t < DAY_MS]
+        self.state["demo_executed_ms"] = [
+            t for t in self.state.get("demo_executed_ms") or [] if now - t < DAY_MS
+        ]
 
     # ------------------------------------------------------------------ journals
     def _base(self, fam: Family, now: int) -> dict[str, Any]:
@@ -319,11 +323,34 @@ class V10Engine:
             b.append("POSITION_OPEN")
         if self.state.get("blocked_until_ms") and now < int(self.state["blocked_until_ms"]):
             b.append(f"DAILY_SAFETY:{self.state.get('blocked_reason')}")
-        if len(self.state["executed_ms"]) >= sc.max_trades_rolling_24h:
+        if self.executor is not None:
+            if len(self.state.get("demo_executed_ms") or []) >= sc.demo_max_trades_rolling_24h:
+                b.append("MAX_DEMO_TRADES_24H")
+        elif len(self.state["executed_ms"]) >= sc.max_trades_rolling_24h:
             b.append("MAX_TRADES_24H")
         if fam.st.armed_ms is not None and now - fam.st.armed_ms < 0:
             b.append("CLOCK")
         return b
+
+    def start_demo_regime(self, activated_at: str) -> None:
+        """Called once when the Demo executor attaches: Demo starts with 0 executions in 24 h and
+        fresh day / streak counters. Shadow journals, shadow statistics and shadow counters untouched."""
+        before = {
+            "day_realised_usd": self.state.get("day_realised_usd"),
+            "consecutive_full_losses": self.state.get("consecutive_full_losses"),
+            "blocked_until_ms": self.state.get("blocked_until_ms"),
+            "blocked_reason": self.state.get("blocked_reason"),
+            "shadow_executed_24h": len(self.state.get("executed_ms") or []),
+        }
+        self.state["demo_executed_ms"] = []
+        self.state["day_realised_usd"] = 0.0
+        self.state["consecutive_full_losses"] = 0
+        self.state["blocked_until_ms"] = None
+        self.state["blocked_reason"] = None
+        self.j_sig.append(
+            "DEMO_REGIME_STARTED", {"activated_at": activated_at, "shadow_counters_before": before}
+        )
+        self.save()
 
     def has_open_position(self) -> bool:
         if self.executor is not None:
@@ -403,7 +430,10 @@ class V10Engine:
         rec["action"] = "EXECUTED"
         rec["decision_ms"] = t_decide
         self.state["counters"]["executed"] += 1
-        self.state["executed_ms"].append(now)
+        if self.executor is not None:
+            self.state["demo_executed_ms"] = [*(self.state.get("demo_executed_ms") or []), now]
+        else:
+            self.state["executed_ms"].append(now)
         self.j_sig.append("SIGNAL_EXECUTED", rec)
         self._queue_outcome(sig_id, "EXECUTED", now, last, s)
         if self.executor is not None:

@@ -93,7 +93,8 @@ risk:
   compounding: false
 
 safety:
-  max_trades_rolling_24h: 5
+  max_trades_rolling_24h: 5         # SHADOW executions per rolling 24 h (shadow counter only)
+  demo_max_trades_rolling_24h: 10   # DEMO executions per rolling 24 h (owner decision 2026-10-13; demo counter only)
   daily_stop_frac: 0.005          # -0.50 % of reference equity realised on the UTC day
   max_consecutive_losses: 3
   decision_max_delay_s: 5.0       # trigger older than this at decision time -> BLOCKED (ENTRY_TOO_LATE)

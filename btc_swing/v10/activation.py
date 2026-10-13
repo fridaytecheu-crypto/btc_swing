@@ -9,11 +9,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from btc_swing.v5.demo.activation import activation_state as v5_activation_state
 from btc_swing.v5.demo.activation import effective_activation as v5_effective_activation
 from btc_swing.v5.demo.journal import HashChainJournal
 from btc_swing.v5.forward.host import authority_state, host_identity
-from btc_swing.v10.config import V10Config
+from btc_swing.v10.config import V10Config, strategy_hash_of
 from btc_swing.v10.paths import V10Paths
 
 ACTIVATED = "STRATEGY_DEMO_V10_ACTIVATED"
@@ -157,9 +159,16 @@ def v10_gates(
         and feed_age_s <= cfg.features.trade_feed_max_age_s * 12,
         {"runner_alive": runner_alive, "feed_age_s": feed_age_s},
     )
-    g["V10 freeze present and config hash unchanged"] = gate(
-        fz.get("config_hash") == cfg.config_hash,
-        {"freeze": str(fz.get("config_hash", "missing"))[:12], "config": cfg.config_hash[:12]},
+    frozen_strategy = (
+        strategy_hash_of(yaml.safe_load(fz["config_yaml"])) if fz.get("config_yaml") else None
+    )
+    g["V10 freeze present and STRATEGY sections unchanged"] = gate(
+        frozen_strategy == cfg.strategy_hash,
+        {
+            "freeze": str(frozen_strategy or "missing")[:12],
+            "config": cfg.strategy_hash[:12],
+            "operational_changed": fz.get("config_hash") != cfg.config_hash,
+        },
     )
     g["test suite green"] = gate(tests.get("ok", False), tests.get("summary"))
     g["shadow verification PASSED"] = gate(

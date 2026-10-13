@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -106,7 +107,8 @@ class CostsCfg(_Strict):
 
 
 class SafetyCfg(_Strict):
-    max_trades_rolling_24h: int = Field(ge=1)
+    max_trades_rolling_24h: int = Field(ge=1)  # shadow executions
+    demo_max_trades_rolling_24h: int = Field(ge=1, le=20)  # demo executions (separate counter)
     daily_stop_frac: float = Field(gt=0, lt=0.05)
     max_consecutive_losses: int = Field(ge=1)
     decision_max_delay_s: float = Field(gt=0)
@@ -142,6 +144,19 @@ class V10Config(_Strict):
     @property
     def config_hash(self) -> str:
         return sha256_text(self.canonical_yaml())
+
+    @property
+    def strategy_hash(self) -> str:
+        """Hash of the STRATEGY sections only (what the freeze pins); operational sections
+        (collector, safety caps, outcomes, schedule) may change with a journaled note."""
+        return strategy_hash_of(self.model_dump(mode="json"))
+
+
+STRATEGY_SECTIONS = ("symbol", "features", "families", "stop", "exits", "costs", "risk")
+
+
+def strategy_hash_of(raw: dict[str, Any]) -> str:
+    return sha256_text(yaml.safe_dump({k: raw.get(k) for k in STRATEGY_SECTIONS}, sort_keys=True))
 
 
 DEFAULT_V10_CONFIG_PATH = Path("config/btc_swing_v10.yaml")

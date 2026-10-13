@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from btc_swing.core.versions import code_version
 from btc_swing.v5.forward.host import host_identity
 from btc_swing.v10.config import (
@@ -18,6 +20,7 @@ from btc_swing.v10.config import (
     V10_RISK_VERSION,
     V10_VERSION,
     V10Config,
+    strategy_hash_of,
 )
 
 FREEZE_PATH_V10 = Path("manifests/v10_forward_freeze.json")
@@ -30,6 +33,7 @@ def freeze_record(cfg: V10Config, shadow_report: dict[str, Any] | None) -> dict[
         "version": V10_VERSION,
         "mode": "FORWARD ONLY: shadow first; Bybit DEMO only after an owner activation event",
         "config_hash": cfg.config_hash,
+        "strategy_hash": cfg.strategy_hash,
         "code_version": code_version(),
         "feature_version": V10_FEATURE_VERSION,
         "family_version": V10_FAMILY_VERSION,
@@ -74,6 +78,8 @@ def check_freeze(cfg: V10Config, path: Path = FREEZE_PATH_V10) -> dict[str, Any]
     rec = load_freeze(path)
     if rec is None:
         raise RuntimeError("no V10 freeze: run `btc-swing v10 forward freeze` first")
-    if rec["config_hash"] != cfg.config_hash:
-        raise RuntimeError("V10 config hash differs from the freeze; refusing to run")
+    frozen_raw = yaml.safe_load(rec["config_yaml"])
+    if strategy_hash_of(frozen_raw) != cfg.strategy_hash:
+        raise RuntimeError("V10 STRATEGY sections differ from the freeze; refusing to run")
+    rec["operational_sections_changed"] = rec["config_hash"] != cfg.config_hash
     return rec

@@ -105,7 +105,13 @@ that satisfies all but one ARM condition (or all but one TRIGGER condition while
   frozen ladder [1, 2, 3, 5, 10] via `btc_swing/risk/sizing.py::size_position` (margin cap 25%,
   liquidation buffer 3 stops / 3 ATR1h); leverage never raises the stop risk; no pyramiding, averaging
   or martingale; max ONE V10 BTC position at a time.
-- DAILY SAFETY: max 5 EXECUTED V10 trades per rolling 24 h; daily stop at -0.50% of reference equity
+- DAILY SAFETY (amended 2026-10-13 by owner decision before Demo activation; operational, not a
+  strategy rule): SHADOW and DEMO executions are counted separately; the DEMO allowance is max 10
+  executed trades per rolling 24 h (`demo_max_trades_rolling_24h`), the shadow counter keeps its own
+  cap of 5 and never consumes the Demo allowance; when the Demo executor attaches, the day / streak
+  counters start fresh (journaled `DEMO_REGIME_STARTED`), shadow journals untouched. The freeze pins
+  the STRATEGY sections (symbol, features, families, stop, exits, costs, risk) by `strategy_hash`;
+  operational sections may change with a journaled note. Original text: max 5 EXECUTED V10 trades per rolling 24 h; daily stop at -0.50% of reference equity
   (-25 USDT) realised on the UTC day or 3 consecutive full-risk losses, whichever first; afterwards new
   entries are BLOCKED until the next UTC day while signals, near-misses and outcomes keep being logged.
 

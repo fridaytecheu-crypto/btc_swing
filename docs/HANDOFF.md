@@ -318,6 +318,12 @@
   snapshot; new read-only `v10 forward warmup` and `v10 forward trades`; `shadow-report` accepts `--no-verification`
   or `--observation` for the observation root. The fix takes effect on the Mac only after the owner restarts the V10
   agent (`launchctl kickstart -k gui/$(id -u)/com.btcswing.v10-forward`), at a moment of their choosing.
+- 2026-10-13 (V10 pre-activation change, owner request): shadow and Demo execution counters separated
+  (`executed_ms` = shadow, `demo_executed_ms` = demo); new `safety.demo_max_trades_rolling_24h: 10` (shadow cap
+  5 unchanged); `start_demo_regime` resets day / streak counters when the executor attaches (journaled); the
+  freeze check now pins the strategy sections (`strategy_hash`), so the operational cap change does not
+  invalidate `manifests/v10_forward_freeze.json`. Risk 5 USDT, -25 USDT daily stop, 3-loss streak, one position,
+  thresholds, stop geometry, observation_start and the shadow journals are unchanged.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

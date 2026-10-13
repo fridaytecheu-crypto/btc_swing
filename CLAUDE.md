@@ -87,7 +87,8 @@ allLiquidation `S=Buy` = a LONG was liquidated, verified empirically), 1-second 
 A (liquidation absorption reversal) / B (flow absorption at a level) / C (liquidity break continuation) as
 IDLE->ARMED->TRIGGERED->EXECUTED machines, immediate decision, shadow fills, Demo executor refused until the
 owner's `STRATEGY_DEMO_V10_ACTIVATED` event on the authoritative Mac (gates include V5/V5.1 inactive + flat,
-Demo flat, no open orders, lease held, freeze, tests, shadow report PASSED). CLI `btc-swing v10 forward
+Demo flat, no open orders, lease held, freeze, tests, shadow report PASSED). Shadow and Demo execution
+counters are separate (shadow cap 5, Demo cap 10 per rolling 24 h); the freeze pins the strategy sections only. CLI `btc-swing v10 forward
 run|status [--live]|diagnostic|shadow-report|freeze|report|verify-raw`, `v10 demo status|activate|deactivate|
 reconcile-ack`; macOS agent `com.btcswing.v10-forward` (`deploy/macos/install_v10_macos.sh`). Never modify
 V5/V5.1 for V10; never tune V10 rules during the first observation period; never activate from the cloud.

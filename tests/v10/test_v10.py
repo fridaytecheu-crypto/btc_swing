@@ -320,3 +320,63 @@ def test_diagnostic_serialises_numpy_bools_and_status_warmup(tmp_path: Path) -> 
     rows = dict(status_rows(c, paths))
     assert rows["warm-up (from state + bars)"].startswith("WARMING")
     assert trades_table(c, paths) == []
+
+
+def test_demo_and_shadow_execution_counters_are_separate(tmp_path: Path) -> None:
+    from btc_swing.v10.freeze import check_freeze, write_freeze
+
+    c = cfg()
+    assert c.safety.demo_max_trades_rolling_24h == 10 and c.safety.max_trades_rolling_24h == 5
+    paths = V10Paths(tmp_path, "BTCUSDT", verification=True)
+    eng = V10Engine(c, paths, observation_start_ms=T0, mode="SHADOW")
+    eng.tick(T0)
+    eng.state["executed_ms"] = [T0 - 1000] * 5  # five shadow executions in the window
+    fam = Family("A", 1, c)
+    feats = {"warm": 1.0, "trade_age_s": 0.1}
+    assert "MAX_TRADES_24H" in eng._safety_blockers(fam, feats, T0 + 1000)
+
+    class _Ex:
+        def enter(self, sig: dict, f: dict) -> dict:
+            return {"action": "ENTERED"}
+
+        def manage(self, now_ms: int) -> dict:
+            return {"action": "none"}
+
+        def has_position(self) -> bool:
+            return False
+
+        def closed_trades_since(self, t_ms: int) -> list:
+            return []
+
+    eng.state["consecutive_full_losses"] = 3
+    eng.state["blocked_until_ms"] = T0 + 10**9
+    eng.executor = _Ex()
+    eng.start_demo_regime("2026-10-13T00:00:00+00:00")
+    assert eng.state["demo_executed_ms"] == [] and eng.state["blocked_until_ms"] is None
+    assert len(eng.state["executed_ms"]) == 5  # shadow counter untouched
+    assert not any(
+        b.startswith("MAX_") or b.startswith("DAILY")
+        for b in eng._safety_blockers(fam, feats, T0 + 2000)
+    )
+    eng.state["demo_executed_ms"] = [T0] * 10
+    assert "MAX_DEMO_TRADES_24H" in eng._safety_blockers(fam, feats, T0 + 3000)
+    kinds = [r["kind"] for r in read_jsonl(paths.signals)]
+    assert "DEMO_REGIME_STARTED" in kinds
+    # freeze pins the strategy sections only: an operational cap change passes, a stop change refuses
+    fz = tmp_path / "freeze.json"
+    write_freeze(c, None, fz)
+    rec = check_freeze(c, fz)
+    assert rec["operational_sections_changed"] is False
+    raw = json.loads(json.dumps(c.model_dump(mode="json")))
+    raw["safety"]["demo_max_trades_rolling_24h"] = 7
+    from btc_swing.v10.config import V10Config
+
+    c2 = V10Config.model_validate(raw)
+    assert check_freeze(c2, fz)["operational_sections_changed"] is True
+    raw["stop"]["floor_pct"] = 0.9
+    c3 = V10Config.model_validate(raw)
+    try:
+        check_freeze(c3, fz)
+        raise AssertionError("strategy change must be refused")
+    except RuntimeError:
+        pass
