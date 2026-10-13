@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-12, V6..V9 closed; V10 LIVE MICROSTRUCTURE SNIPER built, shadow-verified, awaiting owner Demo activation on the Mac; locked holdout unspent)
+# Handoff — state of work and next steps (2026-10-13, V6..V9 closed; V10 ACTIVE on Bybit Demo on the Mac (sacrosanct); V11 FAST MULTI-FACTOR INTRADAY built, historical C, shadow-only; locked holdout unspent)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -324,6 +324,23 @@
   freeze check now pins the strategy sections (`strategy_hash`), so the operational cap change does not
   invalidate `manifests/v10_forward_freeze.json`. Risk 5 USDT, -25 USDT daily stop, 3-loss streak, one position,
   thresholds, stop geometry, observation_start and the shadow journals are unchanged.
+- 2026-10-13 (V11 FAST MULTI-FACTOR INTRADAY, new isolated generation; owner spec, RESEARCH + SHADOW ONLY):
+  V10 was ACTIVE on Bybit Demo during the whole build and was not touched (every V10 file byte-identical to
+  `eabd2a5`; verified by sha256 before and after). Phase 1 audit + design `docs/BTC_V11_FAST_MULTIFACTOR_DESIGN.md`
+  (frozen before any result: Bybit 1m dataset 2021-11..2025-06, Binance OI/funding PIT proxy, no volume profile,
+  no fabricated book / liquidation history, costs taker 5.5 + half-spread 0.5 + slippage 1 bps (3 on stops)).
+  Phase 2 `btc_swing/v11/` (features, score, engine, research, report, shadow runtime) + `tests/v11/` (17 tests:
+  PIT / no lookahead, renormalisation, LONG/SHORT symmetry, stop floor / cap rejection, fixed-risk sizing with
+  3x/5x invariance, TP quantities, break-even, 60-min stop, stall, costs, one position, V10/V11 isolation,
+  no exchange orders, freeze/hash, restart/recovery, journal integrity). Phase 3/4 ONE experiment
+  `reports/BTC_V11_FAST_MULTIFACTOR_BACKTEST.md`: classification C — TRAIN 2445 trades (2.68/day), net
+  -0.38R, PF 0.22; VALIDATION 974 trades (2.67/day), net -0.42R, PF 0.19; gross -0.02R / -0.05R, costs
+  0.37R per trade (2.7 USDT); median hold 20 min; every family and side negative; x1.5 costs worse. No
+  optimisation was done and none is proposed. Phase 5/6: shadow runner built and verified live in the cloud
+  (verification root; see `reports/forward_v11/`), then frozen (`manifests/v11_forward_freeze.json`,
+  observation_start = freeze time). Owner steps on the Mac (ONLY the V11 shadow agent; V10 untouched):
+  `git pull`; `uv sync --all-extras`; `bash deploy/macos/install_v11_macos.sh`;
+  `uv run btc-swing v11 forward status`. There is no V11 Demo command and nothing to activate.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -361,6 +378,9 @@ uv run btc-swing v7 ingest                                                  # By
 uv run btc-swing v7 discover                                                # V7 Phase 1 edge discovery (~6 min); stops at the report
 uv run btc-swing v61 research                                               # V6.1 development + validation (~4 min); stops before the holdout
 bash scripts/check.sh
+uv run btc-swing v11 research                                            # ONE pre-registered historical experiment (done; C)
+uv run btc-swing v11 forward run --shadow-verification --duration 600       # live-feed verification (verification root)
+uv run btc-swing v11 forward status | diagnostic | shadow-report | trades   # read-only; --verification / --no-verification
 ```
 
 ## Known data facts

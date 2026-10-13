@@ -92,6 +92,17 @@ reversal, flow absorption at a level, liquidity-break continuation) as explicit 
 hash-chained journals with forward outcomes and near-misses, and a Bybit DEMO executor that is refused until
 the owner's activation event on the authoritative Mac.
 
+**V11 FAST MULTI-FACTOR INTRADAY** (`btc_swing/v11/`, `config/btc_swing_v11.yaml`,
+`docs/BTC_V11_FAST_MULTIFACTOR_DESIGN.md`, `btc-swing v11 config|research|render`,
+`btc-swing v11 forward run|status|diagnostic|shadow-report|freeze|trades`,
+`reports/BTC_V11_FAST_MULTIFACTOR_BACKTEST.md`): one pre-registered multi-factor score (trend, momentum,
+volatility, volume, location, derivatives, live microstructure; renormalised over the available groups) with
+three families (trend pullback, breakout / volatility expansion, liquidity sweep reversal), structural stops
+(0.35% floor, 1.00% cap -> rejected), TP1 +0.6R 40% / TP2 +1.2R 40% / trailed runner, 20-min stall review,
+60-min hard stop, 0.15% fixed risk. Historical result: classification C (net -0.42R per trade on validation).
+RESEARCH + SHADOW ONLY: no exchange client, no Demo authority, fully isolated from V10 (own feed, journals,
+state, LaunchAgent `com.btcswing.v11-forward`).
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -100,7 +111,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 266 tests, no database needed
+uv run pytest -q                                            # 287 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

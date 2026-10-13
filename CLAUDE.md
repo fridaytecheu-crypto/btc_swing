@@ -93,6 +93,24 @@ run|status [--live]|diagnostic|shadow-report|freeze|report|verify-raw`, `v10 dem
 reconcile-ack`; macOS agent `com.btcswing.v10-forward` (`deploy/macos/install_v10_macos.sh`). Never modify
 V5/V5.1 for V10; never tune V10 rules during the first observation period; never activate from the cloud.
 
+V11 FAST MULTI-FACTOR INTRADAY (`btc_swing/v11/`, `config/btc_swing_v11.yaml` strategy hash `a324dbcb0394…`,
+`docs/BTC_V11_FAST_MULTIFACTOR_DESIGN.md`, `reports/BTC_V11_FAST_MULTIFACTOR_BACKTEST.md/.json`, tables
+`reports/v11/`, forward `reports/forward_v11/`, freeze `manifests/v11_forward_freeze.json`, data
+`<BTC_DATA_DIR>/btc/forward_v11/` and `forward_v11_verify/`, prefix `V11S-`; `V11D-` reserved, unused):
+RESEARCH + SHADOW ONLY. 0-100 multi-factor score (weights trend 20 / momentum 15 / volatility 10 / volume 15 /
+location 15 / derivatives 10 / microstructure 15, renormalised over available groups; candidate 65 / armed 70 /
+entry 75), families A trend pullback / B breakout-expansion / C sweep reversal, structural stop + ATR buffer
+(floor 0.35%, cap 1.00% -> `STOP_TOO_WIDE_FOR_V11`), TP1 +0.6R 40% / TP2 +1.2R 40% / runner trail, break-even
+after TP1, 20-min stall review, 60-min hard stop, risk 0.15% = 7.5 USDT, leverage ladder [1,2,3,5]. ONE
+historical experiment (TRAIN 2022-01..2024-06, VALIDATION 2024-07..2025-06, loads capped at 2025-07-01):
+classification C — ~2.7 trades/day, net -0.38R / -0.42R, PF 0.22 / 0.19, gross ~0, costs 0.37R; do NOT tune.
+Shadow runner reuses the V10 feed/feature classes as a library only (own instance, own raw root, 22-day
+rolling frame, microstructure for the last row only); it never imports V10 execution/activation/paths, never
+reads V10 state or the V10 Demo counter, never claims authority, and has no exchange client. CLI `btc-swing v11
+config|research|render`, `v11 forward run [--shadow-verification]|status|diagnostic|shadow-report|freeze|trades`;
+macOS agent `com.btcswing.v11-forward` (`deploy/macos/install_v11_macos.sh`, installs ONLY the V11 agent).
+Never modify V10 (or V5/V5.1) for V11; never activate any V11 Demo execution (none exists).
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
