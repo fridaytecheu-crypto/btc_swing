@@ -1,0 +1,84 @@
+{
+ "blocked": 0,
+ "candidates": 3,
+ "chains": {
+  "candidates": true,
+  "episodes": true,
+  "outcomes": true
+ },
+ "checks": {
+  "bars updating": true,
+  "duration >= min hours": true,
+  "features warm (pre-declared fields)": false,
+  "groups warm (pre-declared groups)": false,
+  "indicators populate": true,
+  "journals valid": true,
+  "no V10 / V11 coupling": true,
+  "no exchange order path": true,
+  "risk / stop sanity on executed": true
+ },
+ "counters": {
+  "armed": 0,
+  "blocked": 0,
+  "candidates": 3,
+  "executed": 0,
+  "nearmiss": 0,
+  "skipped_while_open": 0,
+  "triggers": 0
+ },
+ "duration_s": 2341.927,
+ "executed": 0,
+ "generated_utc": "2026-10-13T21:37:13.411401+00:00",
+ "last_bar": "2026-10-13 21:36:00",
+ "mode": "SHADOW ONLY (warm-started V11)",
+ "near_misses": 0,
+ "observation_start": "2026-10-13 20:56:58",
+ "outcomes": 5,
+ "run_id": "v11warm-20261013T213713Z",
+ "shadow_net_usd": 0,
+ "shadow_trades": 0,
+ "signals": 0,
+ "status": "NOT_PASSED",
+ "warm": {
+  "all_required_fields_populated": false,
+  "all_required_groups_populated": false,
+  "bars_in_window": 43287,
+  "bootstrap_bars_in_window": 43200,
+  "derivatives_contribution": 3.0,
+  "diagnostic_written_at": "2026-10-13T21:36:58.574619+00:00",
+  "in_window": true,
+  "last_bar": "2026-10-13T21:36:00+00:00",
+  "microstructure_contribution": 5.25,
+  "required_fields": {
+   "adx14": 46.45162285803356,
+   "atr1h": null,
+   "atr5": null,
+   "ema50": 82826.51981587472,
+   "hi60": 83419.7,
+   "rsi14": 49.13602924475595,
+   "rsi7": 61.873249233938544,
+   "rvol5": 3.5602928003329835,
+   "struct15": 1.0,
+   "vol_tercile": null,
+   "vwap": 83303.29714179353
+  },
+  "required_groups": {
+   "location": null,
+   "momentum": null,
+   "trend": null,
+   "volatility": null,
+   "volume": 9.75
+  },
+  "scores": {
+   "long": 45.0,
+   "short": 60.0
+  },
+  "seed": {
+   "bootstrap_bars": 43200,
+   "gapfill_bars": 0,
+   "last_close": "2026-10-13T00:00:00+00:00",
+   "sha256_bars": "3132d3410b546de2a8bb87e14859bcdcf11a992c182e55a1cf3244b839057d6c"
+  },
+  "status": "NOT_WARM"
+ }
+}

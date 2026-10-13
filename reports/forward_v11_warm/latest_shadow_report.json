@@ -1,0 +1,84 @@
+{
+ "blocked": 0,
+ "candidates": 9,
+ "chains": {
+  "candidates": true,
+  "episodes": true,
+  "outcomes": true
+ },
+ "checks": {
+  "bars updating": true,
+  "duration >= min hours": false,
+  "features warm (pre-declared fields)": false,
+  "groups warm (pre-declared groups)": false,
+  "indicators populate": true,
+  "journals valid": true,
+  "no V10 / V11 coupling": true,
+  "no exchange order path": true,
+  "risk / stop sanity on executed": true
+ },
+ "counters": {
+  "armed": 0,
+  "blocked": 0,
+  "candidates": 6,
+  "executed": 0,
+  "nearmiss": 0,
+  "skipped_while_open": 0,
+  "triggers": 0
+ },
+ "duration_s": 3876.575,
+ "executed": 0,
+ "generated_utc": "2026-10-13T23:12:43.623437+00:00",
+ "last_bar": "2026-10-13 23:12:00",
+ "mode": "SHADOW ONLY (warm-started V11)",
+ "near_misses": 0,
+ "observation_start": "2026-10-13 22:07:23",
+ "outcomes": 15,
+ "run_id": "v11warm-20261013T231243Z",
+ "shadow_net_usd": 0,
+ "shadow_trades": 0,
+ "signals": 0,
+ "status": "NOT_PASSED",
+ "warm": {
+  "all_required_fields_populated": false,
+  "all_required_groups_populated": false,
+  "bars_in_window": 43382,
+  "bootstrap_bars_in_window": 43200,
+  "derivatives_contribution": 6.0,
+  "diagnostic_written_at": "2026-10-13T23:12:20.087294+00:00",
+  "in_window": true,
+  "last_bar": "2026-10-13T23:12:00+00:00",
+  "microstructure_contribution": 0.0,
+  "required_fields": {
+   "adx14": 25.11394779757855,
+   "atr1h": null,
+   "atr5": 82.40178060631749,
+   "ema50": 83125.97189782439,
+   "hi60": 83511.0,
+   "rsi14": 32.24308483899976,
+   "rsi7": 19.926271971597473,
+   "rvol5": 3.2791114991027586,
+   "struct15": 1.0,
+   "vol_tercile": 1.0,
+   "vwap": 83343.43361949873
+  },
+  "required_groups": {
+   "location": 6.0,
+   "momentum": 6.0,
+   "trend": 13.0,
+   "volatility": null,
+   "volume": 3.75
+  },
+  "scores": {
+   "long": 38.611111111111114,
+   "short": 66.38888888888889
+  },
+  "seed": {
+   "bootstrap_bars": 43200,
+   "gapfill_bars": 0,
+   "last_close": "2026-10-13T00:00:00+00:00",
+   "sha256_bars": "3132d3410b546de2a8bb87e14859bcdcf11a992c182e55a1cf3244b839057d6c"
+  },
+  "status": "NOT_WARM"
+ }
+}

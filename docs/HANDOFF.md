@@ -1,4 +1,4 @@
-# Handoff — state of work and next steps (2026-10-13, V6..V9 closed; V10 ACTIVE on Bybit Demo on the Mac (sacrosanct); V11 frozen shadow benchmark (historical C); V11.1 cost-aware follow-up: C, research only; locked holdout unspent)
+# Handoff — state of work and next steps (2026-10-13, V6..V9 closed; V10 ACTIVE on Bybit Demo on the Mac (sacrosanct); V11 frozen cold-start shadow benchmark; V11.1: C; V11-WARM warm-started V11 shadow frozen, awaiting Mac install; locked holdout unspent)
 
 ## Where things stand
 - Migrated from the `jack-app` repository into this standalone repository; no dependency on the
@@ -367,6 +367,35 @@
   16 / 36. Nothing was tuned after the run (the engine's evidence counter was switched to the vectorised array
   during the run; both derive from the same confirmation flags, so results are identical). No V11.1 shadow
   runner, no freeze, no V11.2. `tests/v11_1` (13 tests). Next step: the owner's decision; nothing is proposed.
+- 2026-10-13 (V11 cold-start audit, read-only): after 7h40m on the Mac the V11 shadow had 441 bars, 25 candidates,
+  0 armed. Cause: RVOL needs > 20 calendar days of bars in the live frame (the `rvol_min_days: 10` setting never
+  applies live), the 5m ATR percentile ~2.4 days, 15m structure hours, the 1h ATR ~14 h; the backtest had a 30-day
+  warm-up. Cold-start replay of the exact live code on 8 validation starts: 0.38 trades/day in hours 0-8, 2.1/day
+  after 3 days, ~2.4-2.5/day after a week (warm: 2.5/day). Not a feed bug. Latent V11 bias noted: three volatility
+  flags read 0 instead of NaN while their percentile is missing (first ~2.4 days). NOT changed.
+- 2026-10-13 (V11-WARM, operational fix, owner request): `btc_swing/v11_warm/` runs the frozen V11 strategy object
+  (hash-checked against `manifests/v11_forward_freeze.json`) with a PIT-safe warm-start: 30 days of exact Bybit 1m
+  bars (public trade archive 2026-09-13..2026-10-12, 43,200 contiguous bars, OHLCV + taker split + trade count,
+  content hash `3132d3410b54…`) committed as `manifests/v11_warm_bootstrap_1m.parquet`; `v11w seed` writes them into
+  the V11-WARM root (never into a research dataset; refuses re-seeds and any bar closing after observation_start)
+  and, on the Mac only, appends Bybit PUBLIC klines for the archive->now gap (price/volume exact, taker split NaN,
+  trade count placeholder; REST is geo-blocked in the cloud). NOTE: 2026-09-13..09-30 lie inside the locked holdout;
+  they are rolling-baseline context only, never a statistic or decision. Never backfilled: order book,
+  liquidations, live microstructure; derivatives warm live. Runtime = V11 live scorer subclass: 31-day rolling
+  frame, open-time bar detection, 30-min live warm-up (observation_start = frozen_at + 30 min). Test proves identical
+  indicators / scores / decisions to V11 on the same warmed history. Cloud verification (verification root, no
+  gap-fill possible): 19 + 70 + 95 min live, 390k messages, 2 auto-reconnects, 0 gaps, 0 engine errors; RVOL,
+  EMA50, RSI, ADX, VWAP, structure populated from the first completed 5m bar, 60-min range after 61 bars, 5m ATR /
+  tercile after 75 min, 9 candidates journaled in-window, 15 outcomes, chains valid; still missing at the end only
+  the 1h ATR (14 h after a gap) and the Bollinger-based volatility group (20 contiguous 5m bars, 5 min after the
+  run ended) — both closed on the Mac by the kline gap-fill (unit-tested with mocked klines). Freeze
+  `manifests/v11_warm_forward_freeze.json`: frozen 2026-10-13T23:13:03Z, observation_start 2026-10-13T23:43:03Z,
+  code 6da87de, V11 strategy `a324dbcb0394…`, shadow report recorded NOT_PASSED (gap-dependent warm checks +
+  in-window duration 65 min < 90). FINDING (reported, NOT changed, owner decision): the V11 live loop detects new
+  bars by deque length, so the frozen V11 shadow will stop scoring once 22 days of live bars fill its deque
+  (~2026-11-04). Mac steps (ONLY the V11-WARM agent): `git pull`, `uv sync --all-extras`,
+  `bash deploy/macos/install_v11_warm_macos.sh` (seeds + gap-fills + loads the agent), `uv run btc-swing v11w forward
+  verify-warm`. No Demo exists for V11-WARM.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -408,6 +437,8 @@ uv run btc-swing v11 research                                            # ONE p
 uv run btc-swing v11 forward run --shadow-verification --duration 600       # live-feed verification (verification root)
 uv run btc-swing v11 forward status | diagnostic | shadow-report | trades   # read-only; --verification / --no-verification
 uv run btc-swing v111 research                                           # V11.1 ONE pre-registered experiment (done; C)
+uv run btc-swing v11w seed && uv run btc-swing v11w forward status      # V11-WARM: seed root (committed bootstrap + kline gap-fill), status
+uv run btc-swing v11w forward verify-warm | diagnostic | shadow-report  # read-only; --verification for the verify root
 ```
 
 ## Known data facts
