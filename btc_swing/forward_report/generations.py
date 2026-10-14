@@ -108,3 +108,39 @@ def spec_v11w(config: Path, verification: bool) -> tuple[GenerationSpec, float |
         },
     )
     return spec, float(v11.risk.initial_equity)
+
+
+def spec_v11lw(config: Path, verification: bool) -> tuple[GenerationSpec, float | None]:
+    from btc_swing.v11_lite_warm.config import load_v11lw_config
+    from btc_swing.v11_lite_warm.freeze import FREEZE_PATH_V11LW
+    from btc_swing.v11_lite_warm.paths import REPORTS_DIR, V11LiteWarmPaths
+
+    _lc, v11 = load_v11lw_config(config)
+    p = V11LiteWarmPaths(get_settings().data_dir, v11.symbol, verification=verification)
+    spec = GenerationSpec(
+        name="v11lw",
+        label="V11-LITE-WARM WARM-STARTED V11 SHADOW (family structure as labels)",
+        root=p.root,
+        reports_dir=REPORTS_DIR,
+        state=p.state,
+        freeze=FREEZE_PATH_V11LW,
+        strategy_hash=v11.strategy_hash,
+        journals={
+            "candidates": p.candidates,
+            "episodes": p.episodes,
+            "signals": p.signals,
+            "nearmiss": p.nearmiss,
+            "shadow_trades": p.shadow_trades,
+            "outcomes": p.outcomes,
+            "control_twin": p.control_twin,
+        },
+        execution_modes=("SHADOW",),
+        verification=verification,
+        notes={
+            "triggers": "not journaled per event; the state counter is reported",
+            "warm_start": "bars before observation_start are bootstrap / kline context only",
+            "family": "A/B/C is the trigger / stop TEMPLATE of a signal; the structure gate is a label",
+            "control_twin": "in-process strict V11 twin journal (TWIN_* records); see v11lw report compare",
+        },
+    )
+    return spec, float(v11.risk.initial_equity)

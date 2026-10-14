@@ -433,6 +433,16 @@
   trade-off A1 (struct15 side-or-neutral): TRAIN 3.86/day net -0.361R, VALIDATION 3.48/day net -0.386R (BASE
   -0.389 / -0.424). Family C: structure and score >= 70 coincide in 0.07% of C minutes; C alone without score gates
   trades ~30/day at gross +0.01R, net -0.40R. Selection-biased; nothing frozen, no runner, nothing adopted.
+- 2026-10-14 (V11-LITE-WARM, new isolated SHADOW-ONLY forward experiment, owner request): `btc_swing/v11_lite_warm/`,
+  design `docs/BTC_V11_LITE_WARM_DESIGN.md` pre-registered before observation. The warm-started V11 shadow with ONE delta:
+  `V11LiteEngine.structure()` = data validity only (A/B/C structure journaled as labels, never a gate); triggers, stops,
+  exits, risk, costs, score, thresholds, warm-start, seam healer unchanged (V11 strategy hash asserted). Read-only
+  Fibonacci / VWAP / range / swing / location / flow / microstructure telemetry on every event; in-process strict V11
+  control twin attributes every LITE signal (incremental cohort with the exact failed structure condition).
+  `v11lw report compare` = V11-WARM vs V11-LITE-WARM + incremental cohort + Fibonacci buckets + checkpoints. Cloud
+  verification run on the verification root, freeze written (see the freeze file for observation_start). V10 / V11 /
+  V11-WARM code, configs, freezes, journals untouched (sha256 snapshot before/after + tests). Mac: install ONLY
+  `com.btcswing.v11-lite-warm-forward`; never activate anything.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -478,6 +488,8 @@ uv run btc-swing v11w seed && uv run btc-swing v11w forward status      # V11-WA
 uv run btc-swing v11w forward verify-warm | diagnostic | shadow-report  # read-only; --verification for the verify root
 uv run btc-swing v10 report full-history | v11 report full-history | v11w report full-history   # read-only; --verification
 uv run btc-swing v112 study && uv run btc-swing v112 combos "A1_NEUTRAL_OK+B1_NEAR_040"   # V11.2 counterfactual study (research only)
+uv run btc-swing v11lw seed && uv run btc-swing v11lw forward status    # V11-LITE-WARM: seed root, status (shadow only)
+uv run btc-swing v11lw report compare                                    # read-only V11-WARM vs V11-LITE-WARM + incremental cohort
 ```
 
 ## Known data facts

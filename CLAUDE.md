@@ -156,6 +156,22 @@ construction; nothing frozen, no runner, nothing adopted. Note: the committed V1
 post-TP1 stop-leg label fix (1 bp instead of 3 bp slippage on those exits): the current frozen engine's net is ~0.008R
 lower than that report; classification C unchanged.
 
+V11-LITE-WARM (`btc_swing/v11_lite_warm/`, `config/btc_swing_v11_lite_warm.yaml`, `docs/BTC_V11_LITE_WARM_DESIGN.md`
+pre-registered, freeze `manifests/v11_lite_warm_forward_freeze.json`, data `<BTC_DATA_DIR>/btc/forward_v11_lite_warm/` and
+`forward_v11_lite_warm_verify/`, reports `reports/forward_v11_lite_warm/`, prefix `V11LWS-`): SHADOW ONLY challenger to the
+V11-WARM control. ONE strategy delta: `V11LiteEngine.structure()` returns data validity only, so the A/B/C structure never
+gates arming; the frozen `V11Engine.structure` is journaled as `family_labels`. Everything else is V11's own frozen object
+(V11 strategy hash `a324dbcb0394…` asserted at load; outcome horizons [5,15,30,60,120] are not a strategy section). Read-only
+context telemetry (Fibonacci of the last confirmed 5m swing leg, VWAP, 1h/4h range, swings, location, flow, microstructure,
+V11 structure sub-conditions) on every journaled event; an in-process strict V11 twin (`journals/control_twin.jsonl`)
+attributes each LITE signal (`control_twin.reason`, `incremental`). `btc-swing v11lw report compare` (read-only, writes only
+under `reports/forward_v11_lite_warm/`) = control vs challenger, INCREMENTAL COHORT (main experiment), Fibonacci buckets
+(PRELIMINARY < 30 samples), mechanical checkpoints (1: 7 days or 300 candidates; 2: 30 trades or 21 days -> gross R > 0 and
+incremental 90% upper CI > 0; 3: 60 trades or 45 days -> net R > 0, PF > 1.1, DD <= 15R, not one-sided / one-day). CLI
+`btc-swing v11lw config|seed`, `v11lw forward run|status|diagnostic|verify-warm|shadow-report|freeze|trades`, `v11lw report
+full-history|compare`; macOS agent `com.btcswing.v11-lite-warm-forward` (`deploy/macos/install_v11_lite_warm_macos.sh`).
+Never modify V10 / V11 / V11-WARM for it; never tune it forward; no Demo execution exists (`V11LWD-` is not reserved).
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

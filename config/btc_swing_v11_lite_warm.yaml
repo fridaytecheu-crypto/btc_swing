@@ -1,0 +1,37 @@
+# BTC V11-LITE-WARM — WARM-STARTED V11 SHADOW WITHOUT THE A/B/C FAMILY STRUCTURE GATES. Forward experiment,
+# SHADOW ONLY (no exchange client, no Demo authority, no order placement capability).
+# Every V11 strategy section (features, weights, thresholds, families, stop, exits, costs, risk) is V11's own
+# config object (config/btc_swing_v11.yaml), hash-checked against manifests/v11_forward_freeze.json at every load.
+# The warm-start section is identical to V11-WARM's. The ONE strategy delta is `lite.family_structure:
+# labels_only`: the A/B/C structure conditions are computed and journaled as context labels and never veto
+# arming. Pre-registered in docs/BTC_V11_LITE_WARM_DESIGN.md before the first observation.
+strategy_name: BTC_V11_LITE_WARM_SHADOW
+v11_config: config/btc_swing_v11.yaml
+
+warm:                           # byte-for-byte the V11-WARM warm-start section
+  bootstrap_days: 30
+  window_days: 31
+  live_warmup_min: 30
+  gapfill_max_hours: 48
+  required_warm_fields: [ema50, rsi7, rsi14, adx14, rvol5, vol_tercile, atr5, atr1h, vwap, struct15, hi60]
+  required_warm_groups: [trend, momentum, volatility, volume, location]
+
+lite:
+  family_structure: labels_only       # THE strategy delta: A/B/C structure never gates arming (labels only)
+  outcome_horizons_min: [5, 15, 30, 60, 120]   # outcomes are NOT a V11 strategy section (hash unchanged)
+  fib_ratios: [0.382, 0.5, 0.618]     # read-only telemetry; no decision reads any context field
+  fib_swing_tf_min: 5                 # confirmed swings on completed 5m bars, k = V11 features.swing_k
+  fib_swing_lookback_min: 1440        # swing search window (completed bars only)
+  fib_bucket_edges_atr: [0.10, 0.25, 0.50]     # |distance to nearest Fib level| / ATR5 buckets (attribution)
+  range_minutes: [60, 240]            # 1h / 4h range position (completed bars up to the decision bar)
+  preliminary_min_n: 30               # any cell with fewer samples is labelled PRELIMINARY
+  checkpoints:                        # pre-registered; evaluated mechanically by `v11lw report compare`
+    - name: checkpoint_1
+      reached_when_any: {fully_warm_days: 7, candidates: 300}
+      require: []                     # inspection only: funnel, labels, context telemetry present
+    - name: checkpoint_2
+      reached_when_any: {closed_trades: 30, fully_warm_days: 21}
+      require: [gross_r_per_trade_gt_0, incremental_cohort_not_clearly_negative]
+    - name: checkpoint_3
+      reached_when_any: {closed_trades: 60, fully_warm_days: 45}
+      require: [net_r_per_trade_gt_0, profit_factor_gt_1_1, max_dd_le_15r, not_one_sided, not_one_period]

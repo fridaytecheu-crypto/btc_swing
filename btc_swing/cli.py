@@ -1545,6 +1545,7 @@ from btc_swing.v10.cli import v10_app  # noqa: E402
 from btc_swing.v11.cli import v11_app  # noqa: E402
 from btc_swing.v11_1.cli import v111_app  # noqa: E402
 from btc_swing.v11_2.cli import v112_app  # noqa: E402
+from btc_swing.v11_lite_warm.cli import v11lw_app  # noqa: E402
 from btc_swing.v11_warm.cli import v11w_app  # noqa: E402
 from btc_swing.v51.cli import v51_app  # noqa: E402
 from btc_swing.v61.cli import v61_app  # noqa: E402
@@ -1559,6 +1560,7 @@ app.add_typer(v11_app, name="v11")
 app.add_typer(v111_app, name="v111")
 app.add_typer(v11w_app, name="v11w")
 app.add_typer(v112_app, name="v112")
+app.add_typer(v11lw_app, name="v11lw")
 
 
 if __name__ == "__main__":
