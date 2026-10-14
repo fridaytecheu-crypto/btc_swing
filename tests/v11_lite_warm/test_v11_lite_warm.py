@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ from btc_swing.v11_lite_warm.context import (
     range_position,
     structure_detail,
 )
-from btc_swing.v11_lite_warm.engine import V11LiteEngine
+from btc_swing.v11_lite_warm.engine import BOOKKEEPING_VERSION, V11LiteEngine
 from btc_swing.v11_lite_warm.freeze import check_freeze, write_freeze
 from btc_swing.v11_lite_warm.live import V11LiteWarmLive
 from btc_swing.v11_lite_warm.paths import V11LiteWarmPaths
@@ -47,6 +48,7 @@ from btc_swing.v11_warm.bootstrap import write_bootstrap_bars
 from btc_swing.v11_warm.config import load_v11w_config
 from btc_swing.v11_warm.live import V11WarmLive
 from btc_swing.v11_warm.paths import V11WarmPaths
+from tests.v11_lite_warm.legacy_engine_f885f85 import V11LiteEngine as LegacyLiteEngine
 from tests.v11_warm.test_v11_warm import _bars_df, _feed, synth_rows
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -105,8 +107,37 @@ def test_config_is_the_frozen_v11_strategy_plus_the_labels_only_delta() -> None:
 
 
 # ----------------------------------------------------------------------------- engine equivalence
-class _LiteWithGatesRestored(V11LiteEngine):
-    """LITE with the ONE delta reverted: must behave exactly like the frozen V11 engine."""
+LEGACY_F885F85_SHA256 = "b3291dec162a126146f26b36860e0f7b77954a7d8cadd8a27f7ae972b398089a"
+DEC_FIELDS = (
+    "signal_id",
+    "decision_ms",
+    "family",
+    "side",
+    "side_sign",
+    "action",
+    "blockers",
+    "entry_ref",
+    "structural_stop",
+    "stop",
+    "stop_pct",
+    "stop_note",
+    "tp1",
+    "tp2",
+    "qty",
+    "leverage",
+    "notional",
+    "margin",
+    "risk_usdt",
+    "score",
+    "score_armed",
+    "armed_ms",
+    "score_long",
+    "score_short",
+)
+
+
+class _LegacyWithGatesRestored(LegacyLiteEngine):
+    """The f885f85 LITE engine with its ONE delta reverted: must behave exactly like frozen V11."""
 
     def structure(self, fam: str, s: int, i: int) -> bool:
         return V11Engine.structure(self, fam, s, i)
@@ -120,19 +151,43 @@ def _run(engine_cls: type[V11Engine], rows: pl.DataFrame, start_ms: int) -> V11E
     return eng
 
 
-def test_lite_engine_with_gates_restored_equals_the_frozen_v11_engine() -> None:
-    """Everything except `structure` is inherited unchanged: reverting the one override reproduces
-    V11 trade for trade (signal ids differ only by the V11LWS- prefix)."""
+def _same(a: Any, b: Any) -> bool:
+    if isinstance(a, float) and isinstance(b, float) and math.isnan(a) and math.isnan(b):
+        return True
+    return bool(a == b)
+
+
+def _assert_decision_equivalent(old: V11Engine, new: V11Engine) -> None:
+    """Bit-for-bit economic equivalence: every decision field, every trade field, candidates."""
+    assert len(old.decisions) == len(new.decisions)
+    for x, y in zip(old.decisions, new.decisions, strict=True):
+        for k in DEC_FIELDS:
+            assert _same(x.get(k), y.get(k)), (k, x.get(k), y.get(k))
+        assert y["selected_template"] == x["family"]
+    assert len(old.trades) == len(new.trades)
+    for tx, ty in zip(old.trades, new.trades, strict=True):
+        dx, dy = tx.as_dict(), ty.as_dict()
+        for k in dx:
+            if k != "decision":
+                assert _same(dx[k], dy[k]), (k, dx[k], dy[k])
+    assert old.counters["candidates"] == new.counters["candidates"]
+    for k in ("executed", "blocked", "skipped_while_open"):
+        assert old.counters[k] == new.counters[k], k
+
+
+def test_legacy_reference_is_the_verbatim_f885f85_engine() -> None:
+    p = Path(__file__).parent / "legacy_engine_f885f85.py"
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == LEGACY_F885F85_SHA256
+
+
+def test_f885f85_engine_with_gates_restored_equals_the_frozen_v11_engine() -> None:
+    """The f885f85 LITE engine differs from V11 only by `structure`: reverting it reproduces V11."""
     rows = synth_rows(25, seed=23)
     start = int(rows["open_time_ms"][22 * 1440])
     ref = _run(V11Engine, rows, start)
-    same = _run(_LiteWithGatesRestored, rows, start)
+    same = _run(_LegacyWithGatesRestored, rows, start)
     assert ref.counters == same.counters and ref.trades and ref.decisions
-    assert [t.as_dict()["exit_ms"] for t in ref.trades] == [
-        t.as_dict()["exit_ms"] for t in same.trades
-    ]
     assert [t.net_r for t in ref.trades] == [t.net_r for t in same.trades]
-    assert [d["decision_ms"] for d in ref.decisions] == [d["decision_ms"] for d in same.decisions]
     for a, b in zip(ref.decisions, same.decisions, strict=True):
         assert b["signal_id"] == PREFIX_SIGNAL + a["signal_id"].removeprefix("V11S-")
         assert {k: v for k, v in a.items() if k != "signal_id"} == {
@@ -142,50 +197,118 @@ def test_lite_engine_with_gates_restored_equals_the_frozen_v11_engine() -> None:
         }
 
 
-def test_lite_differs_from_v11_only_by_the_structure_gate() -> None:
-    """On every row: (1) the LITE labels equal the frozen V11 structure conditions; (2) LITE arms a
-    (family, side) exactly when V11 would arm it without the structure condition; (3) wherever V11 is
-    armed, LITE is armed too (superset); (4) trigger and stop geometry are identical functions."""
-    rows = synth_rows(24, seed=11)
+@pytest.mark.parametrize("seed", [23, 7, 11, 31])
+def test_cleaned_engine_is_decision_equivalent_to_f885f85_on_synthetic_series(seed: int) -> None:
+    rows = synth_rows(25, seed=seed)
+    start = int(rows["open_time_ms"][22 * 1440])
+    old, new = _run(LegacyLiteEngine, rows, start), _run(V11LiteEngine, rows, start)
+    assert new.decisions, "synthetic series produced no decision"
+    _assert_decision_equivalent(old, new)
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3])
+def test_cleaned_engine_is_decision_equivalent_under_adversarial_scores_and_atr_gaps(
+    seed: int,
+) -> None:
+    """Adversarial replay: scores are replaced by a random walk crossing 65 / 70 / 75 many times and
+    ATR5 is blanked on random stretches AFTER arms exist (the only path on which the per-template
+    validity windows A/B 30 min, C 10 min and template consumption matter). Both engines see the
+    identical arrays; every decision and trade must match."""
+    rng = np.random.default_rng(seed)
+    rows = synth_rows(24, seed=seed + 40)
+    fr, sc = _frame_and_scores(rows)
+    n = len(fr)
+    i0 = 22 * 1440
+    for tag in ("long", "short"):
+        walk = np.clip(72 + np.cumsum(rng.normal(0, 1.6, n)) * 0.25, 50, 95)
+        walk = 72 + (walk - 72) * np.sign(rng.normal(size=1))  # independent per side
+        sc[f"score_{tag}"] = np.where(rng.random(n) < 0.02, np.nan, walk)
+    X = fr.c  # noqa: N806
+    a5 = X["atr5"].copy()
+    for _ in range(40):
+        j = int(rng.integers(i0, n - 40))
+        a5[j : j + int(rng.integers(3, 35))] = np.nan
+    X["atr5"] = a5
+    v11 = load_v11_config(ROOT / "config" / "btc_swing_v11.yaml")
+    start, end = int(fr.t_open[i0]), int(fr.t_open[-1]) + MS_1M
+    old, new = LegacyLiteEngine(v11, fr, sc), V11LiteEngine(v11, fr, sc)
+    old.run(start, end)
+    new.run(start, end)
+    assert len(new.decisions) > 20
+    assert any("NO_VALID_STRUCTURAL_STOP" in (d.get("blockers") or []) for d in new.decisions), (
+        "the ATR-gap path (arm alive, ATR5 missing) was not exercised"
+    )
+    _assert_decision_equivalent(old, new)
+
+
+def test_side_level_bookkeeping_one_arm_per_side_and_starts_only_on_transitions() -> None:
+    """The cleaned engine keeps ONE arm state per side; an arm start is counted only on the
+    NOT_ARMED -> ARMED transition (never on a refresh, never per template, never after a decision
+    consumed a template while others remain); at most one decision per minute."""
+    rows = synth_rows(25, seed=23)
     fr, sc = _frame_and_scores(rows)
     v11 = load_v11_config(ROOT / "config" / "btc_swing_v11.yaml")
-    ref, lite = V11Engine(v11, fr, sc), V11LiteEngine(v11, fr, sc)
+    eng = V11LiteEngine(v11, fr, sc)
+    old = LegacyLiteEngine(v11, fr, sc)
     i0 = 22 * 1440
-    n_label_true = n_label_false = 0
+    starts = 0
+    per_minute: dict[int, int] = {}
     for i in range(i0, len(fr)):
-        labels = lite.family_labels(i)
-        for fam in FAMILIES:
-            for s, side in ((1, "LONG"), (-1, "SHORT")):
-                assert labels[fam][side] == ref.structure(fam, s, i)
-                n_label_true += labels[fam][side]
-                n_label_false += not labels[fam][side]
-                c, a5 = fr.c["close"][i], fr.c["atr5"][i]
-                valid = bool(np.isfinite(c) and np.isfinite(a5) and a5 > 0)
-                assert lite.structure(fam, s, i) == valid
-                assert lite.trigger(fam, s, i) == ref.trigger(fam, s, i)
-                assert lite.stop_level(fam, s, i) == ref.stop_level(fam, s, i)
-    assert n_label_true > 0 and n_label_false > 0
-    # arming superset while both are flat (position state may diverge once LITE trades)
-    ref2, lite2 = V11Engine(v11, fr, sc), V11LiteEngine(v11, fr, sc)
-    checked = 0
-    for i in range(i0, len(fr)):
-        ref2.process_row(i, True)
-        lite2.process_row(i, True)
-        ref2.pending_open = lite2.pending_open = None
-        if ref2.pos is None and lite2.pos is None:
-            assert set(ref2.armed) <= set(lite2.armed)
-            checked += 1
-    assert checked > 1000 and lite2.counters["armed"] >= ref2.counters["armed"]
+        t_close = int(fr.t_open[i]) + MS_1M
+        before = {s: eng.side_armed(s, t_close) for s in (1, -1)}
+        rec = eng.process_row(i, True)
+        old_rec = old.process_row(i, True)
+        eng.pending_open = old.pending_open = None
+        eng.pos = old.pos = None  # bookkeeping only: keep both flat
+        assert set(eng.side_arm) <= {1, -1} and not eng.armed
+        for s in eng.arm_starts_now:
+            assert not before[s] and eng.side_armed(s, t_close)
+            starts += 1
+        # the side-level availability IS the f885f85 per-key dictionary
+        assert {f"{t}{s:+d}" for s in (1, -1) for t in eng.available_templates(s, t_close)} == set(
+            old.armed
+        )
+        assert (rec is None) == (old_rec is None)
+        if rec is not None:
+            per_minute[t_close] = per_minute.get(t_close, 0) + 1
+    assert starts == eng.counters["arm_episodes"] == eng.counters["armed"] > 0
+    assert all(v == 1 for v in per_minute.values())
+    assert eng.counters["arm_episodes"] < old.counters["armed"]  # no per-template / restart copies
 
 
-def test_lite_signal_records_carry_labels_and_prefix() -> None:
+def test_lite_signal_records_carry_selected_template_and_structure_labels() -> None:
     rows = synth_rows(24, seed=5)
     lite = _run(V11LiteEngine, rows, int(rows["open_time_ms"][22 * 1440]))
     assert lite.decisions, "synthetic series produced no LITE decision"
     for d in lite.decisions:
         assert d["signal_id"].startswith(PREFIX_SIGNAL)
-        assert set(d["family_labels"]) == {"A", "B", "C"}
-        assert d["family_structure_label"] == d["family_labels"][d["family"]][d["side"]]
+        assert d["selected_template"] in ("A", "B", "C")
+        assert set(d["structure_labels"]) == {"A", "B", "C"}
+        assert d["arm_episode_id"] and d["arm_episode_id"][0] == d["side"][0]
+
+
+def test_lite_labels_and_templates_are_the_frozen_v11_functions() -> None:
+    """On every row the structure labels equal the frozen V11 structure conditions; LITE's own
+    `structure` is data validity only; trigger and stop geometry are V11's functions."""
+    rows = synth_rows(24, seed=11)
+    fr, sc = _frame_and_scores(rows)
+    v11 = load_v11_config(ROOT / "config" / "btc_swing_v11.yaml")
+    ref, lite = V11Engine(v11, fr, sc), V11LiteEngine(v11, fr, sc)
+    n_true = n_false = 0
+    for i in range(22 * 1440, len(fr)):
+        labels = lite.structure_labels(i)
+        for fam in FAMILIES:
+            for s, side in ((1, "LONG"), (-1, "SHORT")):
+                assert labels[fam][side] == ref.structure(fam, s, i)
+                n_true += labels[fam][side]
+                n_false += not labels[fam][side]
+                c, a5 = fr.c["close"][i], fr.c["atr5"][i]
+                assert lite.structure(fam, s, i) == bool(
+                    np.isfinite(c) and np.isfinite(a5) and a5 > 0
+                )
+                assert lite.trigger(fam, s, i) == ref.trigger(fam, s, i)
+                assert lite.stop_level(fam, s, i) == ref.stop_level(fam, s, i)
+    assert n_true > 0 and n_false > 0
 
 
 # ----------------------------------------------------------------------------- context telemetry (PIT)
@@ -309,7 +432,10 @@ def test_live_lite_shares_features_scores_and_its_control_twin_reproduces_v11_wa
                 and "control_twin" in rl
                 and "context" in rl
             )
-            assert rl["family_structure_label"] == rl["family_labels"][rl["family"]][rl["side"]]
+            assert (
+                rl["selected_template"] == rl["family"]
+            )  # engine-internal name, journaled as template
+            assert set(rl["structure_labels"]) == {"A", "B", "C"}
         if (
             warm.engine
             and lite.engine
@@ -318,7 +444,11 @@ def test_live_lite_shares_features_scores_and_its_control_twin_reproduces_v11_wa
             and lite.twin
             and lite.twin.pos is None
         ):
-            assert set(warm.engine.armed) <= set(lite.engine.armed)
+            assert isinstance(lite.engine, V11LiteEngine)
+            t_close = int(lite.state["last_bar_ms"])
+            assert set(warm.engine.armed) <= {
+                f"{t}{s:+d}" for s in (1, -1) for t in lite.engine.available_templates(s, t_close)
+            }
     assert n_ticks > 120
     lp = lite.paths
     assert isinstance(lp, V11LiteWarmPaths)
@@ -340,7 +470,7 @@ def test_live_lite_shares_features_scores_and_its_control_twin_reproduces_v11_wa
     ):  # labels + context ride on every candidate (content proved in the replay)
         cands = [json.loads(line)["data"] for line in lp.candidates.read_text().splitlines()]
         assert all(
-            set(c["family_labels"]) == {"A", "B", "C"} and "fib" in c["context"] for c in cands
+            set(c["structure_labels"]) == {"A", "B", "C"} and "fib" in c["context"] for c in cands
         )
     assert lite.state["counters"]["candidates"] == warm.state["counters"]["candidates"]
     for n in ("candidates", "episodes", "signals", "shadow_trades", "outcomes", "control_twin"):
@@ -350,7 +480,8 @@ def test_live_lite_shares_features_scores_and_its_control_twin_reproduces_v11_wa
     d = lite.diagnostic()
     assert (
         d["strategy"] == STRATEGY
-        and d["family_labels"]
+        and d["structure_labels"]
+        and d["bookkeeping_version"] == BOOKKEEPING_VERSION
         and d["context"]["fib"]
         and d["control_twin"]
     )
@@ -375,22 +506,56 @@ def test_step_replay_twin_equals_frozen_v11_and_incremental_signals_are_attribut
         v11, paths, obs, lc.warm.model_copy(update={"live_warmup_min": 0}), lc.lite
     )
     ref = V11Engine(v11, fr, sc)
+    legacy = LegacyLiteEngine(v11, fr, sc)  # the f885f85 LITE engine, driven the live way
     ref_recs: list[tuple[Any, ...]] = []
     sigs: list[dict[str, Any]] = []
     for i in range(n_hist, len(fr)):
         t_close = int(fr.t_open[i]) + MS_1M
-        r = ref.process_row(i, in_window=t_close > obs)
-        if ref.pending_open is not None:
-            p = ref.open_from_pending(i, fill_ref=float(fr.c["close"][i]))
-            if p is not None:
-                p.entry_ms = t_close
-        if r is not None:
-            ref_recs.append(
-                (r["decision_ms"], r["family"], r["side"], r["action"], r["stop"], r["qty"])
-            )
+        for e in (ref, legacy):
+            r = e.process_row(i, in_window=t_close > obs)
+            if e.pending_open is not None:
+                p = e.open_from_pending(i, fill_ref=float(fr.c["close"][i]))
+                if p is not None:
+                    p.entry_ms = t_close
+            if r is not None and e is ref:
+                ref_recs.append(
+                    (r["decision_ms"], r["family"], r["side"], r["action"], r["stop"], r["qty"])
+                )
         rl = lite._step(fr, sc, i)
         if rl is not None:
             sigs.append(rl)
+    # ---- the live LITE journals reproduce the f885f85 engine decision for decision, trade for trade
+    jsig = [json.loads(line) for line in paths.signals.read_text().splitlines()]
+    assert len(jsig) == len(legacy.decisions)
+    for r_, d_ in zip(jsig, legacy.decisions, strict=True):
+        x = r_["data"]
+        assert "family" not in x and x["selected_template"] == d_["family"]
+        for k in DEC_FIELDS:
+            if k != "family":
+                assert _same(x.get(k), d_.get(k)), (k, x.get(k), d_.get(k))
+    jtr = [
+        json.loads(line)["data"]
+        for line in paths.shadow_trades.read_text().splitlines()
+        if json.loads(line)["kind"] == "SHADOW_CLOSED"
+    ]
+    assert len(jtr) == len(legacy.trades) > 0
+    for x, t_ in zip(jtr, legacy.trades, strict=True):
+        d_ = t_.as_dict()
+        assert "family" not in x and x["selected_template"] == d_["family"]
+        for k in ("entry_ms", "entry_fill", "stop0", "tp1", "tp2", "qty", "exit_ms", "exit_reason"):
+            assert _same(x[k], d_[k]), k
+        for k in ("net_r", "gross_r", "net_usd"):
+            assert math.isclose(x[k], d_[k], rel_tol=1e-12, abs_tol=1e-12), k
+    # ---- side-level journals: one ARMED per arm episode, one NEAR_MISS per side-minute
+    arm = [json.loads(line)["data"] for line in paths.episodes.read_text().splitlines()]
+    arm = [a for a in arm if "arm_episode_id" in a]
+    assert arm and all("family" not in a for a in arm)
+    assert len({a["arm_episode_id"] for a in arm}) == len(arm)
+    if paths.nearmiss.exists():
+        nm = [json.loads(line)["data"] for line in paths.nearmiss.read_text().splitlines()]
+        assert len({(x["side"], x["ts_ms"]) for x in nm}) == len(nm)
+        assert all("family" not in x and x["selected_template"] in "ABC" for x in nm)
+    assert len({(x["data"]["side"], x["data"]["decision_ms"]) for x in jsig}) == len(jsig)
     twin_recs = [
         (d["decision_ms"], d["family"], d["side"], d["action"], d["stop"], d["qty"])
         for d in (json.loads(line)["data"] for line in paths.control_twin.read_text().splitlines())
@@ -408,12 +573,12 @@ def test_step_replay_twin_equals_frozen_v11_and_incremental_signals_are_attribut
         assert s_["signal_id"].startswith(PREFIX_SIGNAL)
         ctl = s_["control_twin"]
         assert s_["incremental"] == (not ctl["would_take"])
-        assert "fib" in s_["context"] and set(s_["family_labels"]) == {"A", "B", "C"}
+        assert "fib" in s_["context"] and set(s_["structure_labels"]) == {"A", "B", "C"}
         if s_["incremental"]:
             n_inc += 1
             assert ctl["reason"].startswith(("STRUCTURE_", "CONTROL_")), ctl["reason"]
             if ctl["reason"].startswith("STRUCTURE_") and "_FALSE" in ctl["reason"]:
-                assert ctl["failed_conditions"] and not ctl["family_structure_label"]
+                assert ctl["failed_conditions"] and not ctl["selected_template_structure_label"]
         else:
             assert ctl["twin_decision"] is not None and ctl["twin_decision"]["side"] == s_["side"]
     assert n_inc > 0, "the synthetic series produced no incremental LITE signal"
@@ -456,6 +621,7 @@ def test_state_round_trip_restores_engine_and_twin(tmp_path: Path) -> None:
     assert again.state["counters"] == lite.state["counters"]
     assert again.state["twin"]["counters"] == lite.state["twin"]["counters"]
     assert again.state["strategy"] == STRATEGY and again.state["strategy_delta"] == STRATEGY_DELTA
+    assert again.state["side_arm"] == lite.state["side_arm"]
 
 
 # ----------------------------------------------------------------------------- freeze / isolation / integrity
@@ -600,11 +766,34 @@ def _synthetic_pair(root: Path) -> tuple[GenerationSpec, GenerationSpec]:
                     "context": ctx,
                 },
             )
-        for k in range(3):  # three consecutive ARMED minutes = ONE arm start
+        nm = HashChainJournal(j / "nearmiss.jsonl", "n")
+        if lite_flag:  # side-level: ONE ARMED record per arm episode, ONE near miss per side-minute
             ep.append(
                 "ARMED",
-                {"ts_ms": t0 + (10 + k) * MS_1M, "family": "A", "side": "LONG", "score": 72.0},
+                {"ts_ms": t0 + 10 * MS_1M, "side": "LONG", "score": 72.0, "arm_episode_id": "L-0"},
             )
+            nm.append("NEAR_MISS", {"ts_ms": t0 + 12 * MS_1M, "side": "LONG", "score": 70.0})
+        else:  # V11 journals every refresh minute per (family, side): 6 records, ONE side episode
+            for k in range(3):
+                for fam in ("A", "B"):
+                    t_ = t0 + (10 + k) * MS_1M
+                    ep.append(
+                        "ARMED",
+                        {
+                            "ts_ms": t_,
+                            "family": fam,
+                            "side": "LONG",
+                            "score": 72.0,
+                            "valid_until": datetime.fromtimestamp(
+                                (t_ + 30 * MS_1M) / 1000, tz=UTC
+                            ).isoformat(),
+                        },
+                    )
+            for fam in ("A", "B", "C"):  # three family copies of one side-minute
+                nm.append(
+                    "NEAR_MISS",
+                    {"ts_ms": t0 + 12 * MS_1M, "family": fam, "side": "LONG", "score": 70.0},
+                )
         for k in range(n_sig):
             sid = f"{'V11LWS' if lite_flag else 'V11S'}-{t0 + (20 + k * 30) * MS_1M}-AL"
             ctl = {
@@ -613,12 +802,12 @@ def _synthetic_pair(root: Path) -> tuple[GenerationSpec, GenerationSpec]:
                 if k == 0
                 else "STRUCTURE_A_FALSE:struct15_aligned",
                 "failed_conditions": [] if k == 0 else ["struct15_aligned"],
-                "family_structure_label": k == 0,
+                "selected_template_structure_label": k == 0,
             }
             d = {
                 "signal_id": sid,
                 "action": "EXECUTED",
-                "family": "A",
+                ("selected_template" if lite_flag else "family"): "A",
                 "side": "LONG",
                 "side_sign": 1,
                 "score": 76.0 + k,
@@ -632,11 +821,8 @@ def _synthetic_pair(root: Path) -> tuple[GenerationSpec, GenerationSpec]:
                     {
                         "control_twin": ctl,
                         "incremental": k != 0,
-                        "family_labels": {
-                            "A": {"LONG": k == 0, "SHORT": False},
-                            "B": {"LONG": False, "SHORT": False},
-                            "C": {"LONG": False, "SHORT": False},
-                        },
+                        "structure_labels": {"A": k == 0, "B": False, "C": False},
+                        "arm_episode_id": f"L-{k}",
                         "context": {
                             "fib": {
                                 "available": True,
@@ -653,11 +839,29 @@ def _synthetic_pair(root: Path) -> tuple[GenerationSpec, GenerationSpec]:
                     }
                 )
             sig.append("SIGNAL_EXECUTED", d)
+            if lite_flag and k == 0:  # a blocked decision of the SAME arm episode (position open)
+                sig.append(
+                    "SIGNAL_BLOCKED",
+                    {
+                        **d,
+                        "signal_id": f"V11LWS-{t0 + 21 * MS_1M}-CL",
+                        "action": "BLOCKED",
+                        "selected_template": "C",
+                        "decision_ms": t0 + 21 * MS_1M,
+                        "blockers": ["POSITION_OPEN"],
+                        "incremental": True,
+                        "control_twin": {
+                            **ctl,
+                            "would_take": False,
+                            "reason": "STRUCTURE_C_FALSE:sweep_recent",
+                        },
+                    },
+                )
             sh.append(
                 "SHADOW_CLOSED",
                 {
                     "signal_id": sid,
-                    "family": "A",
+                    ("selected_template" if lite_flag else "family"): "A",
                     "side": 1,
                     "net_usd": 3.0 if k % 2 == 0 else -2.0,
                     "net_r": 0.4 if k % 2 == 0 else -0.27,
@@ -714,7 +918,7 @@ def test_compare_report_metrics_incremental_cohort_fib_buckets_and_checkpoints(
     rep = compare(ctl, lite, lc.lite, 5000.0)
     assert rep["control"]["counts"] == {
         "candidates": 6,
-        "armed_records": 3,
+        "armed_records": 6,
         "armed_starts": 1,
         "triggers_counter": 0,
         "executed": 1,
@@ -722,6 +926,17 @@ def test_compare_report_metrics_incremental_cohort_fib_buckets_and_checkpoints(
         "shadow_closed": 1,
         "outcomes": 5,
     }
+    cu, wu = rep["control"]["unique"], rep["challenger"]["unique"]
+    assert cu["side_arm_episodes"] == 1 and cu["raw_armed_records"] == 6
+    assert cu["near_miss_side_minutes"] == 1 and cu["raw_near_miss_records"] == 3
+    assert wu["side_arm_episodes"] == 1 and wu["near_miss_side_minutes"] == 1
+    assert wu["trigger_decisions_side_minutes"] == 5 and wu["executed"] == 4
+    assert wu["blocked_side_minutes"] == 1 and wu["blocked_only_arm_episodes"] == 0
+    assert wu["candidates"] == cu["candidates"] == 6 and wu["shadow_trades"] == 4
+    tv = rep["challenger"]["templates"]
+    assert tv["selected_template"] == {"A": 4}
+    assert tv["frozen_structure_label_A"] == 1 and tv["no_frozen_structure_label"] == 3
+    assert rep["control"]["templates"]["selected_template"] == {"A": 1}
     assert (
         rep["challenger"]["counts"]["executed"] == 4
         and rep["challenger"]["counts"]["armed_starts"] == 1
@@ -729,10 +944,14 @@ def test_compare_report_metrics_incremental_cohort_fib_buckets_and_checkpoints(
     assert rep["challenger"]["per_day"]["executed"] == pytest.approx(2.0)
     assert rep["delta"]["executed_per_day"] == pytest.approx(1.5)
     inc = rep["incremental_cohort"]
-    assert inc["summary"]["n_signals"] == 3 and inc["summary"]["rejection_reasons"] == {
-        "STRUCTURE_A_FALSE": 3
-    }
-    row = inc["rows"][0]
+    assert inc["summary"]["n_signals"] == 4 and inc["summary"]["n_blocked"] == 1
+    assert inc["summary"]["rejection_reasons"] == {"STRUCTURE_A_FALSE": 3, "STRUCTURE_C_FALSE": 1}
+    assert inc["summary"]["returns_bps_mean"]["120m"] == pytest.approx(24.0)  # executed only
+    assert {r["selected_template"] for r in inc["rows"]} == {"A", "C"}
+    assert all(
+        r["frozen_structure_label_A"] is False for r in inc["rows"] if r["action"] == "EXECUTED"
+    )
+    row = next(r for r in inc["rows"] if r["action"] == "EXECUTED")
     assert row["control_rejection_reason"].startswith("STRUCTURE_A_FALSE") and row["returns_bps"][
         "120m"
     ] == pytest.approx(24.0)
@@ -762,6 +981,8 @@ def test_compare_report_metrics_incremental_cohort_fib_buckets_and_checkpoints(
     ] == pytest.approx(24.0)
     md = render_compare(rep)
     assert "INCREMENTAL V11-LITE COHORT" in md and "PRELIMINARY" in md and "checkpoint_3" in md
+    assert "Unique opportunities" in md and "selected_template" in md
+    assert "NOT evidence that a frozen V11 family setup was present" in md
     assert {str(p): _sha(p) for p in tmp_path.rglob("*") if p.is_file()} == before  # read-only
 
 

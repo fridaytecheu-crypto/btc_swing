@@ -160,7 +160,13 @@ V11-LITE-WARM (`btc_swing/v11_lite_warm/`, `config/btc_swing_v11_lite_warm.yaml`
 pre-registered, freeze `manifests/v11_lite_warm_forward_freeze.json`, data `<BTC_DATA_DIR>/btc/forward_v11_lite_warm/` and
 `forward_v11_lite_warm_verify/`, reports `reports/forward_v11_lite_warm/`, prefix `V11LWS-`): SHADOW ONLY challenger to the
 V11-WARM control. ONE strategy delta: `V11LiteEngine.structure()` returns data validity only, so the A/B/C structure never
-gates arming; the frozen `V11Engine.structure` is journaled as `family_labels`. Everything else is V11's own frozen object
+gates arming; the frozen `V11Engine.structure` results are journaled as `structure_labels`. Bookkeeping `v11lw-book-2`
+(pre-launch cleanup, replay-proven economically identical to f885f85 on synthetic, adversarial and the full TRAIN/VALIDATION
+frames): ONE arm state per side (arm start only on NOT_ARMED -> ARMED, `arm_episode_id`), at most one ARMED / NEAR_MISS /
+decision per side-minute, the first frozen trigger/stop template that fires is `selected_template` (NOT a setup; no LITE
+journal has a `family` field); f885f85 engine kept verbatim as `tests/v11_lite_warm/legacy_engine_f885f85.py`; the
+f885f85 freeze is kept as `manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json` (never ran on the Mac).
+Everything else is V11's own frozen object
 (V11 strategy hash `a324dbcb0394…` asserted at load; outcome horizons [5,15,30,60,120] are not a strategy section). Read-only
 context telemetry (Fibonacci of the last confirmed 5m swing leg, VWAP, 1h/4h range, swings, location, flow, microstructure,
 V11 structure sub-conditions) on every journaled event; an in-process strict V11 twin (`journals/control_twin.jsonl`)

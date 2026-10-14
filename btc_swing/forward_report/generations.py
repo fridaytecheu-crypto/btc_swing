@@ -139,7 +139,9 @@ def spec_v11lw(config: Path, verification: bool) -> tuple[GenerationSpec, float 
         notes={
             "triggers": "not journaled per event; the state counter is reported",
             "warm_start": "bars before observation_start are bootstrap / kline context only",
-            "family": "A/B/C is the trigger / stop TEMPLATE of a signal; the structure gate is a label",
+            "family": "N/A: V11-LITE journals selected_template (first frozen trigger / stop template, NOT a "
+            "setup) and structure_labels (frozen V11 structure results); see v11lw report compare",
+            "armed": "one ARMED record per side-level arm episode (NOT_ARMED -> ARMED), not per refresh",
             "control_twin": "in-process strict V11 twin journal (TWIN_* records); see v11lw report compare",
         },
     )

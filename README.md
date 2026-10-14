@@ -140,7 +140,8 @@ net still about -0.37 to -0.39R. No runner, no freeze.
 pre-registered before observation, freeze `manifests/v11_lite_warm_forward_freeze.json`, `btc-swing v11lw config|seed`,
 `v11lw forward run|status|diagnostic|verify-warm|shadow-report|freeze|trades`, `v11lw report full-history|compare`): the
 warm-started V11 shadow with ONE strategy delta: the A/B/C family structure conditions are computed and journaled as
-context labels and never gate arming (score >= 70 arms; family triggers / stops / exits / risk / costs unchanged;
+context labels (`structure_labels`) and never gate arming; one arm state per side, the first frozen trigger/stop template
+that fires is journaled as `selected_template` (not a setup) (score >= 70 arms; family triggers / stops / exits / risk / costs unchanged;
 signal prefix `V11LWS-`). Read-only telemetry on every event (Fibonacci levels of the last confirmed 5m swing leg,
 VWAP distance, 1h / 4h range position, swing distances, ATR-normalised location, flow, microstructure) plus an
 in-process strict V11 control twin that attributes every LITE signal (incremental cohort = signals the frozen rules
@@ -156,7 +157,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 343 tests, no database needed
+uv run pytest -q                                            # 352 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

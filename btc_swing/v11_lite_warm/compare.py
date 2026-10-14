@@ -48,20 +48,6 @@ def _data(recs: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
     return [r["data"] for r in recs if r.get("kind") == kind and isinstance(r.get("data"), dict)]
 
 
-def _arm_starts(armed: list[dict[str, Any]]) -> int:
-    """ARMED is journaled on every re-arm minute; an arm START is a record whose (family, side) had
-    no ARMED record in the previous minute."""
-    seen: dict[tuple[str, str], int] = {}
-    starts = 0
-    for a in sorted(armed, key=lambda x: float(x.get("ts_ms") or 0)):
-        key = (str(a.get("family")), str(a.get("side")))
-        t = int(float(a.get("ts_ms") or 0))
-        if seen.get(key) != t - MS_1M:
-            starts += 1
-        seen[key] = t
-    return starts
-
-
 def _outcome_index(outs: list[dict[str, Any]]) -> dict[tuple[str, int], float]:
     idx: dict[tuple[str, int], float] = {}
     for o in outs:
@@ -69,6 +55,120 @@ def _outcome_index(outs: list[dict[str, Any]]) -> dict[tuple[str, int], float]:
         if v is not None:
             idx[(str(o.get("id")), int(float(o.get("horizon_min") or 0)))] = v
     return idx
+
+
+def _ms(v: Any) -> int | None:
+    if v is None:
+        return None
+    if isinstance(v, int | float):
+        return int(v)
+    try:
+        return int(datetime.fromisoformat(str(v)).timestamp() * 1000)
+    except ValueError:
+        return None
+
+
+def _tmpl(d: dict[str, Any]) -> str:
+    """LITE selected template (pre-cleanup journals called it `family`); the control's family."""
+    return str(d.get("selected_template", d.get("family")))
+
+
+def side_episodes(armed: list[dict[str, Any]]) -> dict[str, list[tuple[int, int, str]]]:
+    """Unique SIDE-level arm episodes. LITE journals one ARMED record per episode start carrying
+    `arm_episode_id`; V11 / V11-WARM journal ARMED per (family, side) on every refresh minute with
+    `valid_until`, so a control episode is the union of overlapping [ts, valid_until] intervals of all
+    families of one side. Returns side -> [(start_ms, end_ms, episode_id)]."""
+    out: dict[str, list[tuple[int, int, str]]] = defaultdict(list)
+    if any("arm_episode_id" in a for a in armed):
+        for a in armed:
+            t0 = _ms(a.get("ts_ms")) or 0
+            out[str(a.get("side"))].append((t0, t0, str(a.get("arm_episode_id"))))
+        return dict(out)
+    by_side: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    for a in armed:
+        t = _ms(a.get("ts_ms"))
+        if t is None:
+            continue
+        until = _ms(a.get("valid_until")) or t
+        by_side[str(a.get("side"))].append((t, max(t, until)))
+    for side, iv in by_side.items():
+        for t, u in sorted(iv):
+            cur = out[side]
+            if cur and t <= cur[-1][1]:
+                s0, e0, eid = cur[-1]
+                cur[-1] = (s0, max(e0, u), eid)
+            else:
+                cur.append((t, u, f"{side[0]}-{t}"))
+    return dict(out)
+
+
+def _episode_of(rec: dict[str, Any], eps: dict[str, list[tuple[int, int, str]]]) -> str | None:
+    if rec.get("arm_episode_id"):
+        return str(rec["arm_episode_id"])
+    t = _ms(rec.get("decision_ms") or rec.get("ts_ms"))
+    if t is None:
+        return None
+    for s0, e0, eid in eps.get(str(rec.get("side")), []):
+        if s0 <= t <= e0:
+            return eid
+    return None
+
+
+def unique_counts(
+    cands: list[dict[str, Any]],
+    armed: list[dict[str, Any]],
+    sigs: list[dict[str, Any]],
+    nms: list[dict[str, Any]],
+    trades: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Opportunity counts that do not depend on how many templates / families journal the same
+    side-minute: everything is keyed by (side, minute) or by (side, arm episode)."""
+    eps = side_episodes(armed)
+    dec_sm = {(str(x.get("side")), _ms(x.get("decision_ms"))) for x in sigs}
+    blk = [x for x in sigs if x.get("action") == "BLOCKED"]
+    exe = [x for x in sigs if x.get("action") == "EXECUTED"]
+    ep_exec = {(str(x.get("side")), _episode_of(x, eps)) for x in exe}
+    ep_blk = {(str(x.get("side")), _episode_of(x, eps)) for x in blk}
+    nm_sm = {(str(x.get("side")), _ms(x.get("ts_ms"))) for x in nms}
+    return {
+        "candidates": len(cands),
+        "side_arm_episodes": sum(len(v) for v in eps.values()),
+        "trigger_decisions_side_minutes": len(dec_sm),
+        "arm_episodes_with_decision": len(
+            {(str(x.get("side")), _episode_of(x, eps)) for x in sigs}
+        ),
+        "blocked_side_minutes": len({(str(x.get("side")), _ms(x.get("decision_ms"))) for x in blk}),
+        "blocked_only_arm_episodes": len(ep_blk - ep_exec),
+        "near_miss_side_minutes": len(nm_sm),
+        "near_miss_arm_episodes": len({(str(x.get("side")), _episode_of(x, eps)) for x in nms}),
+        "executed": len(exe),
+        "shadow_trades": len(trades),
+        "raw_armed_records": len(armed),
+        "raw_near_miss_records": len(nms),
+    }
+
+
+def template_view(executed: list[dict[str, Any]], trades: list[dict[str, Any]]) -> dict[str, Any]:
+    """selected_template (LITE: which frozen trigger / stop template fired first; NOT a setup) kept
+    apart from the frozen V11 structure labels of the decision bar."""
+    lab: list[dict[str, Any]] = [
+        x["structure_labels"] for x in executed if isinstance(x.get("structure_labels"), dict)
+    ]
+    net: dict[str, list[float]] = defaultdict(list)
+    for t in trades:
+        v = _f(t.get("net_r"))
+        if v is not None:
+            net[_tmpl(t)].append(v)
+    return {
+        "selected_template": dict(Counter(_tmpl(x) for x in executed)),
+        "frozen_structure_label_A": sum(1 for x in lab if x.get("A")) if lab else NA,
+        "frozen_structure_label_B": sum(1 for x in lab if x.get("B")) if lab else NA,
+        "frozen_structure_label_C": sum(1 for x in lab if x.get("C")) if lab else NA,
+        "no_frozen_structure_label": (
+            sum(1 for x in lab if not any(bool(v) for v in x.values())) if lab else NA
+        ),
+        "net_r_mean_by_template": {k: _mean(v) for k, v in sorted(net.items())},
+    }
 
 
 def generation_summary(
@@ -95,6 +195,8 @@ def generation_summary(
     blocked = [s for s in sigs if s.get("action") == "BLOCKED"]
     trades = _data(j.get("shadow_trades", []), "SHADOW_CLOSED")
     outs = _data(j.get("outcomes", []), "OUTCOME")
+    nms = _data(j.get("nearmiss", []), "NEAR_MISS")
+    uniq = unique_counts(cands, armed, sigs, nms, trades)
     raw_counters = state.get("counters")
     counters: dict[str, Any] = raw_counters if isinstance(raw_counters, dict) else {}
     tm = trade_metrics(trades, equity)
@@ -122,7 +224,7 @@ def generation_summary(
         side_adj[kind] = {
             f"{h}m": {"n": len(hs.get(h, [])), "mean_bps": _mean(hs.get(h, []))} for h in horizons
         }
-    n_starts = _arm_starts(armed)
+    n_starts = int(uniq["side_arm_episodes"])
     gross_r = [v for v in (_f(t.get("gross_r")) for t in trades) if v is not None]
     net_r = [v for v in (_f(t.get("net_r")) for t in trades) if v is not None]
     risk_usdt = [v for v in (_f(t.get("risk_usdt")) for t in trades) if v is not None]
@@ -146,6 +248,7 @@ def generation_summary(
             "shadow_closed": len(trades),
             "outcomes": len(outs),
         },
+        "unique": uniq,
         "per_day": {
             "candidates": per_day(len(cands)),
             "armed_starts": per_day(n_starts),
@@ -163,10 +266,7 @@ def generation_summary(
                 Counter("LONG" if float(t.get("side") or 0) > 0 else "SHORT" for t in trades)
             ),
         },
-        "families": {
-            "armed_starts_by_family": dict(Counter(str(a.get("family")) for a in armed)),
-            "executed": dict(Counter(str(e.get("family")) for e in executed)),
-        },
+        "templates": template_view(executed, trades),
         "scores": {"candidates": sc_dist(cands), "executed": sc_dist(executed)},
         "blockers": dict(Counter(str(b) for s in blocked for b in (s.get("blockers") or []))),
         "trades": {
@@ -186,7 +286,6 @@ def generation_summary(
             "hold_min_median": tm.get("hold_min_median", NA),
             "exit_reasons": tm.get("exit_reasons", {}),
             "net_r_by_side": tm.get("net_r_by_side", NA),
-            "net_r_by_family": tm.get("net_r_by_family", NA),
         },
         "side_adjusted_outcomes_bps": side_adj,
     }
@@ -221,11 +320,15 @@ def incremental_cohort(
                 "signal_id": sid,
                 "ts": s.get("ts"),
                 "side": s.get("side"),
-                "family_template": s.get("family"),
+                "selected_template": _tmpl(s),
                 "action": s.get("action"),
                 "score": s.get("score"),
-                "family_labels": {
-                    f: (s.get("family_labels") or {}).get(f, {}).get(str(s.get("side")))
+                **{
+                    f"frozen_structure_label_{f}": (
+                        (s.get("structure_labels") or {}).get(f)
+                        if isinstance(s.get("structure_labels"), dict)
+                        else (s.get("family_labels") or {}).get(f, {}).get(str(s.get("side")))
+                    )
                     for f in ("A", "B", "C")
                 },
                 "control_rejection_reason": ctl.get("reason"),
@@ -248,16 +351,22 @@ def incremental_cohort(
             }
         )
     net = [v for v in (_f(r["net_r"]) for r in rows) if v is not None]
+    executed_rows = [r for r in rows if r["action"] == "EXECUTED"]
     summary = {
         "n_signals": len(rows),
-        "n_executed": sum(1 for r in rows if r["action"] == "EXECUTED"),
+        "n_executed": len(executed_rows),
+        "n_blocked": len(rows) - len(executed_rows),
         "n_closed_trades": len(net),
         "net_r_mean": _mean(net),
         "net_r_ci90_upper": _ci_upper_90(net),
         "gross_r_mean": _mean([v for v in (_f(r["gross_r"]) for r in rows) if v is not None]),
-        "returns_bps_mean": {
+        "returns_bps_mean": {  # EXECUTED decisions only (blocked rows repeat an open opportunity)
             f"{h}m": _mean(
-                [v for v in (_f(r["returns_bps"].get(f"{h}m")) for r in rows) if v is not None]
+                [
+                    v
+                    for v in (_f(r["returns_bps"].get(f"{h}m")) for r in executed_rows)
+                    if v is not None
+                ]
             )
             for h in horizons
         },
@@ -502,6 +611,20 @@ def render_compare(r: dict[str, Any]) -> str:
     )
     out.append("## 1. Funnel and rates\n")
     out += ["| metric | V11-WARM | V11-LITE-WARM | Δ |", "|---|---|---|---|"]
+    out += [
+        "**Unique opportunities** (keyed by side-minute or side-level arm episode; independent of how many "
+        "templates / families journal the same minute)\n",
+        "| metric | V11-WARM | V11-LITE-WARM |",
+        "|---|---|---|",
+    ]
+    for k in c["unique"]:
+        out.append(f"| {k} | {_v(c['unique'][k])} | {_v(w['unique'][k])} |")
+    out += [
+        "",
+        "**Journal records** (raw)\n",
+        "| metric | V11-WARM | V11-LITE-WARM | Δ |",
+        "|---|---|---|---|",
+    ]
     for k in (
         "candidates",
         "armed_records",
@@ -520,12 +643,21 @@ def render_compare(r: dict[str, Any]) -> str:
     for k in ("candidates_to_executed", "armed_starts_to_executed"):
         out.append(f"| conversion {k} | {_v(c['conversion'][k])} | {_v(w['conversion'][k])} | |")
     out.append("")
-    out.append("## 2. Sides, families, scores\n")
+    out.append("## 2. Sides, templates, frozen structure labels, scores\n")
     out += ["| metric | V11-WARM | V11-LITE-WARM |", "|---|---|---|"]
     for k in ("candidates", "executed", "shadow_closed"):
         out.append(f"| sides {k} | {c['sides'][k]} | {w['sides'][k]} |")
-    for k in ("armed_starts_by_family", "executed"):
-        out.append(f"| families {k} | {c['families'][k]} | {w['families'][k]} |")
+    out.append(
+        f"| executed by frozen V11 family (control: setup present) / selected_template (LITE: first trigger "
+        f"template, NOT a setup) | {c['templates']['selected_template']} | {w['templates']['selected_template']} |"
+    )
+    for k in (
+        "frozen_structure_label_A",
+        "frozen_structure_label_B",
+        "frozen_structure_label_C",
+        "no_frozen_structure_label",
+    ):
+        out.append(f"| executed with {k} | {_v(c['templates'][k])} | {_v(w['templates'][k])} |")
     for k in ("candidates", "executed"):
         sc, sw = c["scores"][k], w["scores"][k]
         out.append(
@@ -559,7 +691,7 @@ def render_compare(r: dict[str, Any]) -> str:
         f"| net R by side | {c['trades']['net_r_by_side']} | {w['trades']['net_r_by_side']} | |"
     )
     out.append(
-        f"| net R by family | {c['trades']['net_r_by_family']} | {w['trades']['net_r_by_family']} | |"
+        f"| net R by family (control) / selected_template (LITE) | {c['templates']['net_r_mean_by_template']} | {w['templates']['net_r_mean_by_template']} | |"
     )
     out.append("")
     out.append("## 4. Side-adjusted outcomes (mean bps by kind and horizon)\n")
@@ -602,22 +734,24 @@ def render_compare(r: dict[str, Any]) -> str:
             for k, v in inc.items()
             if k not in ("returns_bps_mean", "rejection_reasons", "sides")
         )
-        + f" · returns {inc['returns_bps_mean']} · reasons {inc['rejection_reasons']} · sides {inc['sides']}\n"
+        + f" · mean side-adjusted returns of EXECUTED incremental decisions {inc['returns_bps_mean']} · "
+        f"reasons {inc['rejection_reasons']} · sides {inc['sides']}. selected_template is the first frozen "
+        "trigger template that fired; it is NOT evidence that a frozen V11 family setup was present (see the "
+        "frozen_structure_label columns).\n"
     )
     rows = r["incremental_cohort"]["rows"]
     if rows:
         hs = list(rows[0]["returns_bps"].keys())
         out.append(
-            "| ts | side | tmpl | score | A/B/C labels | control rejection | micro | "
+            "| ts | side | selected_template | score | frozen_structure_label A/B/C | control rejection | micro | "
             + " | ".join(hs)
             + " | net R | exit | fib ratio | fib dist bps | fib |ATR| | bucket | vwap bps | rng60 | rng240 | swHi5 ATR | swLo5 ATR |"
         )
         out.append("|---|" * (18 + len(hs)))
         for x in rows[-200:]:
-            fl = x["family_labels"]
             out.append(
-                f"| {str(x['ts'])[:16]} | {x['side']} | {x['family_template']} | {_v(x['score'], 1)} | "
-                f"{'/'.join('1' if fl.get(f) else '0' for f in ('A', 'B', 'C'))} | {x['control_rejection_reason']} | {_v(x['micro_score'], 2)} | "
+                f"| {str(x['ts'])[:16]} | {x['side']} | {x['selected_template']} | {_v(x['score'], 1)} | "
+                f"{'/'.join('1' if x[f'frozen_structure_label_{f}'] else '0' for f in ('A', 'B', 'C'))} | {x['control_rejection_reason']} | {_v(x['micro_score'], 2)} | "
                 + " | ".join(_v(x["returns_bps"][h], 1) for h in hs)
                 + f" | {_v(x['net_r'], 2)} | {x['exit_reason']} | {x['fib_nearest_ratio']} | {_v(x['fib_nearest_dist_bps'], 1)} | "
                 f"{_v(x['fib_nearest_abs_dist_atr'], 2)} | {x['fib_bucket_atr']} | {_v(x['vwap_dist_bps'], 1)} | {_v(x['range_pos_60m'], 2)} | "

@@ -447,6 +447,15 @@
   13:34:40Z, observation_start 2026-10-14T14:04:40Z, code 58083d4, V11 strategy a324dbcb0394, lite strategy
   c66ef46a493f. V10 / V11 / V11-WARM code, configs, freezes, journals untouched (sha256 snapshot before/after +
   tests). Mac: install ONLY `com.btcswing.v11-lite-warm-forward`; never activate anything.
+- 2026-10-14 (V11-LITE-WARM pre-launch bookkeeping cleanup, owner request after a read-only design audit; economics
+  unchanged): one arm state per side (`v11lw-book-2`), arm starts only on NOT_ARMED -> ARMED, at most one ARMED /
+  NEAR_MISS / decision per side-minute, `selected_template` (first frozen trigger/stop template, not a setup) kept apart
+  from the frozen `structure_labels`; comparison report shows unique opportunities (side-level arm episodes, decisions,
+  blocked, near misses) for both generations. Equivalence with the f885f85 engine proven by replay: synthetic, adversarial
+  (score walks + ATR5 gaps), live `_step`, and the full consumed TRAIN / VALIDATION frames (133,107 + 44,915 decisions,
+  19,916 + 7,049 trades, zero field mismatches; `reports/forward_v11_lite_warm/equivalence_f885f85_vs_book2.json`).
+  The f885f85 freeze (observation_start 2026-10-14T14:04:40Z) never entered Mac forward observation; it is kept
+  byte-identical as `manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json` and a new freeze supersedes it.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

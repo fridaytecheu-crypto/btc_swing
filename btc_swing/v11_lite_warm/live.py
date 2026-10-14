@@ -18,13 +18,13 @@ import polars as pl
 
 from btc_swing.v5.demo.journal import HashChainJournal
 from btc_swing.v11.config import V11Config
-from btc_swing.v11.engine import FAMILIES, MS_1M, Position, V11Engine
+from btc_swing.v11.engine import MS_1M, Position, V11Engine
 from btc_swing.v11.features import V11Frame, build_frame_v11
 from btc_swing.v11.live import MIN_BARS
 from btc_swing.v11.scoring import score_frame
 from btc_swing.v11_lite_warm.config import STRATEGY, STRATEGY_DELTA, LiteCfg
 from btc_swing.v11_lite_warm.context import context_at
-from btc_swing.v11_lite_warm.engine import V11LiteEngine
+from btc_swing.v11_lite_warm.engine import BOOKKEEPING_VERSION, SIDE_NAME, TEMPLATES, V11LiteEngine
 from btc_swing.v11_lite_warm.paths import V11LiteWarmPaths
 from btc_swing.v11_warm.config import WarmCfg
 from btc_swing.v11_warm.live import V11WarmLive
@@ -34,6 +34,17 @@ log = logging.getLogger(__name__)
 
 def _iso(ms_: int | float | None) -> str | None:
     return None if ms_ is None else datetime.fromtimestamp(ms_ / 1000, tz=UTC).isoformat()
+
+
+def lite_view(d: dict[str, Any]) -> dict[str, Any]:
+    """Journal view of an engine record: the frozen engine's `family` field is the SELECTED TEMPLATE in
+    V11-LITE (never a setup); it is renamed so no LITE journal presents it as a family / setup."""
+    out = {k: v for k, v in d.items() if k != "family"}
+    if "family" in d:
+        out["selected_template"] = d["family"]
+    if isinstance(d.get("decision"), dict):
+        out["decision"] = lite_view(d["decision"])
+    return out
 
 
 class V11LiteWarmLive(V11WarmLive):
@@ -52,6 +63,8 @@ class V11LiteWarmLive(V11WarmLive):
         super().__init__(cfg, paths, observation_start_ms, warm)
         self.state["strategy"] = STRATEGY
         self.state["strategy_delta"] = STRATEGY_DELTA
+        self.state["bookkeeping_version"] = BOOKKEEPING_VERSION
+        self.state["counters"].setdefault("arm_episodes", 0)
         self.state.setdefault(
             "twin",
             {
@@ -74,7 +87,17 @@ class V11LiteWarmLive(V11WarmLive):
             st["position"] = tw.pos.as_dict() if tw.pos else None
             st["armed"] = tw.armed
             st["counters"] = tw.counters
+        eng = self.engine
+        if isinstance(eng, V11LiteEngine):
+            self.state["side_arm"] = eng.side_arm_state()
         super().save()
+
+    def _restore_engine(self) -> None:
+        super()._restore_engine()
+        eng = self.engine
+        assert isinstance(eng, V11LiteEngine)
+        eng.armed = {}  # V11-LITE keeps ONE arm state per side (eng.side_arm), never per-family keys
+        eng.restore_side_arm(self.state.get("side_arm"))
 
     def _restore_twin(self) -> None:
         tw = self.twin
@@ -185,7 +208,7 @@ class V11LiteWarmLive(V11WarmLive):
             "contrib_long": eng._contrib(1, i),
             "contrib_short": eng._contrib(-1, i),
         }
-        self.last_labels = eng.family_labels(i)
+        self.last_labels = eng.structure_labels(i)
         self.last_context = context_at(
             self.cfg, self.lite, fr.c, i, getattr(self, "last_micro", {})
         )
@@ -222,11 +245,11 @@ class V11LiteWarmLive(V11WarmLive):
             pos = eng.open_from_pending(i, fill_ref=fill_ref)
             if pos is not None:
                 pos.entry_ms = t_close
-                self.j_sh.append("SHADOW_OPEN", pos.as_dict())
+                self.j_sh.append("SHADOW_OPEN", lite_view(pos.as_dict()))
         if len(eng.trades) > n_tr:
             for t in eng.trades[n_tr:]:
                 d = t.as_dict()
-                self.j_sh.append("SHADOW_CLOSED", d)
+                self.j_sh.append("SHADOW_CLOSED", lite_view(d))
                 self.state["trades"] += 1
                 self.state["cum_net_usd"] = float(self.state["cum_net_usd"]) + float(t.net_usd)
                 self.state["wins" if t.net_usd > 0 else "losses"] += 1
@@ -239,19 +262,20 @@ class V11LiteWarmLive(V11WarmLive):
         self,
         eng: V11LiteEngine,
         tw: V11Engine,
-        fam: str,
+        tmpl: str,
         s: int,
         i: int,
         twin_rec: dict[str, Any] | None,
         twin_pos_before: Position | None,
     ) -> dict[str, Any]:
-        """Would the frozen V11 rules (the twin) have made this decision? If not, the exact reason."""
-        side = "LONG" if s > 0 else "SHORT"
-        label = eng.family_structure(fam, s, i)
-        detail = self.last_context.get("structure_detail", {}).get(fam, {}).get(side, {})
+        """Would the frozen V11 rules (the twin) have made this decision? If not, the exact reason.
+        `tmpl` is the LITE selected template; the twin's `family` IS a frozen V11 setup."""
+        side = SIDE_NAME[s]
+        label = eng.frozen_structure(tmpl, s, i)
+        detail = self.last_context.get("structure_detail", {}).get(tmpl, {}).get(side, {})
         failed = [k for k, ok in detail.items() if ok is False]
         out: dict[str, Any] = {
-            "family_structure_label": label,
+            "selected_template_structure_label": label,
             "structure_detail": detail,
             "failed_conditions": failed,
             "twin_decision": None
@@ -267,27 +291,27 @@ class V11LiteWarmLive(V11WarmLive):
         }
         if twin_rec is not None and int(twin_rec["side_sign"]) == s:
             blockers = list(twin_rec.get("blockers") or [])
-            if twin_rec["family"] == fam:
-                out["would_take"] = True
-                out["reason"] = "CONTROL_SAME_DECISION"
-            else:
-                out["would_take"] = True
-                out["reason"] = f"CONTROL_SAME_SIDE_OTHER_FAMILY:{twin_rec['family']}"
+            out["would_take"] = True
+            out["reason"] = (
+                "CONTROL_SAME_DECISION"
+                if twin_rec["family"] == tmpl
+                else f"CONTROL_SAME_SIDE_OTHER_FAMILY:{twin_rec['family']}"
+            )
             if blockers == ["POSITION_OPEN"]:
                 out["reason"] += "|CONTROL_BLOCKED_POSITION_OPEN"
             return out
         out["would_take"] = False
         if not label:
-            out["reason"] = f"STRUCTURE_{fam}_FALSE:" + ",".join(failed)
-        elif f"{fam}{s:+d}" in tw.armed:
-            out["reason"] = f"CONTROL_ARMED_{fam}_NO_DECISION"
+            out["reason"] = f"STRUCTURE_{tmpl}_FALSE:" + ",".join(failed)
+        elif f"{tmpl}{s:+d}" in tw.armed:
+            out["reason"] = f"CONTROL_ARMED_{tmpl}_NO_DECISION"
         else:
-            out["reason"] = f"STRUCTURE_{fam}_TRUE_NOW_BUT_CONTROL_NOT_ARMED"
+            out["reason"] = f"STRUCTURE_{tmpl}_TRUE_NOW_BUT_CONTROL_NOT_ARMED"
         if twin_rec is not None:
             out["reason"] += f"|CONTROL_DECIDED_OTHER_SIDE:{twin_rec['family']}{twin_rec['side']}"
         return out
 
-    # ------------------------------------------------------------------ journals (V11 rows + labels + context)
+    # ------------------------------------------------------------------ journals (one record per side-minute)
     def _journal_row_lite(
         self,
         eng: V11LiteEngine,
@@ -299,6 +323,9 @@ class V11LiteWarmLive(V11WarmLive):
         twin_rec: dict[str, Any] | None,
         twin_pos_before: Position | None,
     ) -> None:
+        """CANDIDATE (unchanged: per side, 5-min dedupe); ARMED only on a side's NOT_ARMED -> ARMED
+        transition (one per side, never per template, never on refresh); NEAR_MISS at most one per
+        side-minute; one SIGNAL per decision (the engine makes at most one decision per minute)."""
         th = self.cfg.thresholds
         micro = getattr(self, "last_micro", {})
         ctx = self.last_context
@@ -320,8 +347,8 @@ class V11LiteWarmLive(V11WarmLive):
                             "contrib": eng._contrib(s, i),
                             "micro": micro,
                             "indicators": eng.snapshot(i),
-                            "family_labels": {f: labels[f][tag.upper()] for f in FAMILIES},
-                            "any_family_structure": any(labels[f][tag.upper()] for f in FAMILIES),
+                            "structure_labels": {t: labels[t][tag.upper()] for t in TEMPLATES},
+                            "any_structure_label": any(labels[t][tag.upper()] for t in TEMPLATES),
                             "control_twin_armed": sorted(tw.armed),
                             "context": ctx,
                         },
@@ -331,59 +358,57 @@ class V11LiteWarmLive(V11WarmLive):
                         self._queue_outcome(
                             f"V11LWC-{t_close}-{tag[0].upper()}", "CANDIDATE", t_close, p0, s
                         )
-        for key, arm in eng.armed.items():
-            if int(arm["armed_ms"]) == t_close:
-                fam, side = key[0], "LONG" if key.endswith("+1") else "SHORT"
-                self.j_ep.append(
-                    "ARMED",
+        for s in eng.arm_starts_now:
+            st = eng.side_arm[s]
+            side = SIDE_NAME[s]
+            self.j_ep.append(
+                "ARMED",
+                {
+                    "ts": _iso(t_close),
+                    "ts_ms": t_close,
+                    "side": side,
+                    "arm_episode_id": st["episode_id"],
+                    "score": st["score"],
+                    "templates_available": eng.available_templates(s, t_close),
+                    "structure_labels": {t: labels[t][side] for t in TEMPLATES},
+                    "control_twin_armed": sorted(k for k in tw.armed if k.endswith(f"{s:+d}")),
+                    "fib_bucket_atr": ctx.get("fib", {}).get("bucket_atr"),
+                },
+            )
+            self.state["counters"]["armed"] += 1
+            self.state["counters"]["arm_episodes"] = (
+                int(self.state["counters"].get("arm_episodes", 0)) + 1
+            )
+        if rec is None:  # near miss: an available template triggered, score within 10 below entry
+            for s in (1, -1):
+                sc = eng._score(s, i)
+                if not (math.isfinite(sc) and th.entry - 10 <= sc < th.entry):
+                    continue
+                trig = [t for t in eng.available_templates(s, t_close) if eng.trigger(t, s, i)]
+                if not trig:
+                    continue
+                side = SIDE_NAME[s]
+                self.state["counters"]["nearmiss"] += 1
+                self.j_nm.append(
+                    "NEAR_MISS",
                     {
                         "ts": _iso(t_close),
                         "ts_ms": t_close,
-                        "family": fam,
                         "side": side,
-                        "score": arm["score"],
-                        "valid_until": _iso(arm["until_ms"]),
-                        "family_structure_label": labels[fam][side],
-                        "control_twin_armed": key in tw.armed,
-                        "fib_bucket_atr": ctx.get("fib", {}).get("bucket_atr"),
+                        "score": sc,
+                        "entry_threshold": th.entry,
+                        "selected_template": trig[0],
+                        "templates_triggered": trig,
+                        "arm_episode_id": (eng.side_arm.get(s) or {}).get("episode_id"),
+                        "contrib": eng._contrib(s, i),
+                        "micro": micro,
+                        "structure_labels": {t: labels[t][side] for t in TEMPLATES},
+                        "context": ctx,
                     },
                 )
-                self.state["counters"]["armed"] += 1
-        for fam in FAMILIES:
-            for s in (1, -1):
-                key = f"{fam}{s:+d}"
-                arm_nm = eng.armed.get(key)
-                sc = eng._score(s, i)
-                if (
-                    arm_nm is not None
-                    and eng.trigger(fam, s, i)
-                    and math.isfinite(sc)
-                    and th.entry - 10 <= sc < th.entry
-                    and (rec is None or rec.get("signal_id") is None)
-                ):
-                    self.state["counters"]["nearmiss"] += 1
-                    self.j_nm.append(
-                        "NEAR_MISS",
-                        {
-                            "ts": _iso(t_close),
-                            "ts_ms": t_close,
-                            "family": fam,
-                            "side": "LONG" if s > 0 else "SHORT",
-                            "score": sc,
-                            "entry_threshold": th.entry,
-                            "contrib": eng._contrib(s, i),
-                            "micro": micro,
-                            "family_structure_label": labels[fam]["LONG" if s > 0 else "SHORT"],
-                            "context": ctx,
-                        },
-                    )
-                    self._queue_outcome(
-                        f"V11LWN-{t_close}-{fam}{'L' if s > 0 else 'S'}",
-                        "NEAR_MISS",
-                        t_close,
-                        float(eng.X["close"][i]),
-                        s,
-                    )
+                self._queue_outcome(
+                    f"V11LWN-{t_close}-{side[0]}", "NEAR_MISS", t_close, float(eng.X["close"][i]), s
+                )
         if rec is not None:
             self.state["counters"]["executed" if rec["action"] == "EXECUTED" else "blocked"] += 1
             if "POSITION_OPEN" in (rec.get("blockers") or []):
@@ -396,12 +421,17 @@ class V11LiteWarmLive(V11WarmLive):
             rec["context"] = ctx
             self.j_sig.append(
                 "SIGNAL_" + rec["action"],
-                {**rec, "ts": _iso(rec["decision_ms"]), "execution_mode": "SHADOW", "micro": micro},
+                {
+                    **lite_view(rec),
+                    "ts": _iso(rec["decision_ms"]),
+                    "execution_mode": "SHADOW",
+                    "micro": micro,
+                },
             )
             self.state["last_signal"] = {
                 "signal_id": rec["signal_id"],
                 "action": rec["action"],
-                "family": rec["family"],
+                "selected_template": rec["family"],
                 "side": rec["side"],
                 "at": _iso(rec["decision_ms"]),
                 "incremental": rec["incremental"],
@@ -422,7 +452,13 @@ class V11LiteWarmLive(V11WarmLive):
         d["strategy"] = STRATEGY
         d["mode"] = "SHADOW_ONLY (warm-started V11, family structure as labels)"
         d["strategy_delta"] = STRATEGY_DELTA
-        d["family_labels"] = self.last_labels
+        d["bookkeeping_version"] = BOOKKEEPING_VERSION
+        d["structure_labels"] = self.last_labels
+        eng = self.engine
+        d["armed"] = {}
+        d["side_arm"] = eng.side_arm_state() if isinstance(eng, V11LiteEngine) else {}
+        if d.get("position"):
+            d["position"] = lite_view(d["position"])
         d["context"] = self.last_context
         d["control_twin"] = {
             "armed": tw.armed if tw else {},

@@ -24,8 +24,8 @@ def structure(self, fam, s, i):           # V11-LITE
 ```
 
 The frozen `V11Engine.structure` is still executed for every family and side on every bar and journaled as
-`family_labels` (CANDIDATE, SIGNAL, shadow trade decision) / `family_structure_label` (ARMED, NEAR_MISS,
-SIGNAL); it never vetoes arming. Consequence: a (family, side) key arms whenever the side's score is >= the
+`structure_labels` on every CANDIDATE, ARMED, NEAR_MISS and SIGNAL record (field names as of the section 8
+cleanup); it never vetoes arming. Consequence: a (family, side) key arms whenever the side's score is >= the
 armed threshold (70) and the family's own trigger and stop geometry then decide the entry exactly as in V11
 (`trigger`, `stop_level`, `_decide`, `_manage`, `_close` are inherited untouched). The family of a LITE
 signal is therefore its trigger / stop TEMPLATE (A: 3-bar breakout, pullback/swing stop; B: 60-min
@@ -127,3 +127,44 @@ reproduces a standalone frozen V11 engine and that every incremental signal name
 context telemetry is PIT (unchanged when later bars change) and N/A when unconfirmable; V10 / V11 / V11-WARM
 code, configs, freezes and bootstrap hashes are unchanged by loading, seeding, running, freezing and
 reporting LITE; nothing is written outside the LITE root and `reports/forward_v11_lite_warm/`.
+
+## 8. Pre-launch bookkeeping cleanup (`v11lw-book-2`, 2026-10-14) — economically identical
+
+A read-only design audit of the first build (code f885f85, freeze 2026-10-14T13:34:40Z, which never entered
+Mac forward observation) found that the per-(family, side) arm keys inflated the journals: every refresh
+minute wrote three ARMED records per side (one per template), a decision that consumed one template made
+that template "re-arm" as a new start, near misses were written once per triggered template, and the
+selected template was journaled under the name `family`. The owner ordered a bookkeeping-only cleanup with
+the constraint that trade decisions stay bit-for-bit identical. Changes (`btc_swing/v11_lite_warm/engine.py`,
+`live.py`, `compare.py`, `status.py`, `freeze.py`):
+
+- ONE arm state per side (`V11LiteEngine.side_arm`): a refresh (data validity + score >= 70) re-arms all
+  three frozen templates of that side at once; a template stays available until its frozen
+  `armed_valid_min` lapses (A / B 30 min, C 10 min) or a decision consumes it. This is the f885f85 key
+  dictionary written as one state per side; the decision loop evaluates the templates in the identical
+  order (A LONG, A SHORT, B LONG, B SHORT, C LONG, C SHORT).
+- An arm START (`arm_episode_id`, journal `ARMED`) is written only on the side's NOT_ARMED -> ARMED
+  transition; refreshes and template consumption never create a new start.
+- At most one ARMED, one decision, one NEAR_MISS per side-minute (the engine already made at most one
+  decision per minute; near misses are now one record listing `templates_triggered`).
+- Terminology: the template that fires first is journaled as `selected_template` (A / B / C trigger + stop
+  template, NOT a setup); the frozen V11 structure results of that bar as `structure_labels` (A / B / C
+  true / false). No LITE journal carries a `family` field. The control twin keeps V11's own `family`
+  (there it IS a setup).
+- Comparison report: unique candidates, side-level arm episodes (the control's per-family refresh records
+  are merged into side episodes through their `valid_until` intervals), decisions per side-minute and per
+  arm episode, blocked decisions per side-minute and blocked-only arm episodes, near misses per
+  side-minute and per arm episode, trades; `selected_template` shown apart from
+  `frozen_structure_label_A/B/C`; the incremental cohort's mean returns use EXECUTED decisions only.
+
+Equivalence proof: `tests/v11_lite_warm/legacy_engine_f885f85.py` is the f885f85 engine verbatim (sha256
+`b3291dec162a…`, asserted). Tests replay it and the cleaned engine on identical inputs (four synthetic
+series, three adversarial series with random score walks across 65 / 70 / 75 and ATR5 blanked after arms
+exist, which exercises the template validity windows and consumption, and the live `_step` path) and assert
+every decision field, every trade field, candidates and counters equal, and that the side-level availability
+equals the f885f85 key dictionary on every minute. A one-off replay on the consumed TRAIN and VALIDATION
+frames (loads capped at 2025-07-01) compared every decision and trade field (result recorded in
+`reports/forward_v11_lite_warm/equivalence_f885f85_vs_book2.json`; no performance is reported).
+The economic strategy hash (`lite_strategy_hash` c66ef46a493f…) is unchanged; the new freeze pins
+`bookkeeping_version: v11lw-book-2` and records the superseded freeze
+(`manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json`, byte-identical, sha256 814d6507…).

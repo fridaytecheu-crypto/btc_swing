@@ -1,0 +1,47 @@
+{
+ "compared": "every decision field (signal id, decision time, side, template, action, blockers, entry ref, structural stop, stop, stop %, TP1, TP2, qty, leverage, notional, margin, risk, scores, armed time / score) and every closed-trade field (entry, fill, stops, targets, legs, exit time / reason, hold, gross / fees / slippage / funding / net USD, net / gross / cost R); candidate counts and dedupe state",
+ "generated_utc": "2026-10-14T20:33:47.308202+00:00",
+ "input": "V11 historical frames (Bybit 1m dataset, V11 features / scores, funding) for the consumed TRAIN 2022-01-01..2024-07-01 and VALIDATION 2024-07-01..2025-07-01 windows; loads capped at 2025-07-01; locked holdout not read",
+ "performance_reported": false,
+ "purpose": "V11-LITE-WARM pre-launch bookkeeping cleanup: economic equivalence of the cleaned engine (bookkeeping v11lw-book-2) with the frozen f885f85 engine on identical input",
+ "reference_engine": "tests/v11_lite_warm/legacy_engine_f885f85.py (verbatim f885f85, sha256 b3291dec162a126146f26b36860e0f7b77954a7d8cadd8a27f7ae972b398089a)",
+ "result": "EQUIVALENT",
+ "windows": {
+  "train": {
+   "blocked_new": 113191,
+   "blocked_old": 113191,
+   "candidates": 140652,
+   "candidates_equal": true,
+   "decision_field_mismatches": 0,
+   "decisions_new": 133107,
+   "decisions_old": 133107,
+   "executed_new": 19916,
+   "executed_old": 19916,
+   "new_side_arm_episodes": 15680,
+   "old_per_family_arm_starts": 187559,
+   "seconds": 187,
+   "selected_template_equals_old_family": true,
+   "trade_field_mismatches": 0,
+   "trades_new": 19916,
+   "trades_old": 19916
+  },
+  "validation": {
+   "blocked_new": 37866,
+   "blocked_old": 37866,
+   "candidates": 52380,
+   "candidates_equal": true,
+   "decision_field_mismatches": 0,
+   "decisions_new": 44915,
+   "decisions_old": 44915,
+   "executed_new": 7049,
+   "executed_old": 7049,
+   "new_side_arm_episodes": 6061,
+   "old_per_family_arm_starts": 65790,
+   "seconds": 65,
+   "selected_template_equals_old_family": true,
+   "trade_field_mismatches": 0,
+   "trades_new": 7049,
+   "trades_old": 7049
+  }
+ }
+}

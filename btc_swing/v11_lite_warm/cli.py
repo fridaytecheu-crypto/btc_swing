@@ -191,19 +191,34 @@ def forward_shadow_report(
 
 
 @forward11lw.command("freeze")
-def forward_freeze(config: Path = CFG) -> None:
-    """Write manifests/v11_lite_warm_forward_freeze.json once (observation_start = now + warm-up)."""
+def forward_freeze(
+    config: Path = CFG,
+    observation_start: str = typer.Option(
+        None,
+        help="explicit UTC launch instant (ISO, e.g. 2026-10-15T12:00:00+00:00); must be >= now + "
+        "live warm-up; default now + live warm-up",
+    ),
+) -> None:
+    """Write manifests/v11_lite_warm_forward_freeze.json once."""
     from btc_swing.v11_lite_warm.freeze import FREEZE_PATH_V11LW, write_freeze
 
     lc, v11, _ = _load(config, False)
     rep = Path("reports/forward_v11_lite_warm/latest_shadow_report.json")
-    rec = write_freeze(lc, v11, json.loads(rep.read_text()) if rep.exists() else None)
+    obs_ms = (
+        int(datetime.fromisoformat(observation_start).timestamp() * 1000)
+        if observation_start
+        else None
+    )
+    rec = write_freeze(
+        lc, v11, json.loads(rep.read_text()) if rep.exists() else None, observation_start_ms=obs_ms
+    )
     typer.echo(
         json.dumps(
             {
                 "path": str(FREEZE_PATH_V11LW),
                 "v11_strategy_hash": rec["v11_strategy_hash"],
                 "lite_strategy_hash": rec["lite_strategy_hash"],
+                "bookkeeping_version": rec.get("bookkeeping_version"),
                 "frozen_at": rec["frozen_at"],
                 "observation_start": rec["observation_start"],
                 "code_version": rec["code_version"],
@@ -223,20 +238,17 @@ def forward_trades(config: Path = CFG, verification: bool = False) -> None:
         typer.echo("no closed shadow trades")
         return
     typer.echo(
-        "| # | tmpl | side | A/B/C | incr | entry fill | stop % | exit reason | hold min | net USDT | net R | score |"
+        "| # | selected_template | side | frozen labels A/B/C | incremental | entry fill | stop % | exit reason | hold min | net USDT | net R | score |"
     )
     typer.echo("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for i, t in enumerate(rows, 1):
         d = t.get("decision") or {}
-        fl = (
-            (d.get("family_labels") or {}).get("A", {}),
-            (d.get("family_labels") or {}).get("B", {}),
-            (d.get("family_labels") or {}).get("C", {}),
-        )
+        lab = d.get("structure_labels") or {}
         side = "LONG" if int(t["side"]) > 0 else "SHORT"
-        labels = "/".join("1" if x.get(side) else "0" for x in fl)
+        labels = "/".join("1" if lab.get(x) else "0" for x in ("A", "B", "C"))
+        tmpl = t.get("selected_template", t.get("family"))
         typer.echo(
-            f"| {i} | {t['family']} | {side} | {labels} | {'yes' if d.get('incremental') else 'no'} | {float(t['entry_fill']):.1f} | {float(t['stop_pct']):.2f} | {t['exit_reason']} | {float(t['hold_min']):.0f} | {float(t['net_usd']):.2f} | {float(t['net_r']):.2f} | {float(t['score_entry']):.1f} |"
+            f"| {i} | {tmpl} | {side} | {labels} | {'yes' if d.get('incremental') else 'no'} | {float(t['entry_fill']):.1f} | {float(t['stop_pct']):.2f} | {t['exit_reason']} | {float(t['hold_min']):.0f} | {float(t['net_usd']):.2f} | {float(t['net_r']):.2f} | {float(t['score_entry']):.1f} |"
         )
 
 

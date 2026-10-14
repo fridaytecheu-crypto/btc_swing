@@ -10,6 +10,7 @@ from typing import Any
 from btc_swing.v5.demo.journal import verify_chain
 from btc_swing.v11.config import V11Config
 from btc_swing.v11_lite_warm.config import STRATEGY_DELTA, V11LiteWarmConfig
+from btc_swing.v11_lite_warm.engine import BOOKKEEPING_VERSION
 from btc_swing.v11_lite_warm.freeze import load_freeze
 from btc_swing.v11_lite_warm.paths import V11LiteWarmPaths
 from btc_swing.v11_lite_warm.runner import runner_alive
@@ -55,7 +56,9 @@ def verify_warm(lc: V11LiteWarmConfig, paths: V11LiteWarmPaths) -> dict[str, Any
         "derivatives_contribution": contrib.get("derivatives"),
         "microstructure_contribution": contrib.get("microstructure"),
         "scores": {k: (d.get("scores") or {}).get(k) for k in ("long", "short")},
-        "family_labels": d.get("family_labels"),
+        "structure_labels": d.get("structure_labels"),
+        "side_arm": d.get("side_arm"),
+        "bookkeeping_version": d.get("bookkeeping_version"),
         "fib_available": (ctx.get("fib") or {}).get("available"),
         "fib_bucket_atr": (ctx.get("fib") or {}).get("bucket_atr"),
         "range_available": {
@@ -120,14 +123,22 @@ def status_rows(
         ),
         ("bars in window", str(diag.get("bars"))),
         ("score long / short", f"{sc.get('long')} / {sc.get('short')}"),
-        ("family labels (now)", json.dumps(diag.get("family_labels") or {})),
-        ("armed", json.dumps(diag.get("armed") or {})),
+        ("frozen structure labels (now)", json.dumps(diag.get("structure_labels") or {})),
+        ("side arm state", json.dumps(diag.get("side_arm") or {})),
         (
             "open shadow position",
             json.dumps(
                 {
                     k: st["position"].get(k)
-                    for k in ("signal_id", "family", "side", "entry_fill", "stop")
+                    for k in (
+                        "signal_id",
+                        "selected_template",
+                        "family",
+                        "side",
+                        "entry_fill",
+                        "stop",
+                    )
+                    if k in st["position"]
                 }
             )
             if st.get("position")
@@ -177,7 +188,8 @@ def diagnostic_text(paths: V11LiteWarmPaths) -> str:
         f"  long {d.get('scores', {}).get('long')}  short {d.get('scores', {}).get('short')}",
         f"  contrib long  {json.dumps(d.get('scores', {}).get('contrib_long'))}",
         f"  contrib short {json.dumps(d.get('scores', {}).get('contrib_short'))}",
-        f"family labels: {json.dumps(d.get('family_labels'))}",
+        f"frozen structure labels: {json.dumps(d.get('structure_labels'))}",
+        f"bookkeeping: {d.get('bookkeeping_version')}",
         "",
         "indicators:",
     ]
@@ -194,7 +206,7 @@ def diagnostic_text(paths: V11LiteWarmPaths) -> str:
         f"swings: {json.dumps(ctx.get('swings'))}",
         f"location (ATR5): {json.dumps(ctx.get('location_atr'))}",
         "",
-        f"armed: {json.dumps(d.get('armed'))}",
+        f"side arm state: {json.dumps(d.get('side_arm'))}",
         f"position: {json.dumps(d.get('position'))}",
         f"control twin: {json.dumps(d.get('control_twin'))}",
         f"warm: {json.dumps(d.get('warm'))}",
@@ -251,8 +263,12 @@ def shadow_report(
         "no exchange order path": True,
         "features warm (pre-declared fields)": vw["all_required_fields_populated"],
         "groups warm (pre-declared groups)": vw["all_required_groups_populated"],
-        "family labels computed": isinstance(d.get("family_labels"), dict)
-        and set(d["family_labels"]) == {"A", "B", "C"},
+        "structure labels computed": isinstance(d.get("structure_labels"), dict)
+        and set(d["structure_labels"]) == {"A", "B", "C"},
+        "side-level bookkeeping": d.get("bookkeeping_version") == BOOKKEEPING_VERSION,
+        "no per-template ARMED records": all(
+            "family" not in r["data"] for r in _read(paths.episodes) if r.get("kind") == "ARMED"
+        ),
         "context telemetry computed": isinstance((d.get("context") or {}).get("fib"), dict),
         "control twin running": isinstance(d.get("control_twin"), dict),
         "signal ids carry V11LWS- prefix": all(
