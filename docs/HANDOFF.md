@@ -440,9 +440,13 @@
   Fibonacci / VWAP / range / swing / location / flow / microstructure telemetry on every event; in-process strict V11
   control twin attributes every LITE signal (incremental cohort with the exact failed structure condition).
   `v11lw report compare` = V11-WARM vs V11-LITE-WARM + incremental cohort + Fibonacci buckets + checkpoints. Cloud
-  verification run on the verification root, freeze written (see the freeze file for observation_start). V10 / V11 /
-  V11-WARM code, configs, freezes, journals untouched (sha256 snapshot before/after + tests). Mac: install ONLY
-  `com.btcswing.v11-lite-warm-forward`; never activate anything.
+  verification (verification root, 70 in-window minutes, 0 engine errors): 12 candidates, 13 arm starts, 3 signals (1
+  executed, 2 blocked POSITION_OPEN), ALL incremental (strict twin: 0 armed; reasons STRUCTURE_A/C_FALSE named); shadow
+  report NOT_PASSED only on the kline-gap-dependent fields (1h ATR, Bollinger volatility; REST geo-blocked here, the Mac
+  gap-fill closes them), as for V11-WARM. Freeze `manifests/v11_lite_warm_forward_freeze.json`: frozen 2026-10-14
+  13:34:40Z, observation_start 2026-10-14T14:04:40Z, code 58083d4, V11 strategy a324dbcb0394, lite strategy
+  c66ef46a493f. V10 / V11 / V11-WARM code, configs, freezes, journals untouched (sha256 snapshot before/after +
+  tests). Mac: install ONLY `com.btcswing.v11-lite-warm-forward`; never activate anything.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

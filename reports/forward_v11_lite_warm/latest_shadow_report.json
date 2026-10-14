@@ -1,0 +1,129 @@
+{
+ "blocked": 2,
+ "candidates": 12,
+ "chains": {
+  "candidates": true,
+  "episodes": true,
+  "outcomes": true,
+  "shadow_trades": true,
+  "signals": true
+ },
+ "checks": {
+  "bars updating": true,
+  "context telemetry computed": true,
+  "control twin running": true,
+  "duration >= min hours": true,
+  "family labels computed": true,
+  "features warm (pre-declared fields)": false,
+  "groups warm (pre-declared groups)": false,
+  "indicators populate": true,
+  "journals valid": true,
+  "no V10 / V11 / V11-WARM coupling": true,
+  "no exchange order path": true,
+  "risk / stop sanity on executed": true,
+  "signal ids carry V11LWS- prefix": true
+ },
+ "control_twin": {
+  "armed": {},
+  "counters": {
+   "armed": 0,
+   "blocked": 0,
+   "candidates": 12,
+   "executed": 0,
+   "skipped_while_open": 0,
+   "triggers": 0
+  },
+  "cum_net_usd": 0.0,
+  "losses": 0,
+  "position": null,
+  "trades": 0,
+  "wins": 0
+ },
+ "counters": {
+  "armed": 24,
+  "blocked": 2,
+  "candidates": 12,
+  "executed": 1,
+  "nearmiss": 15,
+  "skipped_while_open": 2,
+  "triggers": 0
+ },
+ "duration_s": 4191.831,
+ "executed": 1,
+ "generated_utc": "2026-10-14T13:34:16.712304+00:00",
+ "incremental_signals": 3,
+ "last_bar": "2026-10-14 13:34:00",
+ "mode": "SHADOW ONLY (warm-started V11, family structure as labels)",
+ "near_misses": 15,
+ "observation_start": "2026-10-14 12:24:08",
+ "outcomes": 51,
+ "run_id": "v11litewarm-20261014T133416Z",
+ "shadow_net_usd": 0,
+ "shadow_trades": 0,
+ "signals": 3,
+ "status": "NOT_PASSED",
+ "warm": {
+  "all_required_fields_populated": false,
+  "all_required_groups_populated": false,
+  "bars_in_window": 43304,
+  "bootstrap_bars_in_window": 43200,
+  "control_twin_armed": {},
+  "derivatives_contribution": 10.0,
+  "diagnostic_written_at": "2026-10-14T13:34:06.725376+00:00",
+  "family_labels": {
+   "A": {
+    "LONG": false,
+    "SHORT": false
+   },
+   "B": {
+    "LONG": false,
+    "SHORT": false
+   },
+   "C": {
+    "LONG": false,
+    "SHORT": false
+   }
+  },
+  "fib_available": true,
+  "fib_bucket_atr": "<= 0.10",
+  "holes_in_window": 2,
+  "in_window": true,
+  "last_bar": "2026-10-14T13:34:00+00:00",
+  "microstructure_contribution": 9.000000000000002,
+  "range_available": {
+   "240m": false,
+   "60m": true
+  },
+  "required_fields": {
+   "adx14": 44.46547773352155,
+   "atr1h": null,
+   "atr5": 229.87732017349316,
+   "ema50": 82688.65922097187,
+   "hi60": 83065.4,
+   "rsi14": 34.579353623201555,
+   "rsi7": 39.85715205847028,
+   "rvol5": 2.44030611632901,
+   "struct15": 1.0,
+   "vol_tercile": 2.0,
+   "vwap": 82904.06789656976
+  },
+  "required_groups": {
+   "location": 15.0,
+   "momentum": 12.0,
+   "trend": 9.0,
+   "volatility": null,
+   "volume": 12.75
+  },
+  "scores": {
+   "long": 75.27777777777777,
+   "short": 46.388888888888886
+  },
+  "seed": {
+   "bootstrap_bars": 43200,
+   "gapfill_bars": 0,
+   "last_close": "2026-10-13T00:00:00+00:00",
+   "sha256_bars": "3132d3410b546de2a8bb87e14859bcdcf11a992c182e55a1cf3244b839057d6c"
+  },
+  "status": "NOT_WARM"
+ }
+}
