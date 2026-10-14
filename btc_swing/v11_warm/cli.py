@@ -137,6 +137,16 @@ forward11w = typer.Typer(help="forward shadow (no orders)")
 v11w_app.add_typer(forward11w, name="forward")
 
 
+def _report_app_v11w() -> typer.Typer:
+    from btc_swing.forward_report.cli import make_report_app
+    from btc_swing.forward_report.generations import spec_v11w
+
+    return make_report_app(spec_v11w, CFG)
+
+
+v11w_app.add_typer(_report_app_v11w(), name="report")
+
+
 @forward11w.command("run")
 def forward_run(
     config: Path = CFG,

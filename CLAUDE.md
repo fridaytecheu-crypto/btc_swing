@@ -137,6 +137,14 @@ run|status|diagnostic|verify-warm|shadow-report|freeze|trades`; macOS agent `com
 V11 live loop detects new bars by deque length and will stop scoring once 22 days of live bars fill its deque.
 Never modify V10 / V11 for V11-WARM; no Demo execution exists.
 
+FORWARD FULL-HISTORY REPORTS (`btc_swing/forward_report/`, generic and READ-ONLY): `btc-swing v10|v11|v11w report
+full-history [--verification]` reads a generation's journals / state / freeze through a `GenerationSpec`
+(`forward_report/generations.py`) and writes only `reports/<generation>/full_history_*.{json,md}` +
+`latest_full_history.*`. Fields a generation does not journal print N/A (never inferred); V10 carries the Demo
+section, V11 / V11-WARM are shadow only. Never add writes to journals, state, freezes or runners in this layer;
+`tests/forward_report` proves journal hashes, state.json, freezes and strategy hashes are unchanged and no exchange
+call is made.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

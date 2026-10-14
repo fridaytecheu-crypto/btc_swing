@@ -120,6 +120,15 @@ archive seeded before observation_start so RVOL, ATR percentiles, EMA/RSI/ADX an
 from the first live bar; order book, liquidations and live microstructure are never backfilled. Shadow only;
 separate root, journals, freeze and LaunchAgent `com.btcswing.v11-warm-forward`; V10 and V11 untouched.
 
+**Forward full-history reports (read-only, all generations)** (`btc_swing/forward_report/`): `btc-swing v10 report
+full-history`, `btc-swing v11 report full-history`, `btc-swing v11w report full-history` (`--verification` reads the
+verification root). One generic layer reads the journals, state and freeze of a generation and writes
+`full_history_<ts>.{json,md}` + `latest_full_history.*` under `reports/<generation>/` only: candidate -> armed ->
+trigger -> executed funnel, families, sides, blockers / failed conditions, score distributions, shadow PnL / R,
+outcomes, daily table, and the V10 Demo section (N/A for shadow-only generations). Nothing else is ever written;
+regression tests prove journal hashes, state.json, freeze manifests and strategy hashes are unchanged and that no
+exchange call is made.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -128,7 +137,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 316 tests, no database needed
+uv run pytest -q                                            # 322 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

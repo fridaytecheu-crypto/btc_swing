@@ -23,6 +23,16 @@ CFG = Path("config/btc_swing_v10.yaml")
 DEMO_CFG = Path("config/btc_swing_v5_demo.yaml")
 
 
+def _report_app_v10() -> typer.Typer:
+    from btc_swing.forward_report.cli import make_report_app
+    from btc_swing.forward_report.generations import spec_v10
+
+    return make_report_app(spec_v10, CFG)
+
+
+v10_app.add_typer(_report_app_v10(), name="report")
+
+
 def _ctx(config: Path, verification: bool = False) -> tuple[Any, Any]:
     from btc_swing.v10.config import load_v10_config
     from btc_swing.v10.paths import V10Paths

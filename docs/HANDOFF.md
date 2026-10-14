@@ -409,6 +409,17 @@
   bootstrap, not code). Mac: `git pull`, `uv sync --all-extras`, `launchctl kickstart -k
   gui/$(id -u)/com.btcswing.v11-warm-forward`, then `uv run btc-swing v11w forward verify-warm` after ~2 min
   (the restart heals the historical seam hole from the kline endpoint before the first tick).
+- 2026-10-14 (generic read-only forward reporting layer, owner request): `btc_swing/forward_report/` (spec, reader,
+  metrics, renderer, typer factory) + `generations.py` spec builders; `btc-swing v10|v11|v11w report full-history
+  [--verification]` writes `reports/<generation>/full_history_<ts>.{json,md}` and `latest_full_history.*` only.
+  Report content: funnel (candidates / armed / triggers / executed / blocked / near misses / outcomes), family x
+  side tables, blockers and failed conditions, score distributions, shadow PnL / R (win rate, PF, max DD, holds,
+  exits, by family / side), outcomes by kind and horizon, daily table, journal inventory, V10 Demo section (journal
+  kinds, activation events, demo trades); N/A for anything a generation does not journal. Only the three
+  generation CLI files gained a `report` sub-app registration; engines, configs, freezes and journals are
+  unchanged. `tests/forward_report` (6 tests) proves: journal file hashes, state.json, freeze manifests and strategy
+  hashes identical after a report; writes confined to reports/<generation>/ (other targets refused); no network
+  (httpx / socket forbidden during the run); no execution / exchange import in the layer.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -452,6 +463,7 @@ uv run btc-swing v11 forward status | diagnostic | shadow-report | trades   # re
 uv run btc-swing v111 research                                           # V11.1 ONE pre-registered experiment (done; C)
 uv run btc-swing v11w seed && uv run btc-swing v11w forward status      # V11-WARM: seed root (committed bootstrap + kline gap-fill), status
 uv run btc-swing v11w forward verify-warm | diagnostic | shadow-report  # read-only; --verification for the verify root
+uv run btc-swing v10 report full-history | v11 report full-history | v11w report full-history   # read-only; --verification
 ```
 
 ## Known data facts

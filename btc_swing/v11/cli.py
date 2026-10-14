@@ -69,6 +69,16 @@ forward11 = typer.Typer(help="forward shadow (no orders)")
 v11_app.add_typer(forward11, name="forward")
 
 
+def _report_app_v11() -> typer.Typer:
+    from btc_swing.forward_report.cli import make_report_app
+    from btc_swing.forward_report.generations import spec_v11
+
+    return make_report_app(spec_v11, CFG)
+
+
+v11_app.add_typer(_report_app_v11(), name="report")
+
+
 def _paths(config: Path, verification: bool) -> tuple[Any, Any]:
     from btc_swing.v11.config import load_v11_config
     from btc_swing.v11.paths import V11Paths
