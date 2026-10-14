@@ -57,6 +57,21 @@ days of live bars exist, i.e. around 2026-11-04 on the Mac: reported, NOT change
 (3) `observation_start = frozen_at + live_warmup_min (30)`: the engine is in-window and candidates are
 journaled only after it, so no decision uses the first 30 live minutes;
 (4) the diagnostic carries a `warm` block and `verify-warm` reports the pre-declared field / group lists.
+(5) **seam healing** (added 2026-10-14 after the first Mac install showed ATR5 / HI60 / tercile missing):
+the kline gap-fill ends at the minute before `seed` ran, while the live bar builder's first bar is the
+minute of the first trade after the agent connected, so one or two minutes were missing at the seam. A
+single missing minute breaks every contiguous-window feature (`window_valid`): 5m ATR needs 14 valid
+5m bars (75 min), HI60 61 valid minutes, Bollinger 20 valid 5m bars (100 min), and with ATR5 the trend,
+momentum, volatility and location groups. The EMA / RSI / ADX / RVOL state carries across the hole, which
+is why those looked warm. The runtime now (a) loads `bars_1m.jsonl` sorted and de-duplicated, (b) heals
+every missing minute inside the window at startup and whenever a new live bar opens more than one minute
+after the previous one (feed reconnects included) with Bybit PUBLIC klines flagged `src: kline_seamfill`
+(same fields as gap-fill bars), bounded by `gapfill_max_hours` per hole, and (c) reports
+`holes_in_window` and `seam_fills` in the diagnostic. Seam bars closed before the current live bar, so no
+decision uses information from its own future. Where REST is unreachable (cloud container) the hole is
+logged once and warms live, as before. Tests: `test_one_minute_seam_hole_reproduces_the_mac_symptom_without_healing`,
+`test_seam_hole_is_healed_on_first_live_bar_and_first_decision_sees_all_bar_groups`,
+`test_startup_heals_a_historical_seam_hole`, `test_reconnect_hole_mid_run_is_healed`.
 `tests/v11_warm/test_v11_warm.py::test_identical_decisions_on_the_same_warmed_history` proves that V11
 and V11-WARM, given the same fully warmed bar history, produce identical indicators, scores and decisions
 bar by bar.

@@ -5,9 +5,13 @@ with (a) a 31-day rolling frame so the bootstrap bars feed every rolling baselin
 from __future__ import annotations
 
 import json
+import logging
 from collections import deque
+from datetime import UTC, datetime
+from itertools import pairwise
 from typing import Any
 
+import httpx
 import numpy as np
 import polars as pl
 
@@ -17,8 +21,26 @@ from btc_swing.v11.engine import MS_1M, V11Engine
 from btc_swing.v11.features import build_frame_v11
 from btc_swing.v11.live import MIN_BARS, V11Live
 from btc_swing.v11.scoring import score_frame
+from btc_swing.v11_warm.bootstrap import append_bars, fetch_klines
 from btc_swing.v11_warm.config import STRATEGY, WarmCfg
 from btc_swing.v11_warm.paths import V11WarmPaths
+
+log = logging.getLogger(__name__)
+SEEDED_SRC = ("bootstrap", "kline_gapfill", "kline_seamfill")
+
+
+def _bar_from_row(r: dict[str, Any]) -> Bar:
+    return Bar(
+        int(r["open_ms"]),
+        float(r["o"]),
+        float(r["h"]),
+        float(r["l"]),
+        float(r["c"]),
+        float(r["vol"]),
+        float(r["buy"]) if r.get("buy") is not None else float("nan"),
+        float(r["sell"]) if r.get("sell") is not None else float("nan"),
+        int(r["n"]),
+    )
 
 
 class V11WarmLive(V11Live):
@@ -33,9 +55,72 @@ class V11WarmLive(V11Live):
             "window_days": warm.window_days,
             "live_warmup_min": warm.live_warmup_min,
         }
+        self.kline_client: httpx.Client | None = None  # tests inject a mock transport
+        self.kline_base_url = "https://api.bybit.com"
+        self._heal_failed: set[tuple[int, int]] = set()
+        self.heal_holes("startup")
         self._last_tick_open_ms = (
             int(self.micro.bars.done[-1].open_ms) if self.micro.bars.done else -1
         )
+
+    # ------------------------------------------------------------------ seam healing
+    def holes(self) -> list[tuple[int, int]]:
+        """Missing-minute ranges [from_open, to_open) between consecutive bars of the window."""
+        opens = [int(b.open_ms) for b in self.micro.bars.done]
+        return [(a + MS_1M, b) for a, b in pairwise(opens) if b - a > MS_1M]
+
+    def heal_holes(self, reason: str) -> int:
+        """Fill every missing minute inside the window with Bybit PUBLIC klines (`src:
+        kline_seamfill`): a one-minute hole at the seam between the seeded bars and the first live bar
+        (or after a feed reconnect) resets every contiguous-window feature (ATR5 75 min, HI60 61 min,
+        Bollinger 100 min). Bars fetched here closed before the current live bar, so no decision uses
+        information from its own future. Bounded by gapfill_max_hours per hole; unreachable REST
+        (cloud container) is logged once per hole and the hole is left to warm live."""
+        filled = 0
+        for lo, hi in self.holes():
+            if (lo, hi) in self._heal_failed:
+                continue
+            if hi - lo > self.warm.gapfill_max_hours * 3_600_000:
+                log.warning("hole %s..%s exceeds gapfill_max_hours; left to warm live", lo, hi)
+                self._heal_failed.add((lo, hi))
+                continue
+            try:
+                rows = fetch_klines(
+                    self.cfg.symbol,
+                    lo,
+                    hi,
+                    self.kline_client,
+                    self.kline_base_url,
+                    "kline_seamfill",
+                )
+            except Exception as e:  # geo-blocked REST or transient failure: never fatal
+                log.warning("seam fill %s..%s unavailable (%r); hole warms live", lo, hi, e)
+                self._heal_failed.add((lo, hi))
+                continue
+            if not rows:
+                self._heal_failed.add((lo, hi))
+                continue
+            append_bars(self.paths.bars_1m, rows)
+            merged = {int(b.open_ms): b for b in self.micro.bars.done}
+            for t, r in rows.items():
+                merged[t] = _bar_from_row(r)
+            self.micro.bars.done = deque(
+                (merged[t] for t in sorted(merged)), maxlen=self.window_bars
+            )
+            self.n_bootstrap += len(rows)
+            filled += len(rows)
+            self.state.setdefault("seam_fills", []).append(
+                {
+                    "reason": reason,
+                    "from": datetime.fromtimestamp(lo / 1000, tz=UTC).isoformat(),
+                    "to": datetime.fromtimestamp(hi / 1000, tz=UTC).isoformat(),
+                    "bars": len(rows),
+                }
+            )
+            log.info("seam fill (%s): %d kline bars %s..%s", reason, len(rows), lo, hi)
+        if filled:
+            self._n_bars_seen = len(self.micro.bars.done)
+        return filled
 
     # ------------------------------------------------------------------ persistence (warm window)
     def _load_state(self) -> None:
@@ -57,24 +142,19 @@ class V11WarmLive(V11Live):
                             self.micro.hist[k].add(float(v))
         self.micro.bars.done = deque(maxlen=self.window_bars)
         if self.paths.bars_1m.exists():
+            by_open: dict[int, dict[str, Any]] = {}
             with self.paths.bars_1m.open() as fh:
-                rows = [json.loads(line) for line in fh if line.strip()][-self.window_bars :]
-            for r in rows:
-                if r.get("src") in ("bootstrap", "kline_gapfill"):
+                for line in fh:
+                    if line.strip():
+                        r = json.loads(line)
+                        by_open[int(r["open_ms"])] = (
+                            r  # sorted + de-duplicated (seam fills append late)
+                        )
+            for t in sorted(by_open)[-self.window_bars :]:
+                r = by_open[t]
+                if r.get("src") in SEEDED_SRC:
                     self.n_bootstrap += 1
-                self.micro.bars.done.append(
-                    Bar(
-                        int(r["open_ms"]),
-                        float(r["o"]),
-                        float(r["h"]),
-                        float(r["l"]),
-                        float(r["c"]),
-                        float(r["vol"]),
-                        float(r["buy"]) if r.get("buy") is not None else float("nan"),
-                        float(r["sell"]) if r.get("sell") is not None else float("nan"),
-                        int(r["n"]),
-                    )
-                )
+                self.micro.bars.done.append(_bar_from_row(r))
             self._n_bars_seen = len(self.micro.bars.done)
 
     # ------------------------------------------------------------------ tick (V11 tick on the warm window)
@@ -88,6 +168,9 @@ class V11WarmLive(V11Live):
         last_open = int(self.micro.bars.done[-1].open_ms)
         if last_open == self._last_tick_open_ms:
             return None
+        if self._last_tick_open_ms > 0 and last_open - self._last_tick_open_ms > MS_1M:
+            self.heal_holes("live")  # seam after seeding, or minutes lost to a feed reconnect
+            n = len(self.micro.bars.done)
         self._last_tick_open_ms = last_open
         self._n_bars_seen = n
         bars = list(self.micro.bars.done)[-self.window_bars :]
@@ -197,6 +280,8 @@ class V11WarmLive(V11Live):
         d["strategy"] = STRATEGY
         d["mode"] = "SHADOW_ONLY (warm-started V11)"
         d["warm"] = self.warm_check()
+        d["warm"]["holes_in_window"] = len(self.holes())
+        d["warm"]["seam_fills"] = self.state.get("seam_fills", [])
         d["in_window"] = bool(
             self.state.get("last_bar_ms") and self.state["last_bar_ms"] > self.observation_start_ms
         )

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -489,3 +490,194 @@ def test_gapfilled_seed_is_warm_on_the_first_live_bar(tmp_path: Path) -> None:
     w = live.warm_check()
     assert w["all_fields"] and w["all_groups"], w
     assert live.state["last_bar_ms"] <= obs + 30 * MS_1M  # still inside the live warm-up
+
+
+# ----------------------------------------------------------------------------- seam healing
+def _seed_with_gapfill(tmp_path: Path, rows: pl.DataFrame, n_boot: int, n_gap: int) -> V11WarmPaths:
+    """Bootstrap bars then kline gap-fill bars (taker split unknown) exactly as `v11w seed` writes them."""
+    paths = V11WarmPaths(tmp_path, "BTCUSDT", verification=True)
+    paths.ensure()
+    write_bootstrap_bars(_bars_df(rows[:n_boot]), paths.bars_1m)
+    gap = _bars_df(rows[n_boot : n_boot + n_gap]).with_columns(
+        pl.lit(None).cast(pl.Float64).alias("buy"),
+        pl.lit(None).cast(pl.Float64).alias("sell"),
+        pl.lit(1).alias("n"),
+    )
+    with paths.bars_1m.open("a") as fh:
+        for r in gap.iter_rows(named=True):
+            fh.write(json.dumps({**r, "src": "kline_gapfill"}) + "\n")
+    return paths
+
+
+def _kline_mock(rows: pl.DataFrame, calls: list[tuple[int, int]] | None = None):
+    import httpx
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        start, end = int(req.url.params["start"]), int(req.url.params["end"])
+        if calls is not None:
+            calls.append((start, end))
+        lst = [
+            [
+                str(r["open_time_ms"]),
+                str(r["open"]),
+                str(r["high"]),
+                str(r["low"]),
+                str(r["close"]),
+                str(r["volume"]),
+                "0",
+            ]
+            for r in rows.iter_rows(named=True)
+            if start <= int(r["open_time_ms"]) <= end
+        ]
+        return httpx.Response(200, json={"retCode": 0, "result": {"list": lst[::-1][:1000]}})
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def _failing_kline_client():
+    import httpx
+
+    return httpx.Client(
+        transport=httpx.MockTransport(lambda req: httpx.Response(403, text="blocked"))
+    )
+
+
+CONTIGUOUS_FIELDS = ("atr5", "hi60", "vol_tercile", "atr1h")
+BAR_GROUPS = ("trend", "momentum", "volatility", "volume", "location")
+
+
+def test_one_minute_seam_hole_reproduces_the_mac_symptom_without_healing(tmp_path: Path) -> None:
+    """A single missing minute between the gap-fill and the first live bar leaves EMA/RSI/ADX/RVOL
+    populated (state-carrying) but ATR5 / HI60 / tercile and four groups missing (contiguous windows)."""
+    wc, v11 = load_v11w_config(CFG)
+    rows = synth_rows(26)
+    n_boot, n_gap = 25 * 1440, 6 * 60
+    paths = _seed_with_gapfill(tmp_path, rows, n_boot, n_gap)
+    start = n_boot + n_gap + 1  # minute n_boot+n_gap is missing: the seam hole
+    live = V11WarmLive(
+        v11,
+        paths,
+        int(rows["open_time_ms"][start]),
+        wc.warm.model_copy(update={"live_warmup_min": 0}),
+    )
+    live.kline_client = _failing_kline_client()  # REST unreachable: hole cannot be healed
+    for i in range(start, start + 18):
+        t_end = _feed(live, rows, i, i + 1)
+        live.tick(t_end + 1_000)
+    f, w = live.last_features, live.warm_check()
+    assert all(
+        f[k] is not None for k in ("ema50", "rsi7", "rsi14", "adx14", "rvol5", "vwap", "struct15")
+    )
+    assert all(f.get(k) is None for k in ("atr5", "hi60", "vol_tercile"))  # contiguous windows
+    assert not any(w["groups"][g] for g in ("trend", "momentum", "volatility", "location"))
+    assert len(live.holes()) == 1 and live.diagnostic()["warm"]["holes_in_window"] == 1
+
+
+def test_seam_hole_is_healed_on_first_live_bar_and_first_decision_sees_all_bar_groups(
+    tmp_path: Path,
+) -> None:
+    wc, v11 = load_v11w_config(CFG)
+    rows = synth_rows(26)
+    n_boot, n_gap = 25 * 1440, 6 * 60
+    paths = _seed_with_gapfill(tmp_path, rows, n_boot, n_gap)
+    start = n_boot + n_gap + 2  # two missing minutes at the seam (seed minute + agent start minute)
+    calls: list[tuple[int, int]] = []
+    obs = (
+        int(rows["open_time_ms"][start]) + wc.warm.live_warmup_min * MS_1M
+    )  # as the freeze sets it
+    live = V11WarmLive(v11, paths, obs, wc.warm)
+    live.kline_client = _kline_mock(rows, calls)
+    assert (
+        live.holes() == []
+    )  # nothing to heal at startup: the hole appears with the first live bar
+    seen: list[tuple[int, dict[str, float | None]]] = []
+    for i in range(start, start + wc.warm.live_warmup_min + 3):
+        t_end = _feed(live, rows, i, i + 1)
+        live.tick(t_end + 1_000)
+        if live.engine is not None and live.state.get("last_bar_ms"):
+            eng = live.engine
+            j = int(np.searchsorted(eng.t_open, int(live.state["last_bar_ms"]) - MS_1M))
+            seen.append((int(live.state["last_bar_ms"]), eng._contrib(1, j)))
+    assert calls and live.holes() == []
+    assert (
+        live.state["seam_fills"][0]["bars"] == 2 and live.state["seam_fills"][0]["reason"] == "live"
+    )
+    f, w = live.last_features, live.warm_check()
+    assert all(f.get(k) is not None for k in CONTIGUOUS_FIELDS), f
+    assert w["all_fields"] and w["all_groups"], w
+    # the FIRST live bar already has the price-derived groups (ATR5 / HI60 / tercile healed) ...
+    first = seen[0][1]
+    assert all(first[g] is not None for g in ("trend", "momentum", "volatility", "location")), first
+    # ... and the FIRST IN-WINDOW decision (after the 30-min live warm-up) has every bar-derived
+    # group, including volume, whose taker-flow windows (<= 15 min) cannot come from kline bars
+    first_in_window = next(c for t, c in seen if t > obs)
+    assert all(first_in_window[g] is not None for g in BAR_GROUPS), first_in_window
+    # seam bars are on disk flagged as kline_seamfill, sorted on reload, and the deque is contiguous
+    recs = [json.loads(x) for x in paths.bars_1m.read_text().splitlines() if x.strip()]
+    assert sum(1 for r in recs if r.get("src") == "kline_seamfill") == 2
+    opens = [int(b.open_ms) for b in live.micro.bars.done]
+    assert all(b - a == MS_1M for a, b in pairwise(opens))
+
+
+def test_startup_heals_a_historical_seam_hole(tmp_path: Path) -> None:
+    """A root that was installed with a seam hole (the Mac case) is healed when the runner restarts."""
+    wc, v11 = load_v11w_config(CFG)
+    rows = synth_rows(26)
+    n_boot, n_gap = 25 * 1440, 6 * 60
+    paths = _seed_with_gapfill(tmp_path, rows, n_boot, n_gap)
+    hole = n_boot + n_gap
+    # live bars written by the first (unhealed) run, starting one minute after the gap-fill end
+    live_rows = _bars_df(rows[hole + 1 : hole + 40])
+    with paths.bars_1m.open("a") as fh:
+        for r in live_rows.iter_rows(named=True):
+            fh.write(json.dumps(r) + "\n")
+    import btc_swing.v11_warm.live as live_mod
+
+    orig = live_mod.V11WarmLive.heal_holes
+
+    # inject the mock client before the startup heal runs
+    def patched(self, reason):  # type: ignore[no-untyped-def]
+        self.kline_client = _kline_mock(rows)
+        return orig(self, reason)
+
+    live_mod.V11WarmLive.heal_holes = patched  # type: ignore[method-assign]
+    try:
+        live = V11WarmLive(
+            v11,
+            paths,
+            int(rows["open_time_ms"][hole + 40]),
+            wc.warm.model_copy(update={"live_warmup_min": 0}),
+        )
+    finally:
+        live_mod.V11WarmLive.heal_holes = orig  # type: ignore[method-assign]
+    assert live.holes() == [] and live.state["seam_fills"][0]["reason"] == "startup"
+    t_end = _feed(live, rows, hole + 40, hole + 42)
+    live.tick(t_end + 1_000)
+    assert all(live.last_features.get(k) is not None for k in CONTIGUOUS_FIELDS)
+    assert live.warm_check()["all_fields"] and live.warm_check()["all_groups"]
+    # the bars file is read back sorted and de-duplicated
+    live2 = V11WarmLive(v11, paths, int(rows["open_time_ms"][hole + 40]), wc.warm)
+    opens = [int(b.open_ms) for b in live2.micro.bars.done]
+    assert opens == sorted(set(opens)) and live2.holes() == []
+
+
+def test_reconnect_hole_mid_run_is_healed(tmp_path: Path) -> None:
+    wc, v11 = load_v11w_config(CFG)
+    rows = synth_rows(26)
+    n_boot = 25 * 1440
+    paths = V11WarmPaths(tmp_path, "BTCUSDT", verification=True)
+    paths.ensure()
+    write_bootstrap_bars(_bars_df(rows[:n_boot]), paths.bars_1m)
+    live = V11WarmLive(
+        v11,
+        paths,
+        int(rows["open_time_ms"][n_boot]),
+        wc.warm.model_copy(update={"live_warmup_min": 0}),
+    )
+    live.kline_client = _kline_mock(rows)
+    for i in range(n_boot, n_boot + 5):
+        live.tick(_feed(live, rows, i, i + 1) + 1_000)
+    for i in range(n_boot + 9, n_boot + 12):  # minutes n_boot+5..+8 lost to a reconnect
+        live.tick(_feed(live, rows, i, i + 1) + 1_000)
+    assert live.holes() == [] and live.state["seam_fills"][-1]["bars"] == 4
+    assert live.last_features["atr5"] is not None and live.last_features["hi60"] is not None

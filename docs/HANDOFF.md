@@ -396,6 +396,19 @@
   (~2026-11-04). Mac steps (ONLY the V11-WARM agent): `git pull`, `uv sync --all-extras`,
   `bash deploy/macos/install_v11_warm_macos.sh` (seeds + gap-fills + loads the agent), `uv run btc-swing v11w forward
   verify-warm`. No Demo exists for V11-WARM.
+- 2026-10-14 (V11-WARM seam fix, plumbing only; owner report: Mac verify-warm NOT_WARM with ATR5 / HI60 /
+  vol_tercile and the trend / momentum / volatility / location groups missing while EMA / RSI / ADX / RVOL
+  were populated): root cause reproduced in a test — one or two minutes missing between the kline gap-fill
+  (ends at the minute before `seed` ran) and the first live bar (minute of the first trade after connect);
+  a single missing minute resets every contiguous-window feature (ATR5 75 min, HI60 61 min, Bollinger 100 min)
+  while state-carrying ones survive. Fix in `btc_swing/v11_warm/live.py`: bars file loaded sorted +
+  de-duplicated; `heal_holes()` fills every missing minute in the window with Bybit PUBLIC klines
+  (`src: kline_seamfill`) at startup and whenever a new live bar is more than one minute after the previous
+  one (reconnects too); diagnostic shows `holes_in_window` / `seam_fills`. No strategy, threshold, family,
+  risk or exit change; V11 strategy hash unchanged (`a324dbcb0394…`); freeze unchanged (it pins strategy and
+  bootstrap, not code). Mac: `git pull`, `uv sync --all-extras`, `launchctl kickstart -k
+  gui/$(id -u)/com.btcswing.v11-warm-forward`, then `uv run btc-swing v11w forward verify-warm` after ~2 min
+  (the restart heals the historical seam hole from the kline endpoint before the first tick).
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

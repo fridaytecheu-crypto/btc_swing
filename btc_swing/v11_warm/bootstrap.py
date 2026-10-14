@@ -217,34 +217,26 @@ def _kline_row(k: list[Any]) -> dict[str, Any]:
     }
 
 
-def gapfill_klines(
+def fetch_klines(
     symbol: str,
     from_ms: int,
-    bars_1m: Path,
-    max_hours: int,
-    observation_start_ms: int | None = None,
+    end_ms: int,
     client: httpx.Client | None = None,
     base_url: str = "https://api.bybit.com",
-) -> tuple[int, dict[str, Any]]:
-    """Append Bybit PUBLIC 1m klines (v5/market/kline, linear) from `from_ms` up to the last COMPLETED
-    minute, as `src: kline_gapfill` bars: open/high/low/close/volume exact; the taker split is UNKNOWN
-    (buy/sell NaN) and the trade count is a validity placeholder (1). Bounded by `max_hours`; never
-    reaches a known observation_start. REST is geo-blocked in the cloud container, where the caller
-    lets the gap warm live instead."""
-    now_ms = int(datetime.now(UTC).timestamp() * 1000)
-    end_ms = (now_ms // MS_1M) * MS_1M  # open time of the current, incomplete minute
-    if observation_start_ms is not None:
-        end_ms = min(end_ms, observation_start_ms)
-    if end_ms - from_ms > max_hours * 3_600_000:
-        raise RuntimeError(f"gap {((end_ms - from_ms) / 3.6e6):.1f} h exceeds gapfill_max_hours")
+    src: str = "kline_gapfill",
+) -> dict[int, dict[str, Any]]:
+    """Bybit PUBLIC 1m klines (v5/market/kline, linear) with open time in [from_ms, end_ms), as V11
+    live bar dicts flagged `src`: open/high/low/close/volume exact; the taker split is UNKNOWN
+    (buy/sell None -> NaN) and the trade count is a validity placeholder (1). Pages backwards
+    (Bybit returns the newest <= 1000 candles inside [start, end])."""
+    rows: dict[int, dict[str, Any]] = {}
     if end_ms <= from_ms:
-        return 0, {"bars": 0, "from_ms": from_ms, "end_ms": end_ms}
+        return rows
     own = client is None
     cl = client or httpx.Client(timeout=httpx.Timeout(60.0, connect=20.0))
-    rows: dict[int, dict[str, Any]] = {}
     try:
         cursor_end = end_ms - 1
-        while cursor_end >= from_ms:  # Bybit returns the newest <= 1000 candles in [start, end]
+        while cursor_end >= from_ms:
             r = cl.get(
                 f"{base_url}/v5/market/kline",
                 params={
@@ -266,7 +258,9 @@ def gapfill_klines(
             for k in lst:
                 t = int(k[0])
                 if from_ms <= t < end_ms:
-                    rows[t] = _kline_row(k)
+                    row = _kline_row(k)
+                    row["src"] = src
+                    rows[t] = row
             oldest = min(int(k[0]) for k in lst)
             if oldest <= from_ms or len(lst) < 1000:
                 break
@@ -274,12 +268,41 @@ def gapfill_klines(
     finally:
         if own:
             cl.close()
-    if not rows:
-        return 0, {"bars": 0, "from_ms": from_ms, "end_ms": end_ms}
+    return rows
+
+
+def append_bars(bars_1m: Path, rows: dict[int, dict[str, Any]]) -> int:
     bars_1m.parent.mkdir(parents=True, exist_ok=True)
     with bars_1m.open("a") as fh:
         for t in sorted(rows):
             fh.write(json.dumps(rows[t], sort_keys=True) + "\n")
+    return len(rows)
+
+
+def gapfill_klines(
+    symbol: str,
+    from_ms: int,
+    bars_1m: Path,
+    max_hours: int,
+    observation_start_ms: int | None = None,
+    client: httpx.Client | None = None,
+    base_url: str = "https://api.bybit.com",
+) -> tuple[int, dict[str, Any]]:
+    """Append klines from `from_ms` up to the last COMPLETED minute as `src: kline_gapfill` bars.
+    Bounded by `max_hours`; never reaches a known observation_start. REST is geo-blocked in the cloud
+    container, where the caller lets the gap warm live (and the runner heals the seam when it can)."""
+    now_ms = int(datetime.now(UTC).timestamp() * 1000)
+    end_ms = (now_ms // MS_1M) * MS_1M  # open time of the current, incomplete minute
+    if observation_start_ms is not None:
+        end_ms = min(end_ms, observation_start_ms)
+    if end_ms - from_ms > max_hours * 3_600_000:
+        raise RuntimeError(f"gap {((end_ms - from_ms) / 3.6e6):.1f} h exceeds gapfill_max_hours")
+    if end_ms <= from_ms:
+        return 0, {"bars": 0, "from_ms": from_ms, "end_ms": end_ms}
+    rows = fetch_klines(symbol, from_ms, end_ms, client, base_url)
+    if not rows:
+        return 0, {"bars": 0, "from_ms": from_ms, "end_ms": end_ms}
+    append_bars(bars_1m, rows)
     return len(rows), {
         "bars": len(rows),
         "from_ms": from_ms,

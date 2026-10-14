@@ -127,8 +127,9 @@ freeze `manifests/v11_warm_forward_freeze.json`, bootstrap `manifests/v11_warm_b
 Bybit 1m bars 2026-09-13..2026-10-12, content hash `3132d3410b54…`), data `<BTC_DATA_DIR>/btc/forward_v11_warm/` and
 `forward_v11_warm_verify/`, reports `reports/forward_v11_warm/`): NOT a strategy; the frozen V11 strategy object
 (every load asserts the V11 strategy hash equals the V11 freeze) run by a subclass of the V11 live scorer with a
-31-day rolling frame seeded from the bootstrap bars, open-time bar detection, and a 30-min live warm-up before
-observation_start. Gap-fill between the archive end and the seed instant uses Bybit PUBLIC klines (Mac only; price /
+31-day rolling frame seeded from the bootstrap bars, open-time bar detection, seam healing (every missing minute in
+the window is filled from Bybit PUBLIC klines at startup and on reconnect holes; `src: kline_seamfill`) and a 30-min
+live warm-up before observation_start. Gap-fill between the archive end and the seed instant uses Bybit PUBLIC klines (Mac only; price /
 volume exact, taker split NaN, trade count placeholder 1). Never backfilled: order book, liquidations, live
 microstructure; derivatives warm live. CLI `btc-swing v11w config|bootstrap|seed`, `v11w forward
 run|status|diagnostic|verify-warm|shadow-report|freeze|trades`; macOS agent `com.btcswing.v11-warm-forward`
