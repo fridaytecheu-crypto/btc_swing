@@ -456,6 +456,10 @@
   19,916 + 7,049 trades, zero field mismatches; `reports/forward_v11_lite_warm/equivalence_f885f85_vs_book2.json`).
   The f885f85 freeze (observation_start 2026-10-14T14:04:40Z) never entered Mac forward observation; it is kept
   byte-identical as `manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json` and a new freeze supersedes it.
+  New freeze `manifests/v11_lite_warm_forward_freeze.json` (bookkeeping v11lw-book-2): frozen 2026-10-14T22:31:09Z,
+  code de9531d (= 0e12844 code), V11 strategy a324dbcb0394, lite strategy c66ef46a493f (unchanged), observation_start
+  2026-10-15T12:00:00Z (Mac launch: install before ~11:30 UTC so the runner is live-warm). Cloud verification of the
+  cleaned code: 70 in-window minutes, 0 engine errors, NOT_PASSED only on the 1h ATR field (cloud seam fill blocked).
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
