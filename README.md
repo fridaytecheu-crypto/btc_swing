@@ -129,6 +129,13 @@ outcomes, daily table, and the V10 Demo section (N/A for shadow-only generations
 regression tests prove journal hashes, state.json, freeze manifests and strategy hashes are unchanged and that no
 exchange call is made.
 
+**V11.2 counterfactual gating study** (research only; `btc_swing/v11_2/`, `btc-swing v112 study|combos|render`,
+`reports/BTC_V11_2_COUNTERFACTUAL_GATING_STUDY.md`, `reports/v11_2/study.json`): one family gate of the frozen V11
+engine changed per variant (A structure relaxations, B boundary 0.40-0.70 ATR5, C measured and tested alone), plus
+three minimal A+B combinations, on the consumed TRAIN / VALIDATION windows only. No variant reaches positive gross
+or net R or PF > 1 in either window; frequency can be raised to ~3.5-4.4 trades/day (A1 neutral 15m structure) with
+net still about -0.37 to -0.39R. No runner, no freeze.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -137,7 +144,7 @@ uv run btc-swing data probe                                 # archive inventory 
 uv run btc-swing data ingest --from 2023-09 --to 2024-12    # resumable, checksum-verified
 uv run btc-swing backtest --from 2024-01-01 --to 2025-01-01 --verify-determinism --out data/btc/runs/smoke
 uv run btc-swing data ingest --from 2021-10 --to 2024-12 && uv run btc-swing phase2
-uv run pytest -q                                            # 322 tests, no database needed
+uv run pytest -q                                            # 327 tests, no database needed
 bash scripts/check.sh                                       # ruff format/check, strict mypy, tests
 ```
 Data source: the Binance public historical archive (`data.binance.vision`; monthly/daily zips with

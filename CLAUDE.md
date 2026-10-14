@@ -145,6 +145,17 @@ section, V11 / V11-WARM are shadow only. Never add writes to journals, state, fr
 `tests/forward_report` proves journal hashes, state.json, freezes and strategy hashes are unchanged and no exchange
 call is made.
 
+V11.2 COUNTERFACTUAL GATING STUDY (`btc_swing/v11_2/`, research only, owner-approved multi-variant search on consumed
+TRAIN / VALIDATION; `reports/BTC_V11_2_COUNTERFACTUAL_GATING_STUDY.md`, `reports/v11_2/study.json`): `GatingEngine`
+subclasses the frozen V11 engine and overrides one family gate per variant (A1 struct15 side-or-neutral, A2/A3 aligned
+within 2/3 completed 15m bars, B1-B3 near-boundary 0.40/0.50/0.70 ATR5, C0 C-only, C1 C-only without score gates as a
+diagnostic) plus combos A1+B1, A1+B3, A3+B1. Result: no variant has gross > 0, net > 0 or PF > 1 in either window
+(net -0.36..-0.42R; gross -0.05..+0.03R; cost ~0.36-0.38R); A1 raises frequency to 3.9 / 3.5 per day at net -0.36 /
+-0.39R; C structure coincides with score >= 70 in 0.07% of its minutes and has no standalone edge. Selection-biased by
+construction; nothing frozen, no runner, nothing adopted. Note: the committed V11 backtest report predates the
+post-TP1 stop-leg label fix (1 bp instead of 3 bp slippage on those exits): the current frozen engine's net is ~0.008R
+lower than that report; classification C unchanged.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

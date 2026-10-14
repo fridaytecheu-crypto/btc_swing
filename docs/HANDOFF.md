@@ -420,6 +420,19 @@
   unchanged. `tests/forward_report` (6 tests) proves: journal file hashes, state.json, freeze manifests and strategy
   hashes identical after a report; writes confined to reports/<generation>/ (other targets refused); no network
   (httpx / socket forbidden during the run); no execution / exchange import in the layer.
+- 2026-10-14 (V11-WARM arm audit, read-only): 22 candidates / 0 armed is consistent with the frozen rules
+  (historically 8.4% of candidates arm within 5 min; family C is effectively impossible at high scores; B needs price
+  just inside the 60-min edge; A needs a fresh 5m impulse-pullback plus aligned 15m structure). Reported, not
+  changed: the V11 live loop never increments the state `triggers` counter, and it journals / counts ARMED on every
+  re-arm refresh minute (V11-WARM inherits both). A read-only per-candidate audit script was handed to the owner.
+- 2026-10-14 (V11.2 counterfactual gating study, research only, owner request): `btc_swing/v11_2/`, report
+  `reports/BTC_V11_2_COUNTERFACTUAL_GATING_STUDY.md`. 9 independent variants + 3 combinations on the consumed
+  windows (loads capped at 2025-07-01). BASE = current frozen engine (matches the committed V11 report on entries
+  and gross; net ~0.008R lower because that report predates the post-TP1 stop-leg slippage label fix). No variant
+  meets the owner's selection rule (positive gross and net, PF > 1) in either window; best frequency/expectancy
+  trade-off A1 (struct15 side-or-neutral): TRAIN 3.86/day net -0.361R, VALIDATION 3.48/day net -0.386R (BASE
+  -0.389 / -0.424). Family C: structure and score >= 70 coincide in 0.07% of C minutes; C alone without score gates
+  trades ~30/day at gross +0.01R, net -0.40R. Selection-biased; nothing frozen, no runner, nothing adopted.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -464,6 +477,7 @@ uv run btc-swing v111 research                                           # V11.1
 uv run btc-swing v11w seed && uv run btc-swing v11w forward status      # V11-WARM: seed root (committed bootstrap + kline gap-fill), status
 uv run btc-swing v11w forward verify-warm | diagnostic | shadow-report  # read-only; --verification for the verify root
 uv run btc-swing v10 report full-history | v11 report full-history | v11w report full-history   # read-only; --verification
+uv run btc-swing v112 study && uv run btc-swing v112 combos "A1_NEUTRAL_OK+B1_NEAR_040"   # V11.2 counterfactual study (research only)
 ```
 
 ## Known data facts

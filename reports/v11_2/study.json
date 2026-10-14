@@ -1,0 +1,5435 @@
+{
+ "c_conflict": {
+  "train": {
+   "LONG": {
+    "c_structure_minutes": 99295,
+    "c_structure_share": 0.0756084003411306,
+    "minutes": 1313280,
+    "momentum_subscore_all_minutes_mean": 0.526479525394299,
+    "momentum_subscore_at_c_structure_mean": 0.22584823002165266,
+    "rsi7_exhausted_share_when_score_ge_candidate": 0.006158868419924972,
+    "score_at_c_structure_p50_p90": [
+     36.1764705882353,
+     49.11764705882353
+    ],
+    "share_c_structure_with_score_ge_armed": 0.000654615036003827,
+    "share_c_structure_with_score_ge_entry": 0.00016113600886248048
+   },
+   "SHORT": {
+    "c_structure_minutes": 101573,
+    "c_structure_share": 0.07734298854775828,
+    "minutes": 1313280,
+    "momentum_subscore_all_minutes_mean": 0.522419636125475,
+    "momentum_subscore_at_c_structure_mean": 0.222444941076861,
+    "rsi7_exhausted_share_when_score_ge_candidate": 0.006160393833438063,
+    "score_at_c_structure_p50_p90": [
+     35.588235294117645,
+     48.8235294117647
+    ],
+    "share_c_structure_with_score_ge_armed": 0.000659624112707117,
+    "share_c_structure_with_score_ge_entry": 8.860622409498587e-05
+   }
+  },
+  "validation": {
+   "LONG": {
+    "c_structure_minutes": 47392,
+    "c_structure_share": 0.09016742770167428,
+    "minutes": 525600,
+    "momentum_subscore_all_minutes_mean": 0.5227410578386608,
+    "momentum_subscore_at_c_structure_mean": 0.23041441593517895,
+    "rsi7_exhausted_share_when_score_ge_candidate": 0.006491362050816322,
+    "score_at_c_structure_p50_p90": [
+     36.1764705882353,
+     49.411764705882355
+    ],
+    "share_c_structure_with_score_ge_armed": 0.0006330182309250506,
+    "share_c_structure_with_score_ge_entry": 0.00010550303848750844
+   },
+   "SHORT": {
+    "c_structure_minutes": 48129,
+    "c_structure_share": 0.09156963470319635,
+    "minutes": 525600,
+    "momentum_subscore_all_minutes_mean": 0.5131950152207002,
+    "momentum_subscore_at_c_structure_mean": 0.22834465706746457,
+    "rsi7_exhausted_share_when_score_ge_candidate": 0.008911549545555309,
+    "score_at_c_structure_p50_p90": [
+     35.88235294117647,
+     49.11764705882353
+    ],
+    "share_c_structure_with_score_ge_armed": 0.0006856572960169544,
+    "share_c_structure_with_score_ge_entry": 0.00014544245673086913
+   }
+  }
+ },
+ "manifest": {
+  "code_version": "021679d6e27d-dirty",
+  "combinations_generated_utc": "2026-10-14T10:23:18.491386+00:00",
+  "dataset_hash_1m": "92d27161c194452b5154604e11c197fdea439637d160feef725622af613dd936",
+  "generated_utc": "2026-10-14T10:20:27.639936+00:00",
+  "kept_identical": "features, score model, thresholds, risk, exits, costs (primary)",
+  "locked_holdout": "not read (every load capped at 2025-07-01)",
+  "selection_bias": "multi-variant search on consumed data; best-variant numbers are optimistic",
+  "study": "BTC_V11_2_COUNTERFACTUAL_GATING_STUDY",
+  "v11_strategy_hash": "a324dbcb0394ba301a0db92c8ddda0accd05bbeff8dd86043838e7fb8fe56de0",
+  "version": "11.2.0-counterfactual",
+  "windows": {
+   "train": {
+    "days": 942,
+    "end_exclusive": "2024-07-01",
+    "feature_version": "v11-feat-1",
+    "first_open_ms": 1638403200000,
+    "last_close_ms": 1719792000000,
+    "rows": 1356480,
+    "start": "2022-01-01",
+    "valid_rows": 1356440
+   },
+   "validation": {
+    "days": 395,
+    "end_exclusive": "2025-07-01",
+    "feature_version": "v11-feat-1",
+    "first_open_ms": 1717200000000,
+    "last_close_ms": 1751328000000,
+    "rows": 568800,
+    "start": "2024-07-01",
+    "valid_rows": 568800
+   }
+  }
+ },
+ "results": {
+  "A1_NEUTRAL_OK": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 834,
+       "net_r": 0.06590919112173124,
+       "pf": 843.3051666770987,
+       "total_net_r": 54.96826539552386,
+       "win_rate": 0.9988009592326139
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 1192,
+       "net_r": -0.6339543237316094,
+       "pf": 0.0,
+       "total_net_r": -755.6735538880785,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 441,
+       "net_r": -1.4139601727454945,
+       "pf": 0.0,
+       "total_net_r": -623.5564361807631,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 735,
+       "net_r": -0.15980739662082077,
+       "pf": 0.5391535729709045,
+       "total_net_r": -117.45843651630327,
+       "win_rate": 0.3047619047619048
+      },
+      "TRAIL": {
+       "median_hold_min": 34.0,
+       "n": 319,
+       "net_r": 0.5321075677346716,
+       "pf": null,
+       "total_net_r": 169.74231410736024,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 2615,
+       "net_r": -0.35660376506631347,
+       "pf": 0.21754576813571416,
+       "total_net_r": -932.5188456484098,
+       "win_rate": 0.3586998087954111
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 864,
+       "net_r": -0.374280777789287,
+       "pf": 0.2339762177554338,
+       "total_net_r": -323.37859200994393,
+       "win_rate": 0.4861111111111111
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 42,
+       "net_r": -0.3828668910454084,
+       "pf": 0.2069131852104525,
+       "total_net_r": -16.080409423907152,
+       "win_rate": 0.42857142857142855
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 1351,
+       "net_r": -0.36594524968096903,
+       "pf": 0.19901144929882666,
+       "total_net_r": -494.39203231898915,
+       "win_rate": 0.33826794966691337
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1264,
+       "net_r": -0.346619314342896,
+       "pf": 0.2374663356945639,
+       "total_net_r": -438.12681332942054,
+       "win_rate": 0.3805379746835443
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 435,
+       "net_r": -0.3206906339503976,
+       "pf": 0.2973473298809087,
+       "total_net_r": -139.50042576842296,
+       "win_rate": 0.49195402298850577
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 429,
+       "net_r": -0.42862043412941947,
+       "pf": 0.17771800833296944,
+       "total_net_r": -183.87816624152094,
+       "win_rate": 0.4801864801864802
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.4319749425826193,
+       "pf": 0.18186649814121483,
+       "total_net_r": -9.071473794235006,
+       "win_rate": 0.38095238095238093
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1807,
+       "net_r": -0.3558184459776686,
+       "pf": 0.22239791081804142,
+       "total_net_r": -642.9639318816471,
+       "win_rate": 0.37576092971776426
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1714,
+       "net_r": -0.3669859481917232,
+       "pf": 0.2209040251835949,
+       "total_net_r": -629.0139152006136,
+       "win_rate": 0.40665110851808633
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.761841601530419,
+     "avg_winner_r": 0.26320667747128473,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 5,
+      "POSITION_OPEN": 2455,
+      "STOP_TOO_WIDE_FOR_V11": 710
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 8066,
+       "executed": 2615,
+       "triggers": 27376
+      },
+      "B": {
+       "armed": 3998,
+       "executed": 864,
+       "triggers": 2328
+      },
+      "C": {
+       "armed": 94,
+       "executed": 42,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 2615,
+      "B": 864,
+      "C": 42
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3577998226877789,
+     "cost_usd_per_trade": 2.6836564937754486,
+     "counters": {
+      "armed": 12158,
+      "blocked": 3045,
+      "candidates": 140652,
+      "executed": 3521,
+      "skipped_while_open": 2455,
+      "triggers": 30285
+     },
+     "days": 912,
+     "exits": {
+      "BE": 834,
+      "STALL": 1192,
+      "STOP": 441,
+      "TIME": 735,
+      "TRAIL": 319
+     },
+     "gross_r": -0.003454891053277853,
+     "gross_usd_per_trade": -0.02537553795779151,
+     "mae_r_mean": -0.44779193426965924,
+     "max_dd_pct": 190.7700356746551,
+     "max_dd_r": 1271.800237831034,
+     "max_dd_usd": 9538.501783732756,
+     "mean_hold_min": 29.20221527975007,
+     "mean_leverage": 1.8327179778472025,
+     "mean_margin_usd": 1003.550589817904,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 4.0,
+     "mfe_r_mean": 0.6527396842834069,
+     "n": 3521,
+     "n_long": 1807,
+     "n_short": 1714,
+     "net_r": -0.3612547137410567,
+     "net_usd_per_trade": -2.7090320317332406,
+     "p75_hold_min": 48.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.3454874043929135,
+     "profit_factor": 0.2216600033629417,
+     "skipped_while_open": 2455,
+     "total_net_r": -1271.9778470822607,
+     "total_net_usd": -9538.50178373274,
+     "trades_per_active_day": 4.019406392694064,
+     "trades_per_day": 3.8607456140350878,
+     "win_rate": 0.3907980687304743,
+     "zero_trade_day_share": 0.039473684210526314,
+     "zero_trade_days": 36
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 17.0,
+       "n": 346,
+       "net_r": 0.06737340500971035,
+       "pf": null,
+       "total_net_r": 23.31119813335978,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 371,
+       "net_r": -0.6756590300653933,
+       "pf": 2.923148015129599e-05,
+       "total_net_r": -250.6695001542609,
+       "win_rate": 0.0026954177897574125
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 193,
+       "net_r": -1.4152391267303073,
+       "pf": 0.0,
+       "total_net_r": -273.1411514589493,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 265,
+       "net_r": -0.16403132944201002,
+       "pf": 0.5170177545020641,
+       "total_net_r": -43.468302302132656,
+       "win_rate": 0.3584905660377358
+      },
+      "TRAIL": {
+       "median_hold_min": 36.0,
+       "n": 97,
+       "net_r": 0.543622480669712,
+       "pf": null,
+       "total_net_r": 52.73138062496206,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 866,
+       "net_r": -0.35535214459147724,
+       "pf": 0.2114576233606023,
+       "total_net_r": -307.7349572162193,
+       "win_rate": 0.39145496535796764
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 386,
+       "net_r": -0.44565685494106355,
+       "pf": 0.18399560076725333,
+       "total_net_r": -172.02354600725053,
+       "win_rate": 0.49740932642487046
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 20,
+       "net_r": -0.5738935966775558,
+       "pf": 0.10042081498154565,
+       "total_net_r": -11.477871933551116,
+       "win_rate": 0.4
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 24.0,
+       "n": 473,
+       "net_r": -0.33738381037594756,
+       "pf": 0.2176756808940923,
+       "total_net_r": -159.5825423078232,
+       "win_rate": 0.3763213530655391
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 393,
+       "net_r": -0.37697815498319637,
+       "pf": 0.2046494513354933,
+       "total_net_r": -148.15241490839617,
+       "win_rate": 0.40966921119592875
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 175,
+       "net_r": -0.38364542355279946,
+       "pf": 0.21916706659731106,
+       "total_net_r": -67.13794912173991,
+       "win_rate": 0.5028571428571429
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 211,
+       "net_r": -0.49708813689815456,
+       "pf": 0.15977653095269792,
+       "total_net_r": -104.88559688551061,
+       "win_rate": 0.4928909952606635
+      },
+      "C-LONG": {
+       "median_hold_min": 29.0,
+       "n": 8,
+       "net_r": -0.4162025916315397,
+       "pf": 0.21901084914348096,
+       "total_net_r": -3.3296207330523178,
+       "win_rate": 0.5
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 656,
+       "net_r": -0.35068614658935277,
+       "pf": 0.21813084716572623,
+       "total_net_r": -230.05011216261542,
+       "win_rate": 0.4115853658536585
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 616,
+       "net_r": -0.42400367369221675,
+       "pf": 0.18277071763503652,
+       "total_net_r": -261.1862629944055,
+       "win_rate": 0.4366883116883117
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8374312758831853,
+     "avg_winner_r": 0.22745964761661194,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 1,
+      "POSITION_OPEN": 775,
+      "STOP_TOO_WIDE_FOR_V11": 201
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 2694,
+       "executed": 866,
+       "triggers": 9569
+      },
+      "B": {
+       "armed": 1578,
+       "executed": 386,
+       "triggers": 1097
+      },
+      "C": {
+       "armed": 49,
+       "executed": 20,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 866,
+      "B": 386,
+      "C": 20
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3563553545935306,
+     "cost_usd_per_trade": 2.6724666019144427,
+     "counters": {
+      "armed": 4321,
+      "blocked": 945,
+      "candidates": 52380,
+      "executed": 1272,
+      "skipped_while_open": 775,
+      "triggers": 10985
+     },
+     "days": 365,
+     "exits": {
+      "BE": 346,
+      "STALL": 371,
+      "STOP": 193,
+      "TIME": 265,
+      "TRAIL": 97
+     },
+     "gross_r": -0.029836764240605395,
+     "gross_usd_per_trade": -0.2239642118365142,
+     "mae_r_mean": -0.49927807826724147,
+     "max_dd_pct": 73.82978147610686,
+     "max_dd_r": 492.19854317404577,
+     "max_dd_usd": 3691.489073805343,
+     "mean_hold_min": 29.537735849056602,
+     "mean_leverage": 1.8144654088050314,
+     "mean_margin_usd": 1002.8073877939797,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6176709653030061,
+     "n": 1272,
+     "n_long": 656,
+     "n_short": 616,
+     "net_r": -0.386192118834136,
+     "net_usd_per_trade": -2.8964308137509565,
+     "p75_hold_min": 49.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2716158975275013,
+     "profit_factor": 0.19971823422285445,
+     "skipped_while_open": 775,
+     "total_net_r": -491.23637515702103,
+     "total_net_usd": -3684.2599950912168,
+     "trades_per_active_day": 3.6657060518731988,
+     "trades_per_day": 3.484931506849315,
+     "win_rate": 0.42374213836477986,
+     "zero_trade_day_share": 0.049315068493150684,
+     "zero_trade_days": 18
+    }
+   }
+  },
+  "A1_NEUTRAL_OK+B1_NEAR_040": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 863,
+       "net_r": 0.06536047986232667,
+       "pf": 865.2881099749079,
+       "total_net_r": 56.40609412118791,
+       "win_rate": 0.9988412514484357
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 1213,
+       "net_r": -0.6371866267917495,
+       "pf": 0.0,
+       "total_net_r": -772.9073782983922,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 473,
+       "net_r": -1.41690132750194,
+       "pf": 0.0,
+       "total_net_r": -670.1943279084176,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 745,
+       "net_r": -0.15673800978500022,
+       "pf": 0.5473788026578249,
+       "total_net_r": -116.76981728982517,
+       "win_rate": 0.30335570469798656
+      },
+      "TRAIL": {
+       "median_hold_min": 34.0,
+       "n": 330,
+       "net_r": 0.5271775945014164,
+       "pf": null,
+       "total_net_r": 173.96860618546742,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 2611,
+       "net_r": -0.3569404729166064,
+       "pf": 0.2175773864559862,
+       "total_net_r": -931.9715747852593,
+       "win_rate": 0.3584833397165837
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 971,
+       "net_r": -0.3928371153252453,
+       "pf": 0.22116284661831295,
+       "total_net_r": -381.4448389808132,
+       "win_rate": 0.47785787847579814
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 42,
+       "net_r": -0.3828668910454084,
+       "pf": 0.2069131852104525,
+       "total_net_r": -16.080409423907152,
+       "win_rate": 0.42857142857142855
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 1348,
+       "net_r": -0.36607453045958094,
+       "pf": 0.19923111653027195,
+       "total_net_r": -493.4684670595151,
+       "win_rate": 0.33827893175074186
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1263,
+       "net_r": -0.34719169257778637,
+       "pf": 0.23725331256002782,
+       "total_net_r": -438.5031077257442,
+       "win_rate": 0.38004750593824227
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 480,
+       "net_r": -0.3447652233494322,
+       "pf": 0.2726740387699236,
+       "total_net_r": -165.48730720772747,
+       "win_rate": 0.48125
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 491,
+       "net_r": -0.4398320402710503,
+       "pf": 0.1764754476930699,
+       "total_net_r": -215.9575317730857,
+       "win_rate": 0.4745417515274949
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.4319749425826193,
+       "pf": 0.18186649814121483,
+       "total_net_r": -9.071473794235006,
+       "win_rate": 0.38095238095238093
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1849,
+       "net_r": -0.36129110225066396,
+       "pf": 0.21855562828998093,
+       "total_net_r": -668.0272480614776,
+       "win_rate": 0.3758788534342888
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1775,
+       "net_r": -0.37265891556535324,
+       "pf": 0.21840935582362814,
+       "total_net_r": -661.469575128502,
+       "win_rate": 0.40732394366197183
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.77113447014675,
+     "avg_winner_r": 0.2620774456655506,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 5,
+      "POSITION_OPEN": 2523,
+      "STOP_TOO_WIDE_FOR_V11": 710
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 8066,
+       "executed": 2611,
+       "triggers": 27376
+      },
+      "B": {
+       "armed": 4703,
+       "executed": 971,
+       "triggers": 2726
+      },
+      "C": {
+       "armed": 94,
+       "executed": 42,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 2611,
+      "B": 971,
+      "C": 42
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.35993381896858556,
+     "cost_usd_per_trade": 2.699547120409051,
+     "counters": {
+      "armed": 12863,
+      "blocked": 3110,
+      "candidates": 140652,
+      "executed": 3624,
+      "skipped_while_open": 2523,
+      "triggers": 30683
+     },
+     "days": 912,
+     "exits": {
+      "BE": 863,
+      "STALL": 1213,
+      "STOP": 473,
+      "TIME": 745,
+      "TRAIL": 330
+     },
+     "gross_r": -0.006925127827766413,
+     "gross_usd_per_trade": -0.05148246684226805,
+     "mae_r_mean": -0.4531953526882917,
+     "max_dd_pct": 199.39462448397666,
+     "max_dd_r": 1329.2974965598444,
+     "max_dd_usd": 9969.731224198833,
+     "mean_hold_min": 28.995860927152318,
+     "mean_leverage": 1.8377483443708609,
+     "mean_margin_usd": 1005.689031426554,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 4.0,
+     "mfe_r_mean": 0.6562054241001956,
+     "n": 3624,
+     "n_long": 1849,
+     "n_short": 1775,
+     "net_r": -0.366858946796352,
+     "net_usd_per_trade": -2.7510295872513195,
+     "p75_hold_min": 47.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.3398595910460029,
+     "profit_factor": 0.21848287117216808,
+     "skipped_while_open": 2523,
+     "total_net_r": -1329.4968231899798,
+     "total_net_usd": -9969.731224198782,
+     "trades_per_active_day": 4.118181818181818,
+     "trades_per_day": 3.973684210526316,
+     "win_rate": 0.391280353200883,
+     "zero_trade_day_share": 0.03508771929824561,
+     "zero_trade_days": 32
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 16.0,
+       "n": 366,
+       "net_r": 0.0659319430079975,
+       "pf": null,
+       "total_net_r": 24.131091140927083,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 382,
+       "net_r": -0.677405140801912,
+       "pf": 2.8316460042466843e-05,
+       "total_net_r": -258.7687637863304,
+       "win_rate": 0.002617801047120419
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 197,
+       "net_r": -1.4160822243730038,
+       "pf": 0.0,
+       "total_net_r": -278.96819820148175,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 270,
+       "net_r": -0.16123710475822073,
+       "pf": 0.5177357899165552,
+       "total_net_r": -43.53401828471959,
+       "win_rate": 0.35555555555555557
+      },
+      "TRAIL": {
+       "median_hold_min": 36.0,
+       "n": 102,
+       "net_r": 0.5397979308798623,
+       "pf": null,
+       "total_net_r": 55.05938894974595,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 861,
+       "net_r": -0.35607694935374545,
+       "pf": 0.21060189872538423,
+       "total_net_r": -306.58225339357483,
+       "win_rate": 0.3914053426248548
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 436,
+       "net_r": -0.4220650799420478,
+       "pf": 0.18895439791576157,
+       "total_net_r": -184.02037485473284,
+       "win_rate": 0.5045871559633027
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 20,
+       "net_r": -0.5738935966775558,
+       "pf": 0.10042081498154565,
+       "total_net_r": -11.477871933551116,
+       "win_rate": 0.4
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 24.0,
+       "n": 469,
+       "net_r": -0.3375225000104423,
+       "pf": 0.2167382624344401,
+       "total_net_r": -158.29805250489744,
+       "win_rate": 0.3773987206823028
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 392,
+       "net_r": -0.3782760226751975,
+       "pf": 0.2039452215913753,
+       "total_net_r": -148.28420088867742,
+       "win_rate": 0.40816326530612246
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 199,
+       "net_r": -0.36522776760249254,
+       "pf": 0.2242006532695773,
+       "total_net_r": -72.68032575289601,
+       "win_rate": 0.5125628140703518
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 237,
+       "net_r": -0.46978923671661094,
+       "pf": 0.16417359626918998,
+       "total_net_r": -111.3400491018368,
+       "win_rate": 0.4978902953586498
+      },
+      "C-LONG": {
+       "median_hold_min": 29.0,
+       "n": 8,
+       "net_r": -0.4162025916315397,
+       "pf": 0.21901084914348096,
+       "total_net_r": -3.3296207330523178,
+       "win_rate": 0.5
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 676,
+       "net_r": -0.3466094659627896,
+       "pf": 0.2191005535959425,
+       "total_net_r": -234.30799899084576,
+       "win_rate": 0.41863905325443784
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 641,
+       "net_r": -0.41774181153044154,
+       "pf": 0.18356912959707045,
+       "total_net_r": -267.772501191013,
+       "win_rate": 0.43993759750390016
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8351513572404268,
+     "avg_winner_r": 0.22292623090786212,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 1,
+      "POSITION_OPEN": 810,
+      "STOP_TOO_WIDE_FOR_V11": 201
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 2694,
+       "executed": 861,
+       "triggers": 9569
+      },
+      "B": {
+       "armed": 1849,
+       "executed": 436,
+       "triggers": 1263
+      },
+      "C": {
+       "armed": 49,
+       "executed": 20,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 861,
+      "B": 436,
+      "C": 20
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3591430515312476,
+     "cost_usd_per_trade": 2.693444396589394,
+     "counters": {
+      "armed": 4592,
+      "blocked": 980,
+      "candidates": 52380,
+      "executed": 1317,
+      "skipped_while_open": 810,
+      "triggers": 11151
+     },
+     "days": 365,
+     "exits": {
+      "BE": 366,
+      "STALL": 382,
+      "STOP": 197,
+      "TIME": 270,
+      "TRAIL": 102
+     },
+     "gross_r": -0.022087396594689224,
+     "gross_usd_per_trade": -0.1657922083737386,
+     "mae_r_mean": -0.4971113265947531,
+     "max_dd_pct": 75.45687374901142,
+     "max_dd_r": 503.04582499340944,
+     "max_dd_usd": 3772.843687450571,
+     "mean_hold_min": 29.281700835231586,
+     "mean_leverage": 1.8230827638572513,
+     "mean_margin_usd": 1005.393050467619,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6274152126172456,
+     "n": 1317,
+     "n_long": 676,
+     "n_short": 641,
+     "net_r": -0.3812304481259368,
+     "net_usd_per_trade": -2.8592366049631326,
+     "p75_hold_min": 49.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2669291368267336,
+     "profit_factor": 0.2005428176778199,
+     "skipped_while_open": 810,
+     "total_net_r": -502.0805001818588,
+     "total_net_usd": -3765.6146087364455,
+     "trades_per_active_day": 3.7844827586206895,
+     "trades_per_day": 3.6082191780821917,
+     "win_rate": 0.4290053151100987,
+     "zero_trade_day_share": 0.04657534246575343,
+     "zero_trade_days": 17
+    }
+   }
+  },
+  "A1_NEUTRAL_OK+B3_NEAR_070": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 992,
+       "net_r": 0.06286668584904492,
+       "pf": 956.4768937952816,
+       "total_net_r": 62.36375236225256,
+       "win_rate": 0.998991935483871
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 1288,
+       "net_r": -0.6468387284984619,
+       "pf": 0.0,
+       "total_net_r": -833.128282306019,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 576,
+       "net_r": -1.424553687971004,
+       "pf": 0.0,
+       "total_net_r": -820.5429242712983,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 777,
+       "net_r": -0.16022939579701545,
+       "pf": 0.5416593763359325,
+       "total_net_r": -124.498240534281,
+       "win_rate": 0.30244530244530243
+      },
+      "TRAIL": {
+       "median_hold_min": 32.0,
+       "n": 386,
+       "net_r": 0.5158057145117074,
+       "pf": null,
+       "total_net_r": 199.10100580151908,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 2588,
+       "net_r": -0.3570597221919917,
+       "pf": 0.21780456370260673,
+       "total_net_r": -924.0705610328746,
+       "win_rate": 0.35819165378670786
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 1389,
+       "net_r": -0.4150854704759142,
+       "pf": 0.20342649137604174,
+       "total_net_r": -576.5537184910448,
+       "win_rate": 0.48020158387329015
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 42,
+       "net_r": -0.3828668910454084,
+       "pf": 0.2069131852104525,
+       "total_net_r": -16.080409423907152,
+       "win_rate": 0.42857142857142855
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 1335,
+       "net_r": -0.36721165578266557,
+       "pf": 0.19894570411022253,
+       "total_net_r": -490.22756046985853,
+       "win_rate": 0.33782771535580525
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1253,
+       "net_r": -0.34624341625140936,
+       "pf": 0.2380823826611347,
+       "total_net_r": -433.84300056301595,
+       "win_rate": 0.37988826815642457
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 687,
+       "net_r": -0.3864824593517156,
+       "pf": 0.2349314004092561,
+       "total_net_r": -265.5134495746286,
+       "win_rate": 0.4759825327510917
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 702,
+       "net_r": -0.44307730614874097,
+       "pf": 0.174418078964503,
+       "total_net_r": -311.04026891641615,
+       "win_rate": 0.4843304843304843
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.4319749425826193,
+       "pf": 0.18186649814121483,
+       "total_net_r": -9.071473794235006,
+       "win_rate": 0.38095238095238093
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 2043,
+       "net_r": -0.3743575544976614,
+       "pf": 0.21161962005991963,
+       "total_net_r": -764.8124838387222,
+       "win_rate": 0.38472834067547723
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1976,
+       "net_r": -0.38051224954914176,
+       "pf": 0.21296096192596922,
+       "total_net_r": -751.8922051091041,
+       "win_rate": 0.4180161943319838
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.7998668179164938,
+     "avg_winner_r": 0.25345827653670866,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 5,
+      "POSITION_OPEN": 2724,
+      "STOP_TOO_WIDE_FOR_V11": 710
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 8066,
+       "executed": 2588,
+       "triggers": 27376
+      },
+      "B": {
+       "armed": 8732,
+       "executed": 1389,
+       "triggers": 5104
+      },
+      "C": {
+       "armed": 94,
+       "executed": 42,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 2588,
+      "B": 1389,
+      "C": 42
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.36711922522762713,
+     "cost_usd_per_trade": 2.753289606426175,
+     "counters": {
+      "armed": 16892,
+      "blocked": 3302,
+      "candidates": 140652,
+      "executed": 4019,
+      "skipped_while_open": 2724,
+      "triggers": 33061
+     },
+     "days": 912,
+     "exits": {
+      "BE": 992,
+      "STALL": 1288,
+      "STOP": 576,
+      "TIME": 777,
+      "TRAIL": 386
+     },
+     "gross_r": -0.010264374908682017,
+     "gross_usd_per_trade": -0.07617782559247922,
+     "mae_r_mean": -0.4672291147662851,
+     "max_dd_pct": 227.43259218566044,
+     "max_dd_r": 1516.2172812377362,
+     "max_dd_usd": 11371.629609283022,
+     "mean_hold_min": 28.141826324956458,
+     "mean_leverage": 1.8551878576760388,
+     "mean_margin_usd": 1012.8029056788516,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 4.0,
+     "mfe_r_mean": 0.6633121268953421,
+     "n": 4019,
+     "n_long": 2043,
+     "n_short": 1976,
+     "net_r": -0.3773836001363091,
+     "net_usd_per_trade": -2.8294674320186544,
+     "p75_hold_min": 45.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.31687559836138834,
+     "profit_factor": 0.21228510187521513,
+     "skipped_while_open": 2724,
+     "total_net_r": -1516.7046889478263,
+     "total_net_usd": -11371.629609282973,
+     "trades_per_active_day": 4.531003382187148,
+     "trades_per_day": 4.406798245614035,
+     "win_rate": 0.40109479970141826,
+     "zero_trade_day_share": 0.027412280701754384,
+     "zero_trade_days": 25
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 431,
+       "net_r": 0.06291017628311558,
+       "pf": null,
+       "total_net_r": 27.114285978022817,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 424,
+       "net_r": -0.688187517921616,
+       "pf": 2.5111283788518e-05,
+       "total_net_r": -291.7915075987652,
+       "win_rate": 0.0023584905660377358
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 235,
+       "net_r": -1.4229067018504435,
+       "pf": 0.0,
+       "total_net_r": -334.3830749348542,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 281,
+       "net_r": -0.1473270506461173,
+       "pf": 0.5525630792467096,
+       "total_net_r": -41.398901231558966,
+       "win_rate": 0.36298932384341637
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 120,
+       "net_r": 0.530093065569422,
+       "pf": null,
+       "total_net_r": 63.61116786833064,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 859,
+       "net_r": -0.3545123979584352,
+       "pf": 0.21172271023294365,
+       "total_net_r": -304.5261498462958,
+       "win_rate": 0.39231664726426074
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 612,
+       "net_r": -0.4262156995734934,
+       "pf": 0.18392444906272204,
+       "total_net_r": -260.844008138978,
+       "win_rate": 0.5049019607843137
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 20,
+       "net_r": -0.5738935966775558,
+       "pf": 0.10042081498154565,
+       "total_net_r": -11.477871933551116,
+       "win_rate": 0.4
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 24.0,
+       "n": 470,
+       "net_r": -0.3390812287220752,
+       "pf": 0.21559674766024114,
+       "total_net_r": -159.36817749937535,
+       "win_rate": 0.37659574468085105
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 389,
+       "net_r": -0.37315674125172366,
+       "pf": 0.20742583341057153,
+       "total_net_r": -145.1579723469205,
+       "win_rate": 0.41131105398457585
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 270,
+       "net_r": -0.38082118144103266,
+       "pf": 0.21376516936067586,
+       "total_net_r": -102.82171898907882,
+       "win_rate": 0.5111111111111111
+      },
+      "B-SHORT": {
+       "median_hold_min": 19.0,
+       "n": 342,
+       "net_r": -0.46205347704648886,
+       "pf": 0.163260255400358,
+       "total_net_r": -158.0222891498992,
+       "win_rate": 0.5
+      },
+      "C-LONG": {
+       "median_hold_min": 29.0,
+       "n": 8,
+       "net_r": -0.4162025916315397,
+       "pf": 0.21901084914348096,
+       "total_net_r": -3.3296207330523178,
+       "win_rate": 0.5
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 748,
+       "net_r": -0.3549726166062921,
+       "pf": 0.21493145239541622,
+       "total_net_r": -265.5195172215065,
+       "win_rate": 0.4264705882352941
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 743,
+       "net_r": -0.4190154948819899,
+       "pf": 0.18178810682306426,
+       "total_net_r": -311.3285126973185,
+       "win_rate": 0.4508748317631225
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8586883737048959,
+     "avg_winner_r": 0.21693293405531036,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 1,
+      "POSITION_OPEN": 897,
+      "STOP_TOO_WIDE_FOR_V11": 201
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 2694,
+       "executed": 859,
+       "triggers": 9569
+      },
+      "B": {
+       "armed": 3500,
+       "executed": 612,
+       "triggers": 2453
+      },
+      "C": {
+       "armed": 49,
+       "executed": 20,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 859,
+      "B": 612,
+      "C": 20
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3673386349225716,
+     "cost_usd_per_trade": 2.7549445776628922,
+     "counters": {
+      "armed": 6243,
+      "blocked": 1067,
+      "candidates": 52380,
+      "executed": 1491,
+      "skipped_while_open": 897,
+      "triggers": 12341
+     },
+     "days": 365,
+     "exits": {
+      "BE": 431,
+      "STALL": 424,
+      "STOP": 235,
+      "TIME": 281,
+      "TRAIL": 120
+     },
+     "gross_r": -0.019548038396559744,
+     "gross_usd_per_trade": -0.1467402682815727,
+     "mae_r_mean": -0.5064971079339997,
+     "max_dd_pct": 86.67282368034621,
+     "max_dd_r": 577.8188245356414,
+     "max_dd_usd": 4333.6411840173105,
+     "mean_hold_min": 28.232059020791414,
+     "mean_leverage": 1.8450704225352113,
+     "mean_margin_usd": 1013.2082488514417,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 4.0,
+     "mfe_r_mean": 0.6409530669919616,
+     "n": 1491,
+     "n_long": 748,
+     "n_short": 743,
+     "net_r": -0.38688667331913146,
+     "net_usd_per_trade": -2.901684845944464,
+     "p75_hold_min": 46.5,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.25263290001159766,
+     "profit_factor": 0.19738394917041485,
+     "skipped_while_open": 897,
+     "total_net_r": -576.848029918825,
+     "total_net_usd": -4326.412105303196,
+     "trades_per_active_day": 4.247863247863248,
+     "trades_per_day": 4.0849315068493155,
+     "win_rate": 0.4386317907444668,
+     "zero_trade_day_share": 0.038356164383561646,
+     "zero_trade_days": 14
+    }
+   }
+  },
+  "A2_WITHIN2": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 618,
+       "net_r": 0.06053737902852616,
+       "pf": 574.3555863552084,
+       "total_net_r": 37.41210023962917,
+       "win_rate": 0.9983818770226537
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 794,
+       "net_r": -0.6500522113721207,
+       "pf": 0.0,
+       "total_net_r": -516.1414558294638,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 371,
+       "net_r": -1.4240072248274434,
+       "pf": 0.0,
+       "total_net_r": -528.3066804109815,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 459,
+       "net_r": -0.168654892509422,
+       "pf": 0.5383969575335797,
+       "total_net_r": -77.4125956618247,
+       "win_rate": 0.3093681917211329
+      },
+      "TRAIL": {
+       "median_hold_min": 30.0,
+       "n": 239,
+       "net_r": 0.5142033334885261,
+       "pf": null,
+       "total_net_r": 122.89459670375774,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1443,
+       "net_r": -0.38285301494179313,
+       "pf": 0.19965622082557963,
+       "total_net_r": -552.4569005610075,
+       "win_rate": 0.3492723492723493
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 993,
+       "net_r": -0.39483734048479213,
+       "pf": 0.21616275942093968,
+       "total_net_r": -392.07347910139856,
+       "win_rate": 0.4773413897280967
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 736,
+       "net_r": -0.3934886031806254,
+       "pf": 0.1823207794054619,
+       "total_net_r": -289.6076119409403,
+       "win_rate": 0.3342391304347826
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 707,
+       "net_r": -0.3717811720227259,
+       "pf": 0.21793058935013263,
+       "total_net_r": -262.8492886200672,
+       "win_rate": 0.3649222065063649
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 504,
+       "net_r": -0.3549761559489034,
+       "pf": 0.26349056241380514,
+       "total_net_r": -178.90798259824732,
+       "win_rate": 0.4781746031746032
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 489,
+       "net_r": -0.4359212607426406,
+       "pf": 0.17147527438764718,
+       "total_net_r": -213.16549650315125,
+       "win_rate": 0.47648261758691207
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1264,
+       "net_r": -0.3785841093401838,
+       "pf": 0.2150638852232251,
+       "total_net_r": -478.53031420599234,
+       "win_rate": 0.39319620253164556
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1217,
+       "net_r": -0.39689705895882554,
+       "pf": 0.19838310291216363,
+       "total_net_r": -483.02372075289065,
+       "win_rate": 0.4116680361544782
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8173894519457001,
+     "avg_winner_r": 0.25113679586832693,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1533,
+      "STOP_TOO_WIDE_FOR_V11": 426
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4442,
+       "executed": 1443,
+       "triggers": 14193
+      },
+      "B": {
+       "armed": 4013,
+       "executed": 993,
+       "triggers": 2358
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1443,
+      "B": 993,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3730301966872641,
+     "cost_usd_per_trade": 2.798120525961861,
+     "counters": {
+      "armed": 8549,
+      "blocked": 1889,
+      "candidates": 140652,
+      "executed": 2481,
+      "skipped_while_open": 1533,
+      "triggers": 17132
+     },
+     "days": 912,
+     "exits": {
+      "BE": 618,
+      "STALL": 794,
+      "STOP": 371,
+      "TIME": 459,
+      "TRAIL": 239
+     },
+     "gross_r": -0.014536927439653622,
+     "gross_usd_per_trade": -0.10865063792528518,
+     "mae_r_mean": -0.4792384788970779,
+     "max_dd_pct": 144.2339851520799,
+     "max_dd_r": 961.5599010138661,
+     "max_dd_usd": 7211.699257603996,
+     "mean_hold_min": 27.555421201128578,
+     "mean_leverage": 1.8730350665054414,
+     "mean_margin_usd": 1018.3679001999831,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 2.0,
+     "mfe_r_mean": 0.6635597753249363,
+     "n": 2481,
+     "n_long": 1264,
+     "n_short": 1217,
+     "net_r": -0.3875671241269178,
+     "net_usd_per_trade": -2.906771163887146,
+     "p75_hold_min": 42.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.3072425210167872,
+     "profit_factor": 0.2067731848731195,
+     "skipped_while_open": 1533,
+     "total_net_r": -961.554034958883,
+     "total_net_usd": -7211.699257604009,
+     "trades_per_active_day": 2.9927623642943306,
+     "trades_per_day": 2.7203947368421053,
+     "win_rate": 0.4022571543732366,
+     "zero_trade_day_share": 0.09100877192982457,
+     "zero_trade_days": 83
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 281,
+       "net_r": 0.06353353124311449,
+       "pf": null,
+       "total_net_r": 17.852922279315173,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 276,
+       "net_r": -0.7129585139548155,
+       "pf": 0.0,
+       "total_net_r": -196.77654985152907,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 172,
+       "net_r": -1.4292112931088252,
+       "pf": 0.0,
+       "total_net_r": -245.82434241471793,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 182,
+       "net_r": -0.16025096618716456,
+       "pf": 0.5290913868296497,
+       "total_net_r": -29.165675846063948,
+       "win_rate": 0.36813186813186816
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 77,
+       "net_r": 0.5184926801537275,
+       "pf": null,
+       "total_net_r": 39.92393637183702,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 531,
+       "net_r": -0.3777127506847647,
+       "pf": 0.1945689468349326,
+       "total_net_r": -200.56547061361005,
+       "win_rate": 0.3898305084745763
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 436,
+       "net_r": -0.4616037998615419,
+       "pf": 0.16862900717943058,
+       "total_net_r": -201.25925673963226,
+       "win_rate": 0.481651376146789
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 23.0,
+       "n": 288,
+       "net_r": -0.36412686366476915,
+       "pf": 0.19848098058196134,
+       "total_net_r": -104.86853673545352,
+       "win_rate": 0.3854166666666667
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 243,
+       "net_r": -0.39381454270846306,
+       "pf": 0.19023904227057006,
+       "total_net_r": -95.69693387815653,
+       "win_rate": 0.3950617283950617
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 201,
+       "net_r": -0.4099415961411006,
+       "pf": 0.1988216391790235,
+       "total_net_r": -82.39826082436122,
+       "win_rate": 0.48258706467661694
+      },
+      "B-SHORT": {
+       "median_hold_min": 17.0,
+       "n": 235,
+       "net_r": -0.5057914719798768,
+       "pf": 0.14633263699055665,
+       "total_net_r": -118.86099591527105,
+       "win_rate": 0.4808510638297872
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 498,
+       "net_r": -0.38410347081773577,
+       "pf": 0.1984229908199902,
+       "total_net_r": -191.2835284672324,
+       "win_rate": 0.42570281124497994
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 490,
+       "net_r": -0.4545024101916865,
+       "pf": 0.16247889318869982,
+       "total_net_r": -222.7061809939264,
+       "win_rate": 0.4346938775510204
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8961678885591072,
+     "avg_winner_r": 0.21306543952380827,
+     "blockers": {
+      "POSITION_OPEN": 541,
+      "STOP_TOO_WIDE_FOR_V11": 124
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1634,
+       "executed": 531,
+       "triggers": 5571
+      },
+      "B": {
+       "armed": 1589,
+       "executed": 436,
+       "triggers": 1115
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 531,
+      "B": 436,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3710793698101581,
+     "cost_usd_per_trade": 2.7829078411338477,
+     "counters": {
+      "armed": 3272,
+      "blocked": 638,
+      "candidates": 52380,
+      "executed": 988,
+      "skipped_while_open": 541,
+      "triggers": 7005
+     },
+     "days": 365,
+     "exits": {
+      "BE": 281,
+      "STALL": 276,
+      "STOP": 172,
+      "TIME": 182,
+      "TRAIL": 77
+     },
+     "gross_r": -0.04793855474567066,
+     "gross_usd_per_trade": -0.3595923239517873,
+     "mae_r_mean": -0.5250004159141215,
+     "max_dd_pct": 62.26295061445795,
+     "max_dd_r": 415.08633742971966,
+     "max_dd_usd": 3113.1475307228975,
+     "mean_hold_min": 27.903846153846153,
+     "mean_leverage": 1.8512145748987854,
+     "mean_margin_usd": 1018.2108676996999,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.620252727495609,
+     "n": 988,
+     "n_long": 498,
+     "n_short": 490,
+     "net_r": -0.41901792455582876,
+     "net_usd_per_trade": -3.1425001650856346,
+     "p75_hold_min": 46.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.23775170059527906,
+     "profit_factor": 0.17947701799268792,
+     "skipped_while_open": 541,
+     "total_net_r": -413.98970946115884,
+     "total_net_usd": -3104.790163104607,
+     "trades_per_active_day": 3.0875,
+     "trades_per_day": 2.706849315068493,
+     "win_rate": 0.43016194331983804,
+     "zero_trade_day_share": 0.1232876712328767,
+     "zero_trade_days": 45
+    }
+   }
+  },
+  "A3_WITHIN3": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 636,
+       "net_r": 0.06125530922072794,
+       "pf": 598.0395140621305,
+       "total_net_r": 38.95837666438297,
+       "win_rate": 0.9984276729559748
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 810,
+       "net_r": -0.6500758167027217,
+       "pf": 0.0,
+       "total_net_r": -526.5614115292046,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 373,
+       "net_r": -1.4231549263861931,
+       "pf": 0.0,
+       "total_net_r": -530.83678754205,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 473,
+       "net_r": -0.17774841459881896,
+       "pf": 0.5193835089414071,
+       "total_net_r": -84.07500010524137,
+       "win_rate": 0.3044397463002114
+      },
+      "TRAIL": {
+       "median_hold_min": 30.0,
+       "n": 243,
+       "net_r": 0.5135091061807845,
+       "pf": null,
+       "total_net_r": 124.78271280193064,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1509,
+       "net_r": -0.3816531109110693,
+       "pf": 0.19850492181448692,
+       "total_net_r": -575.9145443648035,
+       "win_rate": 0.3518886679920477
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 981,
+       "net_r": -0.3922465953607564,
+       "pf": 0.21806244675314446,
+       "total_net_r": -384.79391004890203,
+       "win_rate": 0.4801223241590214
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 766,
+       "net_r": -0.3907843015327417,
+       "pf": 0.18226449089147942,
+       "total_net_r": -299.34077497408015,
+       "win_rate": 0.33550913838120106
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 743,
+       "net_r": -0.37223925893771637,
+       "pf": 0.2153763459407423,
+       "total_net_r": -276.57376939072327,
+       "win_rate": 0.36877523553162855
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 499,
+       "net_r": -0.35093146120497737,
+       "pf": 0.2664789321293732,
+       "total_net_r": -175.1147991412837,
+       "win_rate": 0.48096192384769537
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 482,
+       "net_r": -0.43501890229796336,
+       "pf": 0.17243747140781227,
+       "total_net_r": -209.67911090761834,
+       "win_rate": 0.47925311203319504
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1289,
+       "net_r": -0.3758497236479198,
+       "pf": 0.21522843074977668,
+       "total_net_r": -484.4702937821686,
+       "win_rate": 0.39332816136539955
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1246,
+       "net_r": -0.395876256764056,
+       "pf": 0.19800861962144725,
+       "total_net_r": -493.2618159280138,
+       "win_rate": 0.413322632423756
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8145154697994361,
+     "avg_winner_r": 0.24914852847002394,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1589,
+      "STOP_TOO_WIDE_FOR_V11": 448
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4672,
+       "executed": 1509,
+       "triggers": 15033
+      },
+      "B": {
+       "armed": 4011,
+       "executed": 981,
+       "triggers": 2354
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1509,
+      "B": 981,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3719792439478119,
+     "cost_usd_per_trade": 2.790226854456618,
+     "counters": {
+      "armed": 8777,
+      "blocked": 1963,
+      "candidates": 140652,
+      "executed": 2535,
+      "skipped_while_open": 1589,
+      "triggers": 17968
+     },
+     "days": 912,
+     "exits": {
+      "BE": 636,
+      "STALL": 810,
+      "STOP": 373,
+      "TIME": 473,
+      "TRAIL": 243
+     },
+     "gross_r": -0.013713895977309307,
+     "gross_usd_per_trade": -0.10243021816513526,
+     "mae_r_mean": -0.4772379957714497,
+     "max_dd_pct": 146.6577135819226,
+     "max_dd_r": 977.7180905461506,
+     "max_dd_usd": 7332.88567909613,
+     "mean_hold_min": 27.71715976331361,
+     "mean_leverage": 1.8710059171597633,
+     "mean_margin_usd": 1016.9633617637354,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6615720173466242,
+     "n": 2535,
+     "n_long": 1289,
+     "n_short": 1246,
+     "net_r": -0.3856931399251213,
+     "net_usd_per_trade": -2.892657072621753,
+     "p75_hold_min": 42.5,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.30588556965207003,
+     "profit_factor": 0.20663571689164226,
+     "skipped_while_open": 1589,
+     "total_net_r": -977.7321097101824,
+     "total_net_usd": -7332.885679096144,
+     "trades_per_active_day": 3.050541516245487,
+     "trades_per_day": 2.7796052631578947,
+     "win_rate": 0.4031558185404339,
+     "zero_trade_day_share": 0.08881578947368421,
+     "zero_trade_days": 81
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 287,
+       "net_r": 0.06445974732676696,
+       "pf": null,
+       "total_net_r": 18.49994748278212,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 284,
+       "net_r": -0.7083584693666202,
+       "pf": 3.642222087605154e-05,
+       "total_net_r": -201.17380530012014,
+       "win_rate": 0.0035211267605633804
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 172,
+       "net_r": -1.4277016847557975,
+       "pf": 0.0,
+       "total_net_r": -245.56468977799716,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 187,
+       "net_r": -0.1612314979105455,
+       "pf": 0.525876885962914,
+       "total_net_r": -30.150290109272007,
+       "win_rate": 0.36363636363636365
+      },
+      "TRAIL": {
+       "median_hold_min": 35.5,
+       "n": 80,
+       "net_r": 0.5302931750909462,
+       "pf": null,
+       "total_net_r": 42.423454007275694,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 556,
+       "net_r": -0.3667400755786965,
+       "pf": 0.2043404293216116,
+       "total_net_r": -203.90748202175524,
+       "win_rate": 0.39568345323741005
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 433,
+       "net_r": -0.46164646551422583,
+       "pf": 0.16926645844773028,
+       "total_net_r": -199.8929195676598,
+       "win_rate": 0.48036951501154734
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 301,
+       "net_r": -0.3547131178305236,
+       "pf": 0.20755648692973658,
+       "total_net_r": -106.76864846698761,
+       "win_rate": 0.3920265780730897
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 255,
+       "net_r": -0.38093660217555947,
+       "pf": 0.20077651795407717,
+       "total_net_r": -97.13883355476766,
+       "win_rate": 0.4
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 201,
+       "net_r": -0.4099415961411006,
+       "pf": 0.1988216391790235,
+       "total_net_r": -82.39826082436122,
+       "win_rate": 0.48258706467661694
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 232,
+       "net_r": -0.5064424945831836,
+       "pf": 0.1472100730790479,
+       "total_net_r": -117.4946587432986,
+       "win_rate": 0.47844827586206895
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 511,
+       "net_r": -0.37805017651422007,
+       "pf": 0.20346549013468715,
+       "total_net_r": -193.18364019876645,
+       "win_rate": 0.42857142857142855
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 499,
+       "net_r": -0.4464563997967235,
+       "pf": 0.16814982532789452,
+       "total_net_r": -222.78174349856505,
+       "win_rate": 0.4348697394789579
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8891008286313791,
+     "avg_winner_r": 0.21646443104834873,
+     "blockers": {
+      "POSITION_OPEN": 551,
+      "STOP_TOO_WIDE_FOR_V11": 130
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1705,
+       "executed": 556,
+       "triggers": 5847
+      },
+      "B": {
+       "armed": 1589,
+       "executed": 433,
+       "triggers": 1115
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 556,
+      "B": 433,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.36865317257697244,
+     "cost_usd_per_trade": 2.764734441493136,
+     "counters": {
+      "armed": 3343,
+      "blocked": 654,
+      "candidates": 52380,
+      "executed": 1010,
+      "skipped_while_open": 551,
+      "triggers": 7281
+     },
+     "days": 365,
+     "exits": {
+      "BE": 287,
+      "STALL": 284,
+      "STOP": 172,
+      "TIME": 187,
+      "TRAIL": 80
+     },
+     "gross_r": -0.0431937419748409,
+     "gross_usd_per_trade": -0.3240553160154727,
+     "mae_r_mean": -0.5204492012512979,
+     "max_dd_pct": 62.560700454039676,
+     "max_dd_r": 417.0713363602645,
+     "max_dd_usd": 3128.035022701984,
+     "mean_hold_min": 28.035643564356434,
+     "mean_leverage": 1.8415841584158417,
+     "mean_margin_usd": 1017.2930355086662,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.626202205707829,
+     "n": 1010,
+     "n_long": 511,
+     "n_short": 499,
+     "net_r": -0.4118469145518134,
+     "net_usd_per_trade": -3.088789757508608,
+     "p75_hold_min": 46.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2434644351659859,
+     "profit_factor": 0.1849301841856699,
+     "skipped_while_open": 551,
+     "total_net_r": -415.9653836973315,
+     "total_net_usd": -3119.677655083694,
+     "trades_per_active_day": 3.126934984520124,
+     "trades_per_day": 2.767123287671233,
+     "win_rate": 0.4316831683168317,
+     "zero_trade_day_share": 0.11506849315068493,
+     "zero_trade_days": 42
+    }
+   }
+  },
+  "A3_WITHIN3+B1_NEAR_040": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 13.0,
+       "n": 673,
+       "net_r": 0.060594506466995,
+       "pf": 625.8992332445347,
+       "total_net_r": 40.780102852287634,
+       "win_rate": 0.9985141158989599
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 835,
+       "net_r": -0.6545124917399081,
+       "pf": 0.0,
+       "total_net_r": -546.5179306028233,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 411,
+       "net_r": -1.426319744333563,
+       "pf": 0.0,
+       "total_net_r": -586.2174149210944,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 488,
+       "net_r": -0.17278454395908535,
+       "pf": 0.5330218638294552,
+       "total_net_r": -84.31885745203365,
+       "win_rate": 0.30327868852459017
+      },
+      "TRAIL": {
+       "median_hold_min": 30.0,
+       "n": 253,
+       "net_r": 0.5066589277289291,
+       "pf": null,
+       "total_net_r": 128.18470871541905,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1507,
+       "net_r": -0.38212774420304885,
+       "pf": 0.19846943514384982,
+       "total_net_r": -575.8665105139946,
+       "win_rate": 0.35169210351692104
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 1108,
+       "net_r": -0.41082962599076994,
+       "pf": 0.2057827789095771,
+       "total_net_r": -455.1992255977731,
+       "win_rate": 0.4720216606498195
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 765,
+       "net_r": -0.3907404532378401,
+       "pf": 0.18247620766880765,
+       "total_net_r": -298.9164467269477,
+       "win_rate": 0.3359477124183007
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 742,
+       "net_r": -0.3732480644030284,
+       "pf": 0.21504956538100642,
+       "total_net_r": -276.95006378704704,
+       "win_rate": 0.36792452830188677
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 551,
+       "net_r": -0.37448977122526267,
+       "pf": 0.24482325063247584,
+       "total_net_r": -206.34386394511972,
+       "win_rate": 0.47186932849364793
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 557,
+       "net_r": -0.4467780281017115,
+       "pf": 0.17021310122101602,
+       "total_net_r": -248.85536165265333,
+       "win_rate": 0.47217235188509876
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1340,
+       "net_r": -0.38453360473050163,
+       "pf": 0.20899757015438647,
+       "total_net_r": -515.2750303388722,
+       "win_rate": 0.3932835820895522
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1320,
+       "net_r": -0.40364724323437307,
+       "pf": 0.1950367236473163,
+       "total_net_r": -532.8143610693725,
+       "win_rate": 0.41363636363636364
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8275493113152351,
+     "avg_winner_r": 0.24718673406247296,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1647,
+      "STOP_TOO_WIDE_FOR_V11": 448
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4672,
+       "executed": 1507,
+       "triggers": 15033
+      },
+      "B": {
+       "armed": 4727,
+       "executed": 1108,
+       "triggers": 2763
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1507,
+      "B": 1108,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.37473987213847054,
+     "cost_usd_per_trade": 2.81076820707984,
+     "counters": {
+      "armed": 9493,
+      "blocked": 2021,
+      "candidates": 140652,
+      "executed": 2660,
+      "skipped_while_open": 1647,
+      "triggers": 18377
+     },
+     "days": 912,
+     "exits": {
+      "BE": 673,
+      "STALL": 835,
+      "STOP": 411,
+      "TIME": 488,
+      "TRAIL": 253
+     },
+     "gross_r": -0.019278696060117635,
+     "gross_usd_per_trade": -0.1442724103972104,
+     "mae_r_mean": -0.48480565994553976,
+     "max_dd_pct": 157.20816084977866,
+     "max_dd_r": 1048.054405665191,
+     "max_dd_usd": 7860.4080424889335,
+     "mean_hold_min": 27.501503759398496,
+     "mean_leverage": 1.8774436090225564,
+     "mean_margin_usd": 1019.6854084990036,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6659906808457033,
+     "n": 2660,
+     "n_long": 1340,
+     "n_short": 1320,
+     "net_r": -0.3940185681985882,
+     "net_usd_per_trade": -2.9550406174770507,
+     "p75_hold_min": 42.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.29869728689595043,
+     "profit_factor": 0.20196217469003172,
+     "skipped_while_open": 1647,
+     "total_net_r": -1048.0893914082446,
+     "total_net_usd": -7860.408042488954,
+     "trades_per_active_day": 3.1818181818181817,
+     "trades_per_day": 2.9166666666666665,
+     "win_rate": 0.40338345864661657,
+     "zero_trade_day_share": 0.08333333333333333,
+     "zero_trade_days": 76
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 313,
+       "net_r": 0.06288165364487902,
+       "pf": null,
+       "total_net_r": 19.681957590847134,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 296,
+       "net_r": -0.7074202325168193,
+       "pf": 3.4991887079580416e-05,
+       "total_net_r": -209.39638882497852,
+       "win_rate": 0.0033783783783783786
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 178,
+       "net_r": -1.4286855203360418,
+       "pf": 0.0,
+       "total_net_r": -254.30602261981545,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 192,
+       "net_r": -0.15246338865797412,
+       "pf": 0.5391416617270205,
+       "total_net_r": -29.27297062233103,
+       "win_rate": 0.3645833333333333
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 87,
+       "net_r": 0.5235149019887804,
+       "pf": null,
+       "total_net_r": 45.54579647302389,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 554,
+       "net_r": -0.36602674478273634,
+       "pf": 0.20525138304631577,
+       "total_net_r": -202.77881660963592,
+       "win_rate": 0.3971119133574007
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 491,
+       "net_r": -0.4334090209484757,
+       "pf": 0.17719831691558868,
+       "total_net_r": -212.80382928570157,
+       "win_rate": 0.49490835030549896
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 300,
+       "net_r": -0.35328431351801926,
+       "pf": 0.2087703766659917,
+       "total_net_r": -105.98529405540577,
+       "win_rate": 0.3933333333333333
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 254,
+       "net_r": -0.38107686044972505,
+       "pf": 0.20136344780431414,
+       "total_net_r": -96.79352255423017,
+       "win_rate": 0.4015748031496063
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 227,
+       "net_r": -0.3823551691642511,
+       "pf": 0.210106384947526,
+       "total_net_r": -86.794623400285,
+       "win_rate": 0.5022026431718062
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 264,
+       "net_r": -0.47730759805082035,
+       "pf": 0.15289739672830296,
+       "total_net_r": -126.00920588541658,
+       "win_rate": 0.48863636363636365
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 536,
+       "net_r": -0.36715792605057546,
+       "pf": 0.2089593631529453,
+       "total_net_r": -196.79664836310843,
+       "win_rate": 0.44029850746268656
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 530,
+       "net_r": -0.43575656535876517,
+       "pf": 0.1705773116526156,
+       "total_net_r": -230.95097964014553,
+       "win_rate": 0.44339622641509435
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8861082096115398,
+     "avg_winner_r": 0.21122453655119372,
+     "blockers": {
+      "POSITION_OPEN": 579,
+      "STOP_TOO_WIDE_FOR_V11": 130
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1705,
+       "executed": 554,
+       "triggers": 5847
+      },
+      "B": {
+       "armed": 1864,
+       "executed": 491,
+       "triggers": 1284
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 554,
+      "B": 491,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.37184037769316847,
+     "cost_usd_per_trade": 2.7886853063841572,
+     "counters": {
+      "armed": 3618,
+      "blocked": 682,
+      "candidates": 52380,
+      "executed": 1066,
+      "skipped_while_open": 579,
+      "triggers": 7450
+     },
+     "days": 365,
+     "exits": {
+      "BE": 313,
+      "STALL": 296,
+      "STOP": 178,
+      "TIME": 192,
+      "TRAIL": 87
+     },
+     "gross_r": -0.029423813679490034,
+     "gross_usd_per_trade": -0.22079864369456942,
+     "mae_r_mean": -0.5148433875989534,
+     "max_dd_pct": 64.30677938996106,
+     "max_dd_r": 428.7118625997404,
+     "max_dd_usd": 3215.3389694980533,
+     "mean_hold_min": 27.670731707317074,
+     "mean_leverage": 1.851782363977486,
+     "mean_margin_usd": 1019.8511270557458,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6409382328834478,
+     "n": 1066,
+     "n_long": 536,
+     "n_short": 530,
+     "net_r": -0.4012641913726585,
+     "net_usd_per_trade": -3.0094839500787263,
+     "p75_hold_min": 45.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2383732982722192,
+     "profit_factor": 0.18868536366276745,
+     "skipped_while_open": 579,
+     "total_net_r": -427.74762800325396,
+     "total_net_usd": -3208.1098907839223,
+     "trades_per_active_day": 3.2901234567901234,
+     "trades_per_day": 2.9205479452054797,
+     "win_rate": 0.44183864915572235,
+     "zero_trade_day_share": 0.11232876712328767,
+     "zero_trade_days": 41
+    }
+   }
+  },
+  "B1_NEAR_040": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 13.0,
+       "n": 646,
+       "net_r": 0.05947631176893957,
+       "pf": 589.771897500781,
+       "total_net_r": 38.421697402734964,
+       "win_rate": 0.9984520123839009
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 808,
+       "net_r": -0.6565514434578305,
+       "pf": 0.0,
+       "total_net_r": -530.493566313927,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 405,
+       "net_r": -1.4279325351318828,
+       "pf": 0.0,
+       "total_net_r": -578.3126767284125,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 465,
+       "net_r": -0.1652462693128307,
+       "pf": 0.549515216383799,
+       "total_net_r": -76.83951523046628,
+       "win_rate": 0.30752688172043013
+      },
+      "TRAIL": {
+       "median_hold_min": 29.5,
+       "n": 246,
+       "net_r": 0.5086901519622149,
+       "pf": null,
+       "total_net_r": 125.13777738270485,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1403,
+       "net_r": -0.3844613372248492,
+       "pf": 0.19886935241465908,
+       "total_net_r": -539.3992561264635,
+       "win_rate": 0.34853884533143265
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 1122,
+       "net_r": -0.41502974337292836,
+       "pf": 0.2031415423718055,
+       "total_net_r": -465.66337206442563,
+       "win_rate": 0.4679144385026738
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 716,
+       "net_r": -0.391892068512445,
+       "pf": 0.18247223743346444,
+       "total_net_r": -280.5947210549106,
+       "win_rate": 0.33379888268156427
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 687,
+       "net_r": -0.3767169360575733,
+       "pf": 0.2159258030363114,
+       "total_net_r": -258.80453507155283,
+       "win_rate": 0.363901018922853
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 558,
+       "net_r": -0.3797790944725269,
+       "pf": 0.2409881829013206,
+       "total_net_r": -211.91673471567,
+       "win_rate": 0.46774193548387094
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 564,
+       "net_r": -0.44990538537013414,
+       "pf": 0.16851820704585574,
+       "total_net_r": -253.74663734875566,
+       "win_rate": 0.46808510638297873
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1298,
+       "net_r": -0.3871542183647037,
+       "pf": 0.20858141315959822,
+       "total_net_r": -502.5261754373854,
+       "win_rate": 0.3929121725731895
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1272,
+       "net_r": -0.40845920444180855,
+       "pf": 0.1937725358015841,
+       "total_net_r": -519.5601080499805,
+       "win_rate": 0.4119496855345912
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8329434301218527,
+     "avg_winner_r": 0.24885379611199201,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1571,
+      "STOP_TOO_WIDE_FOR_V11": 408
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4330,
+       "executed": 1403,
+       "triggers": 13739
+      },
+      "B": {
+       "armed": 4729,
+       "executed": 1122,
+       "triggers": 2769
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1403,
+      "B": 1122,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3764438272639153,
+     "cost_usd_per_trade": 2.8235514218035185,
+     "counters": {
+      "armed": 9153,
+      "blocked": 1910,
+      "candidates": 140652,
+      "executed": 2570,
+      "skipped_while_open": 1571,
+      "triggers": 17089
+     },
+     "days": 912,
+     "exits": {
+      "BE": 646,
+      "STALL": 808,
+      "STOP": 405,
+      "TIME": 465,
+      "TRAIL": 246
+     },
+     "gross_r": -0.021255115727277736,
+     "gross_usd_per_trade": -0.15913881898369786,
+     "mae_r_mean": -0.48955622702190493,
+     "max_dd_pct": 153.31027837646255,
+     "max_dd_r": 1022.0685225097502,
+     "max_dd_usd": 7665.513918823127,
+     "mean_hold_min": 27.319844357976653,
+     "mean_leverage": 1.8817120622568093,
+     "mean_margin_usd": 1021.5910168360069,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6696321241787834,
+     "n": 2570,
+     "n_long": 1298,
+     "n_short": 1272,
+     "net_r": -0.397698942991193,
+     "net_usd_per_trade": -2.9826902407872162,
+     "p75_hold_min": 41.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2987643423462585,
+     "profit_factor": 0.201122873915089,
+     "skipped_while_open": 1571,
+     "total_net_r": -1022.086283487366,
+     "total_net_usd": -7665.513918823146,
+     "trades_per_active_day": 3.0926594464500603,
+     "trades_per_day": 2.817982456140351,
+     "win_rate": 0.40233463035019457,
+     "zero_trade_day_share": 0.08881578947368421,
+     "zero_trade_days": 81
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 304,
+       "net_r": 0.061600013849894525,
+       "pf": null,
+       "total_net_r": 18.726404210367935,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 281,
+       "net_r": -0.7198696805097261,
+       "pf": 0.0,
+       "total_net_r": -202.28338022323302,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 12.5,
+       "n": 178,
+       "net_r": -1.4301337775246818,
+       "pf": 0.0,
+       "total_net_r": -254.56381239939336,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 186,
+       "net_r": -0.14872197705731674,
+       "pf": 0.5482628271622364,
+       "total_net_r": -27.662287732660914,
+       "win_rate": 0.3709677419354839
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 82,
+       "net_r": 0.5061398670549352,
+       "pf": null,
+       "total_net_r": 41.50346909850469,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 513,
+       "net_r": -0.3838623649458467,
+       "pf": 0.18992177610882446,
+       "total_net_r": -196.92139321721936,
+       "win_rate": 0.3898635477582846
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 497,
+       "net_r": -0.4329843696605209,
+       "pf": 0.17723369870353953,
+       "total_net_r": -215.1932317212789,
+       "win_rate": 0.4969818913480885
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 23.0,
+       "n": 280,
+       "net_r": -0.36823328946090667,
+       "pf": 0.19604738341005157,
+       "total_net_r": -103.10532104905387,
+       "win_rate": 0.38571428571428573
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 233,
+       "net_r": -0.40264408655865,
+       "pf": 0.18308289699166422,
+       "total_net_r": -93.81607216816546,
+       "win_rate": 0.3948497854077253
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 230,
+       "net_r": -0.3818160376690863,
+       "pf": 0.21124905399607363,
+       "total_net_r": -87.81768866388984,
+       "win_rate": 0.5043478260869565
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 267,
+       "net_r": -0.47706195901643833,
+       "pf": 0.15202898043045335,
+       "total_net_r": -127.37554305738904,
+       "win_rate": 0.49063670411985016
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 519,
+       "net_r": -0.3756064366480952,
+       "pf": 0.2028185489447902,
+       "total_net_r": -194.9397406203614,
+       "win_rate": 0.4393063583815029
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 512,
+       "net_r": -0.44792942661338536,
+       "pf": 0.16161587534819613,
+       "total_net_r": -229.3398664260533,
+       "win_rate": 0.443359375
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8994606696292927,
+     "avg_winner_r": 0.20617524980232507,
+     "blockers": {
+      "POSITION_OPEN": 562,
+      "STOP_TOO_WIDE_FOR_V11": 117
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1581,
+       "executed": 513,
+       "triggers": 5323
+      },
+      "B": {
+       "armed": 1866,
+       "executed": 497,
+       "triggers": 1283
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 513,
+      "B": 497,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3756256162781192,
+     "cost_usd_per_trade": 2.81704767307589,
+     "counters": {
+      "armed": 3496,
+      "blocked": 652,
+      "candidates": 52380,
+      "executed": 1031,
+      "skipped_while_open": 562,
+      "triggers": 6925
+     },
+     "days": 365,
+     "exits": {
+      "BE": 304,
+      "STALL": 281,
+      "STOP": 178,
+      "TIME": 186,
+      "TRAIL": 82
+     },
+     "gross_r": -0.03589679598804442,
+     "gross_usd_per_trade": -0.2693088080531485,
+     "mae_r_mean": -0.5207501998828609,
+     "max_dd_pct": 63.7852522151634,
+     "max_dd_r": 425.235014767756,
+     "max_dd_usd": 3189.26261075817,
+     "mean_hold_min": 27.52473326867119,
+     "mean_leverage": 1.8642095053346266,
+     "mean_margin_usd": 1022.8268524169713,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6358013155715412,
+     "n": 1031,
+     "n_long": 519,
+     "n_short": 512,
+     "net_r": -0.41152241226616365,
+     "net_usd_per_trade": -3.0863564811290387,
+     "p75_hold_min": 44.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2292209729273643,
+     "profit_factor": 0.1810605111768665,
+     "skipped_while_open": 562,
+     "total_net_r": -424.2796070464147,
+     "total_net_usd": -3182.033532044039,
+     "trades_per_active_day": 3.201863354037267,
+     "trades_per_day": 2.824657534246575,
+     "win_rate": 0.44131910766246363,
+     "zero_trade_day_share": 0.1178082191780822,
+     "zero_trade_days": 43
+    }
+   }
+  },
+  "B2_NEAR_050": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 13.0,
+       "n": 674,
+       "net_r": 0.058963002614771776,
+       "pf": 609.9681425685271,
+       "total_net_r": 39.74106376235618,
+       "win_rate": 0.9985163204747775
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 825,
+       "net_r": -0.659188946670453,
+       "pf": 0.0,
+       "total_net_r": -543.8308810031237,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 429,
+       "net_r": -1.4297526667457245,
+       "pf": 0.0,
+       "total_net_r": -613.3638940339158,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 474,
+       "net_r": -0.15542906349438515,
+       "pf": 0.571139314773346,
+       "total_net_r": -73.67337609633856,
+       "win_rate": 0.3143459915611814
+      },
+      "TRAIL": {
+       "median_hold_min": 29.0,
+       "n": 261,
+       "net_r": 0.505744982207465,
+       "pf": null,
+       "total_net_r": 131.99944035614837,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1402,
+       "net_r": -0.3837687093864313,
+       "pf": 0.19927060229472593,
+       "total_net_r": -538.0437305597767,
+       "win_rate": 0.3487874465049929
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 1216,
+       "net_r": -0.4145232410843916,
+       "pf": 0.20659982036423805,
+       "total_net_r": -504.06026115862016,
+       "win_rate": 0.4720394736842105
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 716,
+       "net_r": -0.391892068512445,
+       "pf": 0.18247223743346444,
+       "total_net_r": -280.5947210549106,
+       "win_rate": 0.33379888268156427
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 686,
+       "net_r": -0.3752901013190467,
+       "pf": 0.21681651855703035,
+       "total_net_r": -257.44900950486607,
+       "win_rate": 0.36443148688046645
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 605,
+       "net_r": -0.37406660458871965,
+       "pf": 0.24962678705354868,
+       "total_net_r": -226.3102957761754,
+       "win_rate": 0.4743801652892562
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 611,
+       "net_r": -0.4545825947339521,
+       "pf": 0.16768328809529678,
+       "total_net_r": -277.7499653824447,
+       "win_rate": 0.469721767594108
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1345,
+       "net_r": -0.3843269416341196,
+       "pf": 0.2136594570025504,
+       "total_net_r": -516.9197364978909,
+       "win_rate": 0.39851301115241633
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1318,
+       "net_r": -0.41138688203109475,
+       "pf": 0.192677939341269,
+       "total_net_r": -542.2079105169829,
+       "win_rate": 0.4150227617602428
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.841144757736795,
+     "avg_winner_r": 0.24919766408980823,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1621,
+      "STOP_TOO_WIDE_FOR_V11": 408
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4330,
+       "executed": 1402,
+       "triggers": 13739
+      },
+      "B": {
+       "armed": 5343,
+       "executed": 1216,
+       "triggers": 3083
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1402,
+      "B": 1216,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.378195100496903,
+     "cost_usd_per_trade": 2.8367458928273273,
+     "counters": {
+      "armed": 9767,
+      "blocked": 1958,
+      "candidates": 140652,
+      "executed": 2663,
+      "skipped_while_open": 1621,
+      "triggers": 17403
+     },
+     "days": 912,
+     "exits": {
+      "BE": 674,
+      "STALL": 825,
+      "STOP": 429,
+      "TIME": 474,
+      "TRAIL": 261
+     },
+     "gross_r": -0.019524631765535493,
+     "gross_usd_per_trade": -0.14636700425439858,
+     "mae_r_mean": -0.49180781901792225,
+     "max_dd_pct": 158.88059289857236,
+     "max_dd_r": 1059.203952657149,
+     "max_dd_usd": 7944.029644928619,
+     "mean_hold_min": 27.133683815245963,
+     "mean_leverage": 1.8858430341719865,
+     "mean_margin_usd": 1023.356979553192,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.675922542201779,
+     "n": 2663,
+     "n_long": 1345,
+     "n_short": 1318,
+     "net_r": -0.3977197322624385,
+     "net_usd_per_trade": -2.983112897081726,
+     "p75_hold_min": 41.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.29626014047844235,
+     "profit_factor": 0.20305917448863076,
+     "skipped_while_open": 1621,
+     "total_net_r": -1059.1276470148737,
+     "total_net_usd": -7944.029644928636,
+     "trades_per_active_day": 3.2007211538461537,
+     "trades_per_day": 2.919956140350877,
+     "win_rate": 0.40668419076229817,
+     "zero_trade_day_share": 0.08771929824561403,
+     "zero_trade_days": 80
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.0,
+       "n": 316,
+       "net_r": 0.06106500418677474,
+       "pf": null,
+       "total_net_r": 19.29654132302082,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 285,
+       "net_r": -0.7211666443016523,
+       "pf": 0.0,
+       "total_net_r": -205.53249362597091,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 12.0,
+       "n": 188,
+       "net_r": -1.4315952284314086,
+       "pf": 0.0,
+       "total_net_r": -269.13990294510484,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 188,
+       "net_r": -0.14266627834647555,
+       "pf": 0.5646404306469166,
+       "total_net_r": -26.821260329137406,
+       "win_rate": 0.3723404255319149
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 84,
+       "net_r": 0.5041142055947508,
+       "pf": null,
+       "total_net_r": 42.345593269959075,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 510,
+       "net_r": -0.3832451848586872,
+       "pf": 0.19107460125507894,
+       "total_net_r": -195.45504427793045,
+       "win_rate": 0.39215686274509803
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 530,
+       "net_r": -0.4381726338139365,
+       "pf": 0.1741862399976476,
+       "total_net_r": -232.23149592138634,
+       "win_rate": 0.49433962264150944
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 23.0,
+       "n": 280,
+       "net_r": -0.37040025228233114,
+       "pf": 0.19512451502220227,
+       "total_net_r": -103.71207063905273,
+       "win_rate": 0.38571428571428573
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 230,
+       "net_r": -0.3988824940820771,
+       "pf": 0.18644822196086236,
+       "total_net_r": -91.74297363887773,
+       "win_rate": 0.4
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 241,
+       "net_r": -0.3905873938985056,
+       "pf": 0.20346163140949286,
+       "total_net_r": -94.13156192953986,
+       "win_rate": 0.4979253112033195
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 289,
+       "net_r": -0.47785444287836154,
+       "pf": 0.15297344164779753,
+       "total_net_r": -138.09993399184648,
+       "win_rate": 0.4913494809688581
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 530,
+       "net_r": -0.3808686103320948,
+       "pf": 0.19890668103906414,
+       "total_net_r": -201.86036347601024,
+       "win_rate": 0.4377358490566038
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 531,
+       "net_r": -0.4481942727518324,
+       "pf": 0.1629031593325994,
+       "total_net_r": -237.991158831223,
+       "win_rate": 0.448210922787194
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.9074315687520401,
+     "avg_winner_r": 0.20519262728770737,
+     "blockers": {
+      "POSITION_OPEN": 581,
+      "STOP_TOO_WIDE_FOR_V11": 117
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1581,
+       "executed": 510,
+       "triggers": 5323
+      },
+      "B": {
+       "armed": 2105,
+       "executed": 530,
+       "triggers": 1456
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 510,
+      "B": 530,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.37774214505417225,
+     "cost_usd_per_trade": 2.8329187962796847,
+     "counters": {
+      "armed": 3735,
+      "blocked": 671,
+      "candidates": 52380,
+      "executed": 1061,
+      "skipped_while_open": 581,
+      "triggers": 7098
+     },
+     "days": 365,
+     "exits": {
+      "BE": 316,
+      "STALL": 285,
+      "STOP": 188,
+      "TIME": 188,
+      "TRAIL": 84
+     },
+     "gross_r": -0.036821023944162555,
+     "gross_usd_per_trade": -0.2762428493492795,
+     "mae_r_mean": -0.523815400598222,
+     "max_dd_pct": 66.12099169452922,
+     "max_dd_r": 440.8066112968615,
+     "max_dd_usd": 3306.049584726461,
+     "mean_hold_min": 27.279924599434494,
+     "mean_leverage": 1.8699340245051839,
+     "mean_margin_usd": 1024.4664459406254,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6367200813804854,
+     "n": 1061,
+     "n_long": 530,
+     "n_short": 531,
+     "net_r": -0.41456316899833484,
+     "net_usd_per_trade": -3.1091616456289644,
+     "p75_hold_min": 43.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.22612462950776754,
+     "profit_factor": 0.1798171622599619,
+     "skipped_while_open": 581,
+     "total_net_r": -439.85152230723327,
+     "total_net_usd": -3298.820506012331,
+     "trades_per_active_day": 3.2848297213622293,
+     "trades_per_day": 2.9068493150684933,
+     "win_rate": 0.4429783223374175,
+     "zero_trade_day_share": 0.11506849315068493,
+     "zero_trade_days": 42
+    }
+   }
+  },
+  "B3_NEAR_070": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 12.0,
+       "n": 789,
+       "net_r": 0.057132556578343915,
+       "pf": 691.6679424387328,
+       "total_net_r": 45.07758714031335,
+       "win_rate": 0.9987325728770595
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 899,
+       "net_r": -0.6704200249720853,
+       "pf": 0.0,
+       "total_net_r": -602.7076024499047,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 14.0,
+       "n": 515,
+       "net_r": -1.4345661547475457,
+       "pf": 0.0,
+       "total_net_r": -738.801569694986,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 505,
+       "net_r": -0.16769149634720407,
+       "pf": 0.5460065455517121,
+       "total_net_r": -84.68420565533805,
+       "win_rate": 0.3108910891089109
+      },
+      "TRAIL": {
+       "median_hold_min": 28.0,
+       "n": 312,
+       "net_r": 0.49870115125540937,
+       "pf": null,
+       "total_net_r": 155.59475919168773,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1390,
+       "net_r": -0.3854339656290861,
+       "pf": 0.19875329376727532,
+       "total_net_r": -535.7532122244297,
+       "win_rate": 0.34820143884892085
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 1585,
+       "net_r": -0.4244442674746505,
+       "pf": 0.1969228084663007,
+       "total_net_r": -672.7441639473211,
+       "win_rate": 0.4750788643533123
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 708,
+       "net_r": -0.39299709828297225,
+       "pf": 0.18259276739129865,
+       "total_net_r": -278.24194558434436,
+       "win_rate": 0.3347457627118644
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 682,
+       "net_r": -0.37758250240481717,
+       "pf": 0.21551598367248792,
+       "total_net_r": -257.5112666400853,
+       "win_rate": 0.3621700879765396
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 788,
+       "net_r": -0.4007241835164707,
+       "pf": 0.22434706282404962,
+       "total_net_r": -315.7706566109789,
+       "win_rate": 0.47081218274111675
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 797,
+       "net_r": -0.4478964960305422,
+       "pf": 0.17098870601487942,
+       "total_net_r": -356.97350733634215,
+       "win_rate": 0.479297365119197
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1520,
+       "net_r": -0.3973863959619263,
+       "pf": 0.20527199143879524,
+       "total_net_r": -604.027321862128,
+       "win_rate": 0.40657894736842104
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1500,
+       "net_r": -0.4143291397373998,
+       "pf": 0.19081010900954448,
+       "total_net_r": -621.4937096060997,
+       "win_rate": 0.426
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8667074886944195,
+     "avg_winner_r": 0.2406398338106873,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1749,
+      "STOP_TOO_WIDE_FOR_V11": 408
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4330,
+       "executed": 1390,
+       "triggers": 13739
+      },
+      "B": {
+       "armed": 8797,
+       "executed": 1585,
+       "triggers": 5186
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1390,
+      "B": 1585,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3843776919122853,
+     "cost_usd_per_trade": 2.8829102964609907,
+     "counters": {
+      "armed": 13221,
+      "blocked": 2082,
+      "candidates": 140652,
+      "executed": 3020,
+      "skipped_while_open": 1749,
+      "triggers": 19506
+     },
+     "days": 912,
+     "exits": {
+      "BE": 789,
+      "STALL": 899,
+      "STOP": 515,
+      "TIME": 505,
+      "TRAIL": 312
+     },
+     "gross_r": -0.021423974136796628,
+     "gross_usd_per_trade": -0.16012441777167974,
+     "mae_r_mean": -0.5040461439909409,
+     "max_dd_pct": 183.79929673965307,
+     "max_dd_r": 1225.3286449310206,
+     "max_dd_usd": 9189.964836982654,
+     "mean_hold_min": 26.34337748344371,
+     "mean_leverage": 1.9009933774834438,
+     "mean_margin_usd": 1029.4587351031932,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6832414248408973,
+     "n": 3020,
+     "n_long": 1520,
+     "n_short": 1500,
+     "net_r": -0.405801666049082,
+     "net_usd_per_trade": -3.043034714232671,
+     "p75_hold_min": 38.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2776482688215599,
+     "profit_factor": 0.19800420736576166,
+     "skipped_while_open": 1749,
+     "total_net_r": -1225.5210314682276,
+     "total_net_usd": -9189.964836982666,
+     "trades_per_active_day": 3.561320754716981,
+     "trades_per_day": 3.31140350877193,
+     "win_rate": 0.4162251655629139,
+     "zero_trade_day_share": 0.07017543859649122,
+     "zero_trade_days": 64
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 377,
+       "net_r": 0.05863054201470392,
+       "pf": null,
+       "total_net_r": 22.103714339543377,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 322,
+       "net_r": -0.7285494152604024,
+       "pf": 0.0,
+       "total_net_r": -234.5929117138496,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 12.0,
+       "n": 223,
+       "net_r": -1.4358004524523842,
+       "pf": 0.0,
+       "total_net_r": -320.1835008968817,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 200,
+       "net_r": -0.13417466999401056,
+       "pf": 0.5889917519990324,
+       "total_net_r": -26.83493399880211,
+       "win_rate": 0.38
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 103,
+       "net_r": 0.5053791549650598,
+       "pf": null,
+       "total_net_r": 52.05405296140116,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 511,
+       "net_r": -0.38253199326454723,
+       "pf": 0.19105944236264438,
+       "total_net_r": -195.47384855818365,
+       "win_rate": 0.3913894324853229
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 693,
+       "net_r": -0.4326331149242261,
+       "pf": 0.17852223930968633,
+       "total_net_r": -299.8147486424887,
+       "win_rate": 0.5021645021645021
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 23.0,
+       "n": 281,
+       "net_r": -0.3707311247100776,
+       "pf": 0.19442498512858272,
+       "total_net_r": -104.17544604353179,
+       "win_rate": 0.38434163701067614
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 230,
+       "net_r": -0.39694957615066023,
+       "pf": 0.18718575222294268,
+       "total_net_r": -91.29840251465185,
+       "win_rate": 0.4
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 310,
+       "net_r": -0.38213188287009064,
+       "pf": 0.21288801173371974,
+       "total_net_r": -118.46088368972809,
+       "win_rate": 0.5129032258064516
+      },
+      "B-SHORT": {
+       "median_hold_min": 18.0,
+       "n": 383,
+       "net_r": -0.47350878577744304,
+       "pf": 0.1544071162173664,
+       "total_net_r": -181.3538649527607,
+       "win_rate": 0.4934725848563969
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 600,
+       "net_r": -0.3777551010677959,
+       "pf": 0.2040828553269277,
+       "total_net_r": -226.65306064067755,
+       "win_rate": 0.45166666666666666
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 625,
+       "net_r": -0.44928082986865814,
+       "pf": 0.16251355707666607,
+       "total_net_r": -280.8005186679113,
+       "win_rate": 0.456
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.9268589496743789,
+     "avg_winner_r": 0.20254506838771708,
+     "blockers": {
+      "POSITION_OPEN": 641,
+      "STOP_TOO_WIDE_FOR_V11": 117
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1581,
+       "executed": 511,
+       "triggers": 5323
+      },
+      "B": {
+       "armed": 3526,
+       "executed": 693,
+       "triggers": 2481
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 511,
+      "B": 693,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3842172787747322,
+     "cost_usd_per_trade": 2.8815295372956484,
+     "counters": {
+      "armed": 5156,
+      "blocked": 731,
+      "candidates": 52380,
+      "executed": 1225,
+      "skipped_while_open": 641,
+      "triggers": 8123
+     },
+     "days": 365,
+     "exits": {
+      "BE": 377,
+      "STALL": 322,
+      "STOP": 223,
+      "TIME": 200,
+      "TRAIL": 103
+     },
+     "gross_r": -0.030030541069013747,
+     "gross_usd_per_trade": -0.22531018482363754,
+     "mae_r_mean": -0.5313547203025077,
+     "max_dd_pct": 76.26215476620501,
+     "max_dd_r": 508.4143651080334,
+     "max_dd_usd": 3813.1077383102506,
+     "mean_hold_min": 26.489795918367346,
+     "mean_leverage": 1.8873469387755102,
+     "mean_margin_usd": 1030.6562512996854,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.657233368370579,
+     "n": 1225,
+     "n_long": 600,
+     "n_short": 625,
+     "net_r": -0.414247819843746,
+     "net_usd_per_trade": -3.1068397221192856,
+     "p75_hold_min": 41.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.21852847022610566,
+     "profit_factor": 0.18160331252948195,
+     "skipped_while_open": 641,
+     "total_net_r": -507.4535793085888,
+     "total_net_usd": -3805.878659596125,
+     "trades_per_active_day": 3.6786786786786787,
+     "trades_per_day": 3.356164383561644,
+     "win_rate": 0.45387755102040817,
+     "zero_trade_day_share": 0.08767123287671233,
+     "zero_trade_days": 32
+    }
+   }
+  },
+  "C0_C_ONLY": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 22.0,
+       "n": 11,
+       "net_r": 0.03931423475703356,
+       "pf": 7.644026500575671,
+       "total_net_r": 0.43245658232736917,
+       "win_rate": 0.9090909090909091
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.5373423870693023,
+       "pf": 0.0,
+       "total_net_r": -6.448108644831628,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 10,
+       "net_r": -1.4188505910701905,
+       "pf": 0.0,
+       "total_net_r": -14.188505910701904,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 4,
+       "net_r": -0.31962589512082157,
+       "pf": 0.022185996105853315,
+       "total_net_r": -1.2785035804832863,
+       "win_rate": 0.25
+      },
+      "TRAIL": {
+       "median_hold_min": 23.0,
+       "n": 9,
+       "net_r": 0.4652054942504654,
+       "pf": null,
+       "total_net_r": 4.186849448254189,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "n": 0
+      },
+      "B": {
+       "n": 0
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 46,
+       "net_r": -0.3759959153355492,
+       "pf": 0.21395898561948654,
+       "total_net_r": -17.295812105435264,
+       "win_rate": 0.43478260869565216
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "n": 0
+      },
+      "A-SHORT": {
+       "n": 0
+      },
+      "B-LONG": {
+       "n": 0
+      },
+      "B-SHORT": {
+       "n": 0
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 22,
+       "net_r": -0.3309587472104773,
+       "pf": 0.23037786105535507,
+       "total_net_r": -7.281092438630501,
+       "win_rate": 0.45454545454545453
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 22,
+       "net_r": -0.3309587472104773,
+       "pf": 0.23037786105535507,
+       "total_net_r": -7.281092438630501,
+       "win_rate": 0.45454545454545453
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8465192958018236,
+     "avg_winner_r": 0.23568447927060773,
+     "blockers": {
+      "POSITION_OPEN": 10,
+      "STOP_TOO_WIDE_FOR_V11": 1
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "B": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "C": {
+       "armed": 94,
+       "executed": 46,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 0,
+      "B": 0,
+      "C": 46
+     },
+     "cost_pct_of_gross": 1657.1758258969166,
+     "cost_r": 0.40011289144543805,
+     "cost_usd_per_trade": 3.0014150483386173,
+     "counters": {
+      "armed": 94,
+      "blocked": 11,
+      "candidates": 140652,
+      "executed": 46,
+      "skipped_while_open": 10,
+      "triggers": 581
+     },
+     "days": 912,
+     "exits": {
+      "BE": 11,
+      "STALL": 12,
+      "STOP": 10,
+      "TIME": 4,
+      "TRAIL": 9
+     },
+     "gross_r": 0.024116976109888822,
+     "gross_usd_per_trade": 0.1811162703097093,
+     "mae_r_mean": -0.5080876492987634,
+     "max_dd_pct": 2.5946748757865947,
+     "max_dd_r": 17.297832505243964,
+     "max_dd_usd": 129.73374378932974,
+     "mean_hold_min": 23.543478260869566,
+     "mean_leverage": 1.9565217391304348,
+     "mean_margin_usd": 1030.1524998270518,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 0.0,
+     "mfe_r_mean": 0.6964260401185794,
+     "n": 46,
+     "n_long": 24,
+     "n_short": 22,
+     "net_r": -0.3759959153355492,
+     "net_usd_per_trade": -2.8202987780289073,
+     "p75_hold_min": 27.5,
+     "p90_hold_min": 49.5,
+     "payoff_ratio": 0.27841595630418237,
+     "profit_factor": 0.21395898561948654,
+     "skipped_while_open": 10,
+     "total_net_r": -17.295812105435264,
+     "total_net_usd": -129.73374378932974,
+     "trades_per_active_day": 1.0454545454545454,
+     "trades_per_day": 0.05043859649122807,
+     "win_rate": 0.43478260869565216,
+     "zero_trade_day_share": 0.9517543859649122,
+     "zero_trade_days": 868
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 25.0,
+       "n": 7,
+       "net_r": 0.08701687562971319,
+       "pf": null,
+       "total_net_r": 0.6091181294079924,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 7,
+       "net_r": -0.775325397941945,
+       "pf": 0.0,
+       "total_net_r": -5.427277785593615,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 5,
+       "net_r": -1.4005165709022986,
+       "pf": 0.0,
+       "total_net_r": -7.002582854511493,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 1,
+       "net_r": -1.0150945525875,
+       "pf": 0.0,
+       "total_net_r": -1.0150945525875,
+       "win_rate": 0.0
+      },
+      "TRAIL": {
+       "median_hold_min": 31.0,
+       "n": 1,
+       "net_r": 0.6708549553681532,
+       "pf": null,
+       "total_net_r": 0.6708549553681532,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "n": 0
+      },
+      "B": {
+       "n": 0
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "n": 0
+      },
+      "A-SHORT": {
+       "n": 0
+      },
+      "B-LONG": {
+       "n": 0
+      },
+      "B-SHORT": {
+       "n": 0
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -1.034227322514816,
+     "avg_winner_r": 0.15999663559701818,
+     "blockers": {
+      "POSITION_OPEN": 2
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "B": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 0,
+      "B": 0,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.36084277694820655,
+     "cost_usd_per_trade": 2.7066521339996514,
+     "counters": {
+      "armed": 49,
+      "blocked": 2,
+      "candidates": 52380,
+      "executed": 21,
+      "skipped_while_open": 2,
+      "triggers": 319
+     },
+     "days": 365,
+     "exits": {
+      "BE": 7,
+      "STALL": 7,
+      "STOP": 5,
+      "TIME": 1,
+      "TRAIL": 1
+     },
+     "gross_r": -0.21844208533352963,
+     "gross_usd_per_trade": -1.6365151818167436,
+     "mae_r_mean": -0.5299988034150477,
+     "max_dd_pct": 1.8241302726428863,
+     "max_dd_r": 12.160868484285908,
+     "max_dd_usd": 91.20651363214431,
+     "mean_hold_min": 24.761904761904763,
+     "mean_leverage": 1.8571428571428572,
+     "mean_margin_usd": 978.9125058064959,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 0.0,
+     "mfe_r_mean": 0.4490186339164747,
+     "n": 21,
+     "n_long": 9,
+     "n_short": 12,
+     "net_r": -0.5792848622817363,
+     "net_usd_per_trade": -4.3431673158163955,
+     "p75_hold_min": 31.0,
+     "p90_hold_min": 47.0,
+     "payoff_ratio": 0.15470161357560358,
+     "profit_factor": 0.09528884485345589,
+     "skipped_while_open": 2,
+     "total_net_r": -12.164982107916462,
+     "total_net_usd": -91.20651363214431,
+     "trades_per_active_day": 1.0,
+     "trades_per_day": 0.057534246575342465,
+     "win_rate": 0.38095238095238093,
+     "zero_trade_day_share": 0.9424657534246575,
+     "zero_trade_days": 344
+    }
+   }
+  },
+  "C1_C_ONLY_NO_SCORE": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 12.0,
+       "n": 8711,
+       "net_r": 0.05343853981916402,
+       "pf": 643.2150350993247,
+       "total_net_r": 465.5031203647378,
+       "win_rate": 0.9980484444954655
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 2580,
+       "net_r": -0.6935375084964897,
+       "pf": 0.0,
+       "total_net_r": -1789.3267719209434,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 8.0,
+       "n": 7583,
+       "net_r": -1.4339080631367986,
+       "pf": 0.0,
+       "total_net_r": -10873.324842766344,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 4904,
+       "net_r": -0.01993703552593475,
+       "pf": 0.9184045047307807,
+       "total_net_r": -97.77122221918401,
+       "win_rate": 0.4318923327895595
+      },
+      "TRAIL": {
+       "median_hold_min": 32.0,
+       "n": 2955,
+       "net_r": 0.5058240817460369,
+       "pf": null,
+       "total_net_r": 1494.7101615595388,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "n": 0
+      },
+      "B": {
+       "n": 0
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 26733,
+       "net_r": -0.40400290109535764,
+       "pf": 0.2207856892003669,
+       "total_net_r": -10800.209554982195,
+       "win_rate": 0.5149814835596453
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "n": 0
+      },
+      "A-SHORT": {
+       "n": 0
+      },
+      "B-LONG": {
+       "n": 0
+      },
+      "B-SHORT": {
+       "n": 0
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 13551,
+       "net_r": -0.4031454513786402,
+       "pf": 0.2227910327861812,
+       "total_net_r": -5463.024011631954,
+       "win_rate": 0.519076082945908
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 13182,
+       "net_r": -0.40488435315962984,
+       "pf": 0.21872197240366148,
+       "total_net_r": -5337.185543350241,
+       "win_rate": 0.5107722652101351
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 13551,
+       "net_r": -0.4031454513786402,
+       "pf": 0.2227910327861812,
+       "total_net_r": -5463.024011631954,
+       "win_rate": 0.519076082945908
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 13182,
+       "net_r": -0.40488435315962984,
+       "pf": 0.21872197240366148,
+       "total_net_r": -5337.185543350241,
+       "win_rate": 0.5107722652101351
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -1.06906426978576,
+     "avg_winner_r": 0.22236346096171783,
+     "blockers": {
+      "POSITION_OPEN": 142322,
+      "STOP_TOO_WIDE_FOR_V11": 1822
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "B": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "C": {
+       "armed": 169733,
+       "executed": 26733,
+       "triggers": 169733
+      }
+     },
+     "by_family_n": {
+      "A": 0,
+      "B": 0,
+      "C": 26733
+     },
+     "cost_pct_of_gross": 5923.234149747036,
+     "cost_r": 0.4109880764781287,
+     "cost_usd_per_trade": 3.0823031794817806,
+     "counters": {
+      "armed": 169733,
+      "blocked": 143000,
+      "candidates": 140652,
+      "executed": 26733,
+      "skipped_while_open": 142322,
+      "triggers": 169733
+     },
+     "days": 912,
+     "exits": {
+      "BE": 8711,
+      "STALL": 2580,
+      "STOP": 7583,
+      "TIME": 4904,
+      "TRAIL": 2955
+     },
+     "gross_r": 0.006985175382771047,
+     "gross_usd_per_trade": 0.05203750352522223,
+     "mae_r_mean": -0.6375396800821873,
+     "max_dd_pct": 1620.1913483867763,
+     "max_dd_r": 10801.27565591184,
+     "max_dd_usd": 81009.56741933881,
+     "mean_hold_min": 25.569483410017583,
+     "mean_leverage": 1.9621441663861146,
+     "mean_margin_usd": 1047.0599142202648,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 27.0,
+     "mfe_r_mean": 0.7519052715244957,
+     "n": 26733,
+     "n_long": 13551,
+     "n_short": 13182,
+     "net_r": -0.40400290109535764,
+     "net_usd_per_trade": -3.0302656759565583,
+     "p75_hold_min": 45.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.20799821605325877,
+     "profit_factor": 0.2207856892003669,
+     "skipped_while_open": 142322,
+     "total_net_r": -10800.209554982195,
+     "total_net_usd": -81008.09231534667,
+     "trades_per_active_day": 29.3125,
+     "trades_per_day": 29.3125,
+     "win_rate": 0.5149814835596453,
+     "zero_trade_day_share": 0.0,
+     "zero_trade_days": 0
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 12.0,
+       "n": 4035,
+       "net_r": 0.05017580034046177,
+       "pf": 9618.257911918687,
+       "total_net_r": 202.45935437376323,
+       "win_rate": 0.9997521685254027
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 1298,
+       "net_r": -0.742234913335137,
+       "pf": 0.0,
+       "total_net_r": -963.4209175090078,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 8.0,
+       "n": 3033,
+       "net_r": -1.4431168922930073,
+       "pf": 0.0,
+       "total_net_r": -4376.973534324691,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 1783,
+       "net_r": -0.05761987967280911,
+       "pf": 0.7987570678239934,
+       "total_net_r": -102.73624545661865,
+       "win_rate": 0.44139091418956816
+      },
+      "TRAIL": {
+       "median_hold_min": 31.0,
+       "n": 1222,
+       "net_r": 0.5006814342286956,
+       "pf": null,
+       "total_net_r": 611.832712627466,
+       "win_rate": 1.0
+      },
+      "WINDOW_END": {
+       "median_hold_min": 56.0,
+       "n": 1,
+       "net_r": -0.21296750448387178,
+       "pf": 0.0,
+       "total_net_r": -0.21296750448387178,
+       "win_rate": 0.0
+      }
+     },
+     "family": {
+      "A": {
+       "n": 0
+      },
+      "B": {
+       "n": 0
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 11372,
+       "net_r": -0.40705694669306824,
+       "pf": 0.20887358131596995,
+       "total_net_r": -4629.051597793572,
+       "win_rate": 0.5313928948294055
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "n": 0
+      },
+      "A-SHORT": {
+       "n": 0
+      },
+      "B-LONG": {
+       "n": 0
+      },
+      "B-SHORT": {
+       "n": 0
+      },
+      "C-LONG": {
+       "median_hold_min": 19.0,
+       "n": 5774,
+       "net_r": -0.4082253449056278,
+       "pf": 0.2170253170023722,
+       "total_net_r": -2357.0931414850947,
+       "win_rate": 0.5320401801177693
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 5598,
+       "net_r": -0.40585181427446904,
+       "pf": 0.2002356716522071,
+       "total_net_r": -2271.9584563084777,
+       "win_rate": 0.5307252590210789
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 19.0,
+       "n": 5774,
+       "net_r": -0.4082253449056278,
+       "pf": 0.2170253170023722,
+       "total_net_r": -2357.0931414850947,
+       "win_rate": 0.5320401801177693
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 5598,
+       "net_r": -0.40585181427446904,
+       "pf": 0.2002356716522071,
+       "total_net_r": -2271.9584563084777,
+       "win_rate": 0.5307252590210789
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -1.0980480817735596,
+     "avg_winner_r": 0.20229135031900175,
+     "blockers": {
+      "POSITION_OPEN": 67936,
+      "STOP_TOO_WIDE_FOR_V11": 344
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "B": {
+       "armed": 0,
+       "executed": 0,
+       "triggers": 0
+      },
+      "C": {
+       "armed": 79440,
+       "executed": 11372,
+       "triggers": 79439
+      }
+     },
+     "by_family_n": {
+      "A": 0,
+      "B": 0,
+      "C": 11372
+     },
+     "cost_pct_of_gross": 3556.0454153689843,
+     "cost_r": 0.41886594570720087,
+     "cost_usd_per_trade": 3.1414777648431143,
+     "counters": {
+      "armed": 79440,
+      "blocked": 68067,
+      "candidates": 52380,
+      "executed": 11372,
+      "skipped_while_open": 67936,
+      "triggers": 79439
+     },
+     "days": 365,
+     "exits": {
+      "BE": 4035,
+      "STALL": 1298,
+      "STOP": 3033,
+      "TIME": 1783,
+      "TRAIL": 1222,
+      "WINDOW_END": 1
+     },
+     "gross_r": 0.01180899901413258,
+     "gross_usd_per_trade": 0.08834189100245635,
+     "mae_r_mean": -0.6011968982242359,
+     "max_dd_pct": 694.4119981117242,
+     "max_dd_r": 4629.4133207448285,
+     "max_dd_usd": 34720.59990558621,
+     "mean_hold_min": 24.402303904326416,
+     "mean_leverage": 1.982764685191699,
+     "mean_margin_usd": 1056.2501111922884,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 29.0,
+     "mfe_r_mean": 0.7415105372173382,
+     "n": 11372,
+     "n_long": 5774,
+     "n_short": 5598,
+     "net_r": -0.40705694669306824,
+     "net_usd_per_trade": -3.053135873840658,
+     "p75_hold_min": 39.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.18422813506696553,
+     "profit_factor": 0.20887358131596995,
+     "skipped_while_open": 67936,
+     "total_net_r": -4629.051597793572,
+     "total_net_usd": -34720.26115731597,
+     "trades_per_active_day": 31.156164383561645,
+     "trades_per_day": 31.156164383561645,
+     "win_rate": 0.5313928948294055,
+     "zero_trade_day_share": 0.0,
+     "zero_trade_days": 0
+    }
+   }
+  },
+  "V11_BASE": {
+   "train": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 14.0,
+       "n": 609,
+       "net_r": 0.06009847490119916,
+       "pf": 561.9121783183767,
+       "total_net_r": 36.59997121483029,
+       "win_rate": 0.9983579638752053
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 783,
+       "net_r": -0.6520268802558218,
+       "pf": 0.0,
+       "total_net_r": -510.5370472403084,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 15.0,
+       "n": 367,
+       "net_r": -1.4248829682544089,
+       "pf": 0.0,
+       "total_net_r": -522.9320493493681,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 450,
+       "net_r": -0.1702125730748311,
+       "pf": 0.5356123972784047,
+       "total_net_r": -76.595657883674,
+       "win_rate": 0.3088888888888889
+      },
+      "TRAIL": {
+       "median_hold_min": 30.0,
+       "n": 236,
+       "net_r": 0.5158295824966798,
+       "pf": null,
+       "total_net_r": 121.73578146921642,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 1405,
+       "net_r": -0.38394824909414393,
+       "pf": 0.19890715879870075,
+       "total_net_r": -539.4472899772722,
+       "win_rate": 0.3487544483985765
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 995,
+       "net_r": -0.39724427790508,
+       "pf": 0.2147217861843489,
+       "total_net_r": -395.2580565155546,
+       "win_rate": 0.47537688442211057
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 45,
+       "net_r": -0.3783034510328202,
+       "pf": 0.2166382018556386,
+       "total_net_r": -17.02365529647691,
+       "win_rate": 0.4444444444444444
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 20.0,
+       "n": 717,
+       "net_r": -0.3919373072552902,
+       "pf": 0.1822467158794551,
+       "total_net_r": -281.0190493020431,
+       "win_rate": 0.3333333333333333
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 688,
+       "net_r": -0.3756224428419029,
+       "pf": 0.21627598606939263,
+       "total_net_r": -258.4282406752292,
+       "win_rate": 0.3648255813953488
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 506,
+       "net_r": -0.35709025674275496,
+       "pf": 0.26157628958394225,
+       "total_net_r": -180.687669911834,
+       "win_rate": 0.4762845849802372
+      },
+      "B-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 489,
+       "net_r": -0.4387942466333755,
+       "pf": 0.17039218810141304,
+       "total_net_r": -214.57038660372064,
+       "win_rate": 0.47443762781186094
+      },
+      "C-LONG": {
+       "median_hold_min": 20.0,
+       "n": 24,
+       "net_r": -0.41727998611686506,
+       "pf": 0.20160356355065992,
+       "total_net_r": -10.014719666804762,
+       "win_rate": 0.4166666666666667
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.3337588395081973,
+       "pf": 0.23720993798495035,
+       "total_net_r": -7.008935629672143,
+       "win_rate": 0.47619047619047616
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 1247,
+       "net_r": -0.3782850351889991,
+       "pf": 0.21495931394997503,
+       "total_net_r": -471.7214388806819,
+       "win_rate": 0.39294306335204493
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 1198,
+       "net_r": -0.4006740925781485,
+       "pf": 0.19673208308226822,
+       "total_net_r": -480.00756290862194,
+       "win_rate": 0.41151919866444076
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.8197279462492713,
+     "avg_winner_r": 0.2509799141679865,
+     "blockers": {
+      "NO_VALID_STRUCTURAL_STOP": 2,
+      "POSITION_OPEN": 1513,
+      "STOP_TOO_WIDE_FOR_V11": 408
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 4330,
+       "executed": 1405,
+       "triggers": 13739
+      },
+      "B": {
+       "armed": 4013,
+       "executed": 995,
+       "triggers": 2360
+      },
+      "C": {
+       "armed": 94,
+       "executed": 45,
+       "triggers": 581
+      }
+     },
+     "by_family_n": {
+      "A": 1405,
+      "B": 995,
+      "C": 45
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.3736686951278666,
+     "cost_usd_per_trade": 2.802907484355908,
+     "counters": {
+      "armed": 8437,
+      "blocked": 1852,
+      "candidates": 140652,
+      "executed": 2445,
+      "skipped_while_open": 1513,
+      "triggers": 16680
+     },
+     "days": 912,
+     "exits": {
+      "BE": 609,
+      "STALL": 783,
+      "STOP": 367,
+      "TIME": 450,
+      "TRAIL": 236
+     },
+     "gross_r": -0.015586520327881381,
+     "gross_usd_per_trade": -0.11651646469535445,
+     "mae_r_mean": -0.4819528700498098,
+     "max_dd_pct": 142.75983110860648,
+     "max_dd_r": 951.73220739071,
+     "max_dd_usd": 7137.991555430324,
+     "mean_hold_min": 27.534151329243354,
+     "mean_leverage": 1.8752556237218814,
+     "mean_margin_usd": 1018.8661958005144,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 2.0,
+     "mfe_r_mean": 0.6652369783491185,
+     "n": 2445,
+     "n_long": 1247,
+     "n_short": 1198,
+     "net_r": -0.389255215455748,
+     "net_usd_per_trade": -2.9194239490512626,
+     "p75_hold_min": 42.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.3061746464987128,
+     "profit_factor": 0.20587197425544296,
+     "skipped_while_open": 1513,
+     "total_net_r": -951.7290017893038,
+     "total_net_usd": -7137.991555430337,
+     "trades_per_active_day": 2.967233009708738,
+     "trades_per_day": 2.6809210526315788,
+     "win_rate": 0.4020449897750511,
+     "zero_trade_day_share": 0.09649122807017543,
+     "zero_trade_days": 88
+    }
+   },
+   "validation": {
+    "breakdown": {
+     "exit_reason": {
+      "BE": {
+       "median_hold_min": 15.5,
+       "n": 278,
+       "net_r": 0.0631093313032479,
+       "pf": null,
+       "total_net_r": 17.544394102302917,
+       "win_rate": 1.0
+      },
+      "STALL": {
+       "median_hold_min": 20.0,
+       "n": 269,
+       "net_r": -0.7214156011091994,
+       "pf": 0.0,
+       "total_net_r": -194.06079669837465,
+       "win_rate": 0.0
+      },
+      "STOP": {
+       "median_hold_min": 13.0,
+       "n": 172,
+       "net_r": -1.429200462544041,
+       "pf": 0.0,
+       "total_net_r": -245.82247955757506,
+       "win_rate": 0.0
+      },
+      "TIME": {
+       "median_hold_min": 60.0,
+       "n": 181,
+       "net_r": -0.15767738795360162,
+       "pf": 0.5344934115967295,
+       "total_net_r": -28.53960721960189,
+       "win_rate": 0.3701657458563536
+      },
+      "TRAIL": {
+       "median_hold_min": 35.0,
+       "n": 74,
+       "net_r": 0.5134206059955514,
+       "pf": null,
+       "total_net_r": 37.993124843670806,
+       "win_rate": 1.0
+      }
+     },
+     "family": {
+      "A": {
+       "median_hold_min": 20.0,
+       "n": 515,
+       "net_r": -0.38456322063949255,
+       "pf": 0.1890365560545158,
+       "total_net_r": -198.05005862933868,
+       "win_rate": 0.3883495145631068
+      },
+      "B": {
+       "median_hold_min": 20.0,
+       "n": 438,
+       "net_r": -0.4627176342290474,
+       "pf": 0.16780617842333195,
+       "total_net_r": -202.67032379232276,
+       "win_rate": 0.4817351598173516
+      },
+      "C": {
+       "median_hold_min": 20.0,
+       "n": 21,
+       "net_r": -0.5792848622817363,
+       "pf": 0.09528884485345589,
+       "total_net_r": -12.164982107916462,
+       "win_rate": 0.38095238095238093
+      }
+     },
+     "family_side": {
+      "A-LONG": {
+       "median_hold_min": 23.0,
+       "n": 281,
+       "net_r": -0.36971058882788516,
+       "pf": 0.1948570914114755,
+       "total_net_r": -103.88867546063572,
+       "win_rate": 0.38434163701067614
+      },
+      "A-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 234,
+       "net_r": -0.4023990733705255,
+       "pf": 0.18251808965623506,
+       "total_net_r": -94.16138316870297,
+       "win_rate": 0.39316239316239315
+      },
+      "B-LONG": {
+       "median_hold_min": 20.0,
+       "n": 203,
+       "net_r": -0.41285383190665875,
+       "pf": 0.19647855329787062,
+       "total_net_r": -83.80932787705173,
+       "win_rate": 0.4827586206896552
+      },
+      "B-SHORT": {
+       "median_hold_min": 17.0,
+       "n": 235,
+       "net_r": -0.5057914719798768,
+       "pf": 0.14633263699055665,
+       "total_net_r": -118.86099591527105,
+       "win_rate": 0.4808510638297872
+      },
+      "C-LONG": {
+       "median_hold_min": 27.0,
+       "n": 9,
+       "net_r": -0.44630343415751816,
+       "pf": 0.1886045586455092,
+       "total_net_r": -4.016730907417664,
+       "win_rate": 0.4444444444444444
+      },
+      "C-SHORT": {
+       "median_hold_min": 20.0,
+       "n": 12,
+       "net_r": -0.6790209333748999,
+       "pf": 0.04093039038715574,
+       "total_net_r": -8.148251200498798,
+       "win_rate": 0.3333333333333333
+      }
+     },
+     "side": {
+      "LONG": {
+       "median_hold_min": 20.0,
+       "n": 493,
+       "net_r": -0.3888737002943309,
+       "pf": 0.19543703328293946,
+       "total_net_r": -191.71473424510512,
+       "win_rate": 0.4259634888438134
+      },
+      "SHORT": {
+       "median_hold_min": 20.0,
+       "n": 481,
+       "net_r": -0.4598142001756192,
+       "pf": 0.1587803092023256,
+       "total_net_r": -221.17063028447282,
+       "win_rate": 0.43451143451143454
+      }
+     }
+    },
+    "stats": {
+     "avg_loser_r": -0.9030609668865188,
+     "avg_winner_r": 0.21077200976715998,
+     "blockers": {
+      "POSITION_OPEN": 534,
+      "STOP_TOO_WIDE_FOR_V11": 117
+     },
+     "by_family_funnel": {
+      "A": {
+       "armed": 1581,
+       "executed": 515,
+       "triggers": 5323
+      },
+      "B": {
+       "armed": 1591,
+       "executed": 438,
+       "triggers": 1117
+      },
+      "C": {
+       "armed": 49,
+       "executed": 21,
+       "triggers": 319
+      }
+     },
+     "by_family_n": {
+      "A": 515,
+      "B": 438,
+      "C": 21
+     },
+     "cost_pct_of_gross": null,
+     "cost_r": 0.37250089718034,
+     "cost_usd_per_trade": 2.793562026346962,
+     "counters": {
+      "armed": 3221,
+      "blocked": 624,
+      "candidates": 52380,
+      "executed": 974,
+      "skipped_while_open": 534,
+      "triggers": 6759
+     },
+     "days": 365,
+     "exits": {
+      "BE": 278,
+      "STALL": 269,
+      "STOP": 172,
+      "TIME": 181,
+      "TRAIL": 74
+     },
+     "gross_r": -0.05140604792189602,
+     "gross_usd_per_trade": -0.38560769620124474,
+     "mae_r_mean": -0.5273606792026316,
+     "max_dd_pct": 62.09737354760486,
+     "max_dd_r": 413.9824903173658,
+     "max_dd_usd": 3104.8686773802433,
+     "mean_hold_min": 27.917864476386036,
+     "mean_leverage": 1.8542094455852156,
+     "mean_margin_usd": 1020.2954011219683,
+     "median_hold_min": 20.0,
+     "median_stop_pct": 0.35,
+     "median_trades_per_day": 3.0,
+     "mfe_r_mean": 0.6193900753321578,
+     "n": 974,
+     "n_long": 493,
+     "n_short": 481,
+     "net_r": -0.4239069451022361,
+     "net_usd_per_trade": -3.1791697225482065,
+     "p75_hold_min": 46.0,
+     "p90_hold_min": 60.0,
+     "payoff_ratio": 0.2333973203313594,
+     "profit_factor": 0.17620552047720947,
+     "skipped_while_open": 534,
+     "total_net_r": -412.88536452957794,
+     "total_net_usd": -3096.5113097619533,
+     "trades_per_active_day": 3.04375,
+     "trades_per_day": 2.6684931506849314,
+     "win_rate": 0.43018480492813144,
+     "zero_trade_day_share": 0.1232876712328767,
+     "zero_trade_days": 45
+    }
+   }
+  }
+ },
+ "variants": [
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": null,
+   "description": "frozen V11 (must reproduce the committed V11 backtest)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "BASE",
+   "ignore_score_gates": false,
+   "name": "V11_BASE"
+  },
+  {
+   "a_struct_mode": "neutral_ok",
+   "b_near_atr": null,
+   "description": "family A: struct15 == side OR neutral (0)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "A",
+   "ignore_score_gates": false,
+   "name": "A1_NEUTRAL_OK"
+  },
+  {
+   "a_struct_mode": "within2",
+   "b_near_atr": null,
+   "description": "family A: struct15 == side on the current or previous completed 15m bar",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "A",
+   "ignore_score_gates": false,
+   "name": "A2_WITHIN2"
+  },
+  {
+   "a_struct_mode": "within3",
+   "b_near_atr": null,
+   "description": "family A: struct15 == side on any of the last 3 completed 15m bars",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "A",
+   "ignore_score_gates": false,
+   "name": "A3_WITHIN3"
+  },
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": 0.4,
+   "description": "family B: near boundary <= 0.40 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "B",
+   "ignore_score_gates": false,
+   "name": "B1_NEAR_040"
+  },
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": 0.5,
+   "description": "family B: near boundary <= 0.50 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "B",
+   "ignore_score_gates": false,
+   "name": "B2_NEAR_050"
+  },
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": 0.7,
+   "description": "family B: near boundary <= 0.70 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "B",
+   "ignore_score_gates": false,
+   "name": "B3_NEAR_070"
+  },
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": null,
+   "description": "family C alone, frozen gating (A and B disabled)",
+   "families": [
+    "C"
+   ],
+   "group": "C",
+   "ignore_score_gates": false,
+   "name": "C0_C_ONLY"
+  },
+  {
+   "a_struct_mode": "exact",
+   "b_near_atr": null,
+   "description": "DIAGNOSTIC: family C alone, structure + trigger only (arm / entry score gates ignored)",
+   "families": [
+    "C"
+   ],
+   "group": "C",
+   "ignore_score_gates": true,
+   "name": "C1_C_ONLY_NO_SCORE"
+  },
+  {
+   "a_struct_mode": "neutral_ok",
+   "b_near_atr": 0.4,
+   "description": "family A: struct15 == side OR neutral (0) AND family B: near boundary <= 0.40 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "COMBO",
+   "ignore_score_gates": false,
+   "name": "A1_NEUTRAL_OK+B1_NEAR_040"
+  },
+  {
+   "a_struct_mode": "neutral_ok",
+   "b_near_atr": 0.7,
+   "description": "family A: struct15 == side OR neutral (0) AND family B: near boundary <= 0.70 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "COMBO",
+   "ignore_score_gates": false,
+   "name": "A1_NEUTRAL_OK+B3_NEAR_070"
+  },
+  {
+   "a_struct_mode": "within3",
+   "b_near_atr": 0.4,
+   "description": "family A: struct15 == side on any of the last 3 completed 15m bars AND family B: near boundary <= 0.40 ATR5 (compression kept)",
+   "families": [
+    "A",
+    "B",
+    "C"
+   ],
+   "group": "COMBO",
+   "ignore_score_gates": false,
+   "name": "A3_WITHIN3+B1_NEAR_040"
+  }
+ ]
+}
