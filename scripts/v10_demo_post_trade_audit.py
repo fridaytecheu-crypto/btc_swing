@@ -1,13 +1,19 @@
 # ruff: noqa: E501  (report-formatting lines)
-"""READ-ONLY V10 Demo post-trade audit (run on the authoritative Mac, where the Demo journals live).
+"""READ-ONLY V10 Demo post-trade audit, safe on a LIVE append-only V10 root (run on the authoritative Mac,
+where the Demo journals live, while V10 keeps running).
 
-Reads, never writes: <BTC_DATA_DIR>/btc/forward_v10/{demo/demo_trades.jsonl, demo/strategy_journal.jsonl,
-journals/signals.jsonl, journals/episodes.jsonl, journals/outcomes.jsonl, derived/bars_1m.jsonl,
-raw/<SYMBOL>/<YYYY-MM-DD>/<HH>.jsonl[.gz]}. Every input file is sha256-hashed before and after the run
-and the run fails if any hash changed. Output: reports/forward_v10/demo_post_trade_audit_<ts>.{md,json}
-(and stdout). No V10 module that can trade is imported; no network call; no tuning.
+Snapshot model: at start one immutable `audit_cutoff` is fixed. Every append-only input (demo_trades,
+strategy journal, signals, episodes, outcomes, 1m bars, raw hourly trade files, the V10 config) is read
+ONLY up to the byte size it had when the audit first touched it (a prefix); bytes appended later are
+ignored, and only complete lines of that prefix are parsed. Records are further restricted to the cutoff
+(closed Demo trades with closed_ms <= cutoff, journal records with ts <= cutoff, trade prints and bars
+<= cutoff). At the end every prefix is re-read and must be byte-identical (sha256): growth after the
+recorded size is allowed; truncation, deletion or any change inside the prefix FAILS the audit. Files that
+V10 rewrites atomically by design (state.json, strategy_state.json, diagnostic.json) are not read at all.
+Nothing is written anywhere except reports/forward_v10/demo_post_trade_audit_<ts>.{md,json}; no V10
+module that can trade is imported; no network call; no tuning.
 
-Usage:  BTC_DATA_DIR=<data dir> .venv/bin/python scripts/v10_demo_post_trade_audit.py [--n 6]
+Usage:  BTC_DATA_DIR=<data dir> uv run python scripts/v10_demo_post_trade_audit.py [--n 6]
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ import json
 import math
 import os
 import statistics
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -68,25 +75,96 @@ def _iso(ms: int | None) -> str:
     )
 
 
-def _sha(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
+class SnapshotIntegrityError(AssertionError):
+    """A recorded input prefix was truncated, deleted or modified during the audit."""
 
 
-def _jsonl(p: Path) -> list[dict[str, Any]]:
-    if not p.exists():
-        return []
-    out = []
-    with p.open("r", encoding="utf-8") as fh:
-        for line in fh:
+class PrefixSnapshot:
+    """Immutable byte-prefix view of append-only files. `read(path)` captures, once per file, exactly
+    the bytes that existed when the file is first touched; later appends are ignored; `verify()`
+    re-reads each recorded prefix and fails on truncation, deletion or modification (growth is fine)."""
+
+    def __init__(self, cutoff_ms: int) -> None:
+        self.cutoff_ms = cutoff_ms
+        self.entries: dict[str, dict[str, Any]] = {}
+
+    def read(self, path: Path) -> bytes:
+        key = str(path)
+        if key in self.entries:
+            return bytes(self.entries[key]["data"])
+        if not path.exists():
+            self.entries[key] = {
+                "path": path,
+                "missing": True,
+                "size": 0,
+                "sha256": None,
+                "data": b"",
+            }
+            return b""
+        size = os.stat(path).st_size
+        with path.open("rb") as fh:
+            data = fh.read(size)
+        if len(data) != size:
+            raise SnapshotIntegrityError(f"{path}: shrank while being read ({len(data)} < {size})")
+        self.entries[key] = {
+            "path": path,
+            "missing": False,
+            "size": size,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "data": data,
+        }
+        return data
+
+    def lines(self, path: Path) -> list[str]:
+        """Complete lines of the prefix only (a line still being written is ignored)."""
+        data = self.read(path)
+        end = data.rfind(b"\n")
+        return [] if end < 0 else data[: end + 1].decode("utf-8", errors="replace").splitlines()
+
+    def jsonl(self, path: Path) -> list[dict[str, Any]]:
+        out = []
+        for line in self.lines(path):
             line = line.strip()
             if line:
                 with contextlib.suppress(json.JSONDecodeError):
                     out.append(json.loads(line))
-    return out
+        return out
+
+    def verify(self) -> dict[str, Any]:
+        growth = 0
+        for e in self.entries.values():
+            p: Path = e["path"]
+            if e["missing"]:
+                continue
+            if not p.exists():
+                raise SnapshotIntegrityError(f"{p}: deleted during the audit")
+            now = os.stat(p).st_size
+            if now < e["size"]:
+                raise SnapshotIntegrityError(
+                    f"{p}: truncated during the audit ({now} < {e['size']})"
+                )
+            with p.open("rb") as fh:
+                head = fh.read(e["size"])
+            if hashlib.sha256(head).hexdigest() != e["sha256"]:
+                raise SnapshotIntegrityError(f"{p}: existing bytes modified during the audit")
+            growth += now - e["size"]
+        return {
+            "files": sum(1 for e in self.entries.values() if not e["missing"]),
+            "prefix_bytes": sum(int(e["size"]) for e in self.entries.values()),
+            "appended_bytes_ignored": growth,
+            "prefixes_identical": True,
+        }
+
+    def manifest(self) -> dict[str, Any]:
+        return {
+            k: {"size": e["size"], "sha256": e["sha256"], "missing": e["missing"]}
+            for k, e in sorted(self.entries.items())
+        }
+
+
+def _ts_ok(rec: dict[str, Any], cutoff_ms: int) -> bool:
+    t = _ms(rec.get("ts"))
+    return t is None or t <= cutoff_ms
 
 
 def _v(x: Any, nd: int = 2) -> str:
@@ -108,8 +186,9 @@ def _med(xs: list[float | None]) -> float | None:
 class RawTrades:
     """publicTrade prints from the V10 raw store (hourly files), cached per hour; read-only."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, snap: PrefixSnapshot) -> None:
         self.root = root
+        self.snap = snap
         self.cache: dict[str, list[tuple[int, float]]] = {}
         self.files_read: list[Path] = []
 
@@ -124,21 +203,27 @@ class RawTrades:
             if not p.exists():
                 continue
             self.files_read.append(p)
-            opener = gzip.open if p.suffix == ".gz" else open
-            with opener(p, "rt", encoding="utf-8") as fh:
-                for line in fh:
-                    if "publicTrade" not in line:
-                        continue
-                    try:
-                        msg = json.loads(json.loads(line)["raw"])
-                    except (json.JSONDecodeError, KeyError, TypeError):
-                        continue
-                    if not str(msg.get("topic", "")).startswith("publicTrade"):
-                        continue
-                    for t in msg.get("data") or []:
-                        tm, px = _f(t.get("T")), _f(t.get("p"))
-                        if tm is not None and px is not None:
-                            rows.append((int(tm), px))
+            if p.suffix == ".gz":
+                try:
+                    text = gzip.decompress(self.snap.read(p)).decode("utf-8", errors="replace")
+                except (OSError, EOFError):
+                    continue
+                lines = text.splitlines()
+            else:
+                lines = self.snap.lines(p)
+            for line in lines:
+                if "publicTrade" not in line:
+                    continue
+                try:
+                    msg = json.loads(json.loads(line)["raw"])
+                except (json.JSONDecodeError, KeyError, TypeError):
+                    continue
+                if not str(msg.get("topic", "")).startswith("publicTrade"):
+                    continue
+                for t in msg.get("data") or []:
+                    tm, px = _f(t.get("T")), _f(t.get("p"))
+                    if tm is not None and px is not None and tm <= self.snap.cutoff_ms:
+                        rows.append((int(tm), px))
         rows.sort()
         self.cache[key] = rows
         return rows
@@ -155,9 +240,14 @@ class RawTrades:
 class Bars:
     """1m bars journaled by V10 (derived/bars_1m.jsonl): fallback path and regime context."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, snap: PrefixSnapshot) -> None:
         self.rows = sorted(
-            ((int(r["open_ms"]), r) for r in _jsonl(path) if r.get("open_ms") is not None),
+            (
+                (int(r["open_ms"]), r)
+                for r in snap.jsonl(path)
+                if r.get("open_ms") is not None
+                and int(r["open_ms"]) + MS_1M <= snap.cutoff_ms  # completed before the cutoff
+            ),
             key=lambda x: x[0],
         )
 
@@ -256,13 +346,18 @@ def analyse(t: dict[str, Any], sig: dict[str, Any] | None, ep_arm: dict[str, Any
             a["min_to_minus_half_R"] = (
                 (first_adverse_half[0] - t_in) / MS_1M if first_adverse_half else None
             )
-        post, _src = price_path(raw, bars, t_out + 1, t_out + 60 * MS_1M)
+        cutoff = raw.snap.cutoff_ms
+        a["post_exit_window_complete"] = t_out + 60 * MS_1M <= cutoff
+        post, _src = price_path(raw, bars, t_out + 1, min(t_out + 60 * MS_1M, cutoff))
         if post:
             pf = max(post, key=lambda r: s * r[1])
             a["post_exit_60m_best_R_from_entry"] = s * (pf[1] - entry) / risk_px
             a["post_exit_60m_tp1_touched"] = bool(tp1 is not None and s * (pf[1] - tp1) >= 0)
             a["post_exit_60m_tp2_touched"] = bool(tp2 is not None and s * (pf[1] - tp2) >= 0)
         for h in HORIZONS:
+            if t_in + h * MS_1M > cutoff:  # horizon not yet reached at the audit cutoff
+                a[f"fwd_{h}m_bps_from_fill"] = a[f"fwd_{h}m_R_from_fill"] = None
+                continue
             pts = raw.between(t_in + h * MS_1M - 30_000, t_in + h * MS_1M)
             px = pts[-1][1] if pts else bars.close_at(t_in + h * MS_1M)
             a[f"fwd_{h}m_bps_from_fill"] = s * (px / entry - 1) * 1e4 if px else None
@@ -312,15 +407,19 @@ def analyse(t: dict[str, Any], sig: dict[str, Any] | None, ep_arm: dict[str, Any
 
 
 # ----------------------------------------------------------------------------- report
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default=os.environ.get("BTC_DATA_DIR", "./data"))
-    ap.add_argument("--symbol", default="BTCUSDT")
-    ap.add_argument("--n", type=int, default=6)
-    ap.add_argument("--out-dir", default="reports/forward_v10")
-    ap.add_argument("--root", default=None, help="override the V10 root (tests)")
-    args = ap.parse_args()
-    root = Path(args.root) if args.root else Path(args.data_dir) / "btc" / "forward_v10"
+def run_audit(
+    root: Path,
+    out_dir: Path,
+    n_last: int = 6,
+    symbol: str = "BTCUSDT",
+    cutoff_ms: int | None = None,
+    config_path: Path = Path("config/btc_swing_v10.yaml"),
+    during: Callable[[], None] | None = None,
+) -> tuple[Path, Path, dict[str, Any]]:
+    """Audit an append-only V10 root as of one immutable cutoff. `during` (tests only) runs after the
+    analysis and before the integrity verification, i.e. while the audit is 'in flight'."""
+    cutoff = int(datetime.now(UTC).timestamp() * 1000) if cutoff_ms is None else int(cutoff_ms)
+    snap = PrefixSnapshot(cutoff)
     files = {
         "demo_trades": root / "demo" / "demo_trades.jsonl",
         "demo_journal": root / "demo" / "strategy_journal.jsonl",
@@ -328,42 +427,51 @@ def main() -> int:
         "episodes": root / "journals" / "episodes.jsonl",
         "outcomes": root / "journals" / "outcomes.jsonl",
         "bars_1m": root / "derived" / "bars_1m.jsonl",
-        "state": root / "state.json",
-        "demo_state": root / "demo" / "strategy_state.json",
     }
-    before = {k: _sha(p) for k, p in files.items() if p.exists()}
+    for p in files.values():  # capture every journal prefix at the start, before any analysis
+        snap.read(p)
     tp1_r = 1.0
-    cfgp = Path("config/btc_swing_v10.yaml")
-    if cfgp.exists():
-        for line in cfgp.read_text().splitlines():
-            if line.strip().startswith("tp1_r:"):
-                tp1_r = float(line.split(":")[1].split("#")[0])
+    for line in snap.lines(config_path):
+        if line.strip().startswith("tp1_r:"):
+            tp1_r = float(line.split(":")[1].split("#")[0])
     trades = sorted(
-        (t for t in _jsonl(files["demo_trades"]) if t.get("signal_id")),
-        key=lambda t: _ms(t.get("closed_ts")) or 0,
+        (
+            t
+            for t in snap.jsonl(files["demo_trades"])
+            if t.get("signal_id")
+            and (_ms(t.get("closed_ms")) or _ms(t.get("closed_ts")) or 10**15) <= cutoff
+        ),
+        key=lambda t: _ms(t.get("closed_ms")) or _ms(t.get("closed_ts")) or 0,
     )
     if not trades:
-        print(f"no closed Demo trades in {files['demo_trades']}")
-        return 1
+        raise SystemExit(f"no closed Demo trades before the cutoff in {files['demo_trades']}")
     sigs = {
         r["data"]["signal_id"]: r["data"]
-        for r in _jsonl(files["signals"])
-        if r.get("kind") == "SIGNAL_EXECUTED" and isinstance(r.get("data"), dict)
+        for r in snap.jsonl(files["signals"])
+        if r.get("kind") == "SIGNAL_EXECUTED"
+        and isinstance(r.get("data"), dict)
+        and _ts_ok(r, cutoff)
     }
     arms = {
         r["data"].get("episode_id"): r["data"]
-        for r in _jsonl(files["episodes"])
-        if r.get("kind") == "EPISODE_ARMED" and isinstance(r.get("data"), dict)
+        for r in snap.jsonl(files["episodes"])
+        if r.get("kind") == "EPISODE_ARMED"
+        and isinstance(r.get("data"), dict)
+        and _ts_ok(r, cutoff)
     }
     outs: dict[str, dict[int, float]] = {}
-    for r in _jsonl(files["outcomes"]):
+    for r in snap.jsonl(files["outcomes"]):
         d = r.get("data") or {}
-        if d.get("kind") == "EXECUTED" and _f(d.get("return_bps")) is not None:
+        if (
+            d.get("kind") == "EXECUTED"
+            and _f(d.get("return_bps")) is not None
+            and _ts_ok(r, cutoff)
+        ):
             outs.setdefault(str(d.get("id")), {})[int(d.get("horizon_min") or 0)] = float(
                 d["return_bps"]
             )
-    raw = RawTrades(root / "raw" / args.symbol)
-    bars = Bars(files["bars_1m"])
+    raw = RawTrades(root / "raw" / symbol, snap)
+    bars = Bars(files["bars_1m"], snap)
     res = []
     for n, t in enumerate(trades, 1):
         sig = sigs.get(t["signal_id"])
@@ -371,17 +479,21 @@ def main() -> int:
                     outs.get(t["signal_id"], {}), raw, bars, tp1_r)  # fmt: skip
         a["trade_no"] = n
         res.append(a)
-    last_n = list(reversed(res[-args.n :]))
+    last_n = list(reversed(res[-n_last:]))
     losses = [a for a in reversed(res) if (a["net_pnl"] or 0) < 0][:3]
     first_loss_no = min((a["trade_no"] for a in losses), default=10**9)
     winners = [a for a in res if (a["net_pnl"] or 0) > 0 and a["trade_no"] < first_loss_no]
-    after = {k: _sha(p) for k, p in files.items() if p.exists()}
-    assert before == after, "an input journal changed during the read-only audit"
+    if during is not None:
+        during()
+    integrity = snap.verify()  # raises SnapshotIntegrityError on truncation / modification
 
     out: list[str] = ["# V10 Demo post-trade audit (READ-ONLY)\n"]
     out.append(
-        f"Generated {datetime.now(UTC).isoformat()} · root `{root}` · closed Demo trades {len(trades)} · "
-        f"input files unchanged (sha256 before == after) · raw hourly files read {len(set(raw.files_read))}.\n"
+        f"Generated {datetime.now(UTC).isoformat()} · root `{root}` · audit cutoff {_iso(cutoff)} UTC · closed Demo "
+        f"trades completed before the cutoff {len(trades)} · snapshot: {integrity['files']} files, "
+        f"{integrity['prefix_bytes']} prefix bytes, all prefixes byte-identical at the end; "
+        f"{integrity['appended_bytes_ignored']} bytes appended by the live runner during the audit were ignored · "
+        f"raw hourly files read {len(set(raw.files_read))}.\n"
     )
     out.append(f"## 1. Last {len(last_n)} closed Demo trades (newest first)\n")
     for a in last_n:
@@ -488,25 +600,40 @@ def main() -> int:
         "(liquidity break continuation)."
     )
     md = "\n".join(out) + "\n"
-    od = Path(args.out_dir)
+    od = out_dir
     od.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    (od / f"demo_post_trade_audit_{ts}.md").write_text(md)
-    (od / f"demo_post_trade_audit_{ts}.json").write_text(
-        json.dumps(
-            {
-                "trades": res,
-                "last_n": [a["trade_no"] for a in last_n],
-                "losses": [a["trade_no"] for a in losses],
-                "winners": [a["trade_no"] for a in winners],
-                "input_sha256": before,
-            },
-            indent=1,
-            default=str,
-        )
+    md_path, js_path = (
+        od / f"demo_post_trade_audit_{ts}.md",
+        od / f"demo_post_trade_audit_{ts}.json",
     )
-    print(md)
-    print(f"written: {od}/demo_post_trade_audit_{ts}.md / .json")
+    rep = {
+        "audit_cutoff": _iso(cutoff),
+        "audit_cutoff_ms": cutoff,
+        "trades": res,
+        "last_n": [a["trade_no"] for a in last_n],
+        "losses": [a["trade_no"] for a in losses],
+        "winners": [a["trade_no"] for a in winners],
+        "integrity": integrity,
+        "input_prefixes": snap.manifest(),
+    }
+    md_path.write_text(md)
+    js_path.write_text(json.dumps(rep, indent=1, default=str))
+    return md_path, js_path, rep
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--data-dir", default=os.environ.get("BTC_DATA_DIR", "./data"))
+    ap.add_argument("--symbol", default="BTCUSDT")
+    ap.add_argument("--n", type=int, default=6)
+    ap.add_argument("--out-dir", default="reports/forward_v10")
+    ap.add_argument("--root", default=None, help="override the V10 root (tests)")
+    args = ap.parse_args()
+    root = Path(args.root) if args.root else Path(args.data_dir) / "btc" / "forward_v10"
+    md_path, js_path, _rep = run_audit(root, Path(args.out_dir), args.n, args.symbol)
+    print(md_path.read_text())
+    print(f"written: {md_path} / {js_path.name}")
     return 0
 
 
