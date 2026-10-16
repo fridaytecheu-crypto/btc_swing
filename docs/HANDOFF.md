@@ -460,6 +460,13 @@
   code de9531d (= 0e12844 code), V11 strategy a324dbcb0394, lite strategy c66ef46a493f (unchanged), observation_start
   2026-10-15T12:00:00Z (Mac launch: install before ~11:30 UTC so the runner is live-warm). Cloud verification of the
   cleaned code: 70 in-window minutes, 0 engine errors, NOT_PASSED only on the 1h ATR field (cloud seam fill blocked).
+- 2026-10-16 (V11-LITE-WARM pre-launch re-freeze, owner request; freeze only, no code / config / strategy change):
+  the Mac runner was never installed, so the 2026-10-15T12:00Z observation_start passed without observation. New
+  `manifests/v11_lite_warm_forward_freeze.json` (frozen 2026-10-16T09:06:07Z, code 5a95345, lite strategy c66ef46a493f,
+  bookkeeping v11lw-book-2, observation_start 2026-10-16T11:30:00Z); the b80f202 freeze is kept byte-identical as
+  `manifests/v11_lite_warm_forward_freeze_superseded_b80f202.json` (entered_mac_forward_observation: false). Seed today:
+  the bootstrap ends 2026-10-13 and the ~81 h gap exceeds gapfill_max_hours (48), so ATR5 / HI60 / Bollinger warm live
+  (~100 min) and the 1h ATR (sizing liquidation check only) after ~14 h.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that

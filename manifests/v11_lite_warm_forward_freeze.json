@@ -56,22 +56,23 @@
    ]
   }
  ],
- "code_version": "de9531df8d58",
+ "code_version": "5a953459bcb7",
  "control": "V11-WARM (strict, frozen) runs simultaneously as the control; an in-process strict V11 twin attributes every LITE decision (incremental cohort)",
- "frozen_at": "2026-10-14T22:31:09.161632+00:00",
+ "frozen_at": "2026-10-16T09:06:07.258886+00:00",
  "frozen_by_host": {
   "host_id": "dc39bf1e25efdf45",
   "hostname": "vm",
   "os": "LINUX"
  },
- "frozen_ms": 1792017069161,
+ "frozen_ms": 1792141567258,
+ "launch_note": "Mac seed on 2026-10-16: the committed bootstrap bars end 2026-10-13T00:00Z and the gap to the seed (~81 h) exceeds warm.gapfill_max_hours (48, unchanged), so the archive-to-live gap is not kline-filled and contiguous-window features warm LIVE after the runner starts: ATR5 ~75 min, HI60 ~61 min, Bollinger / volatility tercile ~100 min, 1h ATR ~14 h. observation_start leaves >= 100 min of live bars before the first in-window decision when the runner starts by ~09:45Z. The 1h ATR feeds only the sizing liquidation-distance check (leverage label); shadow qty / PnL do not depend on it.",
  "lite_config_hash": "914085bfafb0bd98034f62fe1e51c8c7adcc3d22b808640dfbd91f76d4657e2c",
  "lite_config_yaml": "lite:\n  checkpoints:\n  - name: checkpoint_1\n    reached_when_any:\n      candidates: 300.0\n      fully_warm_days: 7.0\n    require: []\n  - name: checkpoint_2\n    reached_when_any:\n      closed_trades: 30.0\n      fully_warm_days: 21.0\n    require:\n    - gross_r_per_trade_gt_0\n    - incremental_cohort_not_clearly_negative\n  - name: checkpoint_3\n    reached_when_any:\n      closed_trades: 60.0\n      fully_warm_days: 45.0\n    require:\n    - net_r_per_trade_gt_0\n    - profit_factor_gt_1_1\n    - max_dd_le_15r\n    - not_one_sided\n    - not_one_period\n  family_structure: labels_only\n  fib_bucket_edges_atr:\n  - 0.1\n  - 0.25\n  - 0.5\n  fib_ratios:\n  - 0.382\n  - 0.5\n  - 0.618\n  fib_swing_lookback_min: 1440\n  fib_swing_tf_min: 5\n  outcome_horizons_min:\n  - 5\n  - 15\n  - 30\n  - 60\n  - 120\n  preliminary_min_n: 30\n  range_minutes:\n  - 60\n  - 240\nstrategy_name: BTC_V11_LITE_WARM_SHADOW\nv11_config: config/btc_swing_v11.yaml\nwarm:\n  bootstrap_days: 30\n  gapfill_max_hours: 48\n  live_warmup_min: 30\n  required_warm_fields:\n  - ema50\n  - rsi7\n  - rsi14\n  - adx14\n  - rvol5\n  - vol_tercile\n  - atr5\n  - atr1h\n  - vwap\n  - struct15\n  - hi60\n  required_warm_groups:\n  - trend\n  - momentum\n  - volatility\n  - volume\n  - location\n  window_days: 31\n",
  "lite_strategy_hash": "c66ef46a493faa73ca589ad51732cefe11cb4505f50b2c5042e6978a2eff5a0b",
  "live_warmup_min": 30,
  "mode": "SHADOW ONLY (warm-started V11, family structure as labels): no exchange client, no Demo authority, no order placement capability",
- "observation_start": "2026-10-15T12:00:00+00:00",
- "observation_start_ms": 1792065600000,
+ "observation_start": "2026-10-16T11:30:00+00:00",
+ "observation_start_ms": 1792150200000,
  "outcome_horizons_min": [
   5,
   15,
@@ -87,15 +88,26 @@
  },
  "strategy_delta": "V11Engine.structure(fam, side, i) no longer gates arming: it returns True whenever close and ATR5 are finite (data validity only); the frozen A/B/C structure conditions are computed by the unchanged V11Engine.structure and journaled as context labels. Everything else (features, score, contributions, live microstructure, candidate / armed / entry thresholds, family triggers, stop geometry, TP1 / TP2 / runner / break-even / stall / hard stop, risk, costs, warm-start, seam healer, derivatives inputs) is V11's own frozen code and config.",
  "supersedes": {
-  "bookkeeping_version": "v11lw-book-1 (per-family arm keys)",
-  "code_version": "58083d468f6b",
+  "bookkeeping_version": "v11lw-book-2",
+  "code_version": "de9531df8d58",
   "entered_mac_forward_observation": false,
-  "frozen_at": "2026-10-14T13:34:40.831109+00:00",
+  "frozen_at": "2026-10-14T22:31:09.161632+00:00",
   "lite_strategy_hash": "c66ef46a493faa73ca589ad51732cefe11cb4505f50b2c5042e6978a2eff5a0b",
-  "observation_start": "2026-10-14T14:04:40.831000+00:00",
-  "path": "manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json",
-  "reason": "pre-launch bookkeeping cleanup (one arm state per side; one ARMED / NEAR_MISS / decision record per side-minute; selected_template vs frozen structure_labels); trade decisions proven identical by replay; the superseded freeze never ran on the Mac",
-  "sha256": "814d65077b58be2d64c7619ce875d40a39ee6ff21e777c73fc412027a47a1fde"
+  "observation_start": "2026-10-15T12:00:00+00:00",
+  "path": "manifests/v11_lite_warm_forward_freeze_superseded_b80f202.json",
+  "reason": "pre-launch re-freeze: the Mac runner was never installed or started (no LaunchAgent, no state, no journals, no trades), so the previous observation_start 2026-10-15T12:00:00Z passed without any forward observation; strategy, bookkeeping, config and economics are unchanged",
+  "sha256": "beb88b64117eeb3b886742a2285d6be86138da584981e353e091e35d9a6c413d",
+  "supersedes": {
+   "bookkeeping_version": "v11lw-book-1 (per-family arm keys)",
+   "code_version": "58083d468f6b",
+   "entered_mac_forward_observation": false,
+   "frozen_at": "2026-10-14T13:34:40.831109+00:00",
+   "lite_strategy_hash": "c66ef46a493faa73ca589ad51732cefe11cb4505f50b2c5042e6978a2eff5a0b",
+   "observation_start": "2026-10-14T14:04:40.831000+00:00",
+   "path": "manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json",
+   "reason": "pre-launch bookkeeping cleanup (one arm state per side; one ARMED / NEAR_MISS / decision record per side-minute; selected_template vs frozen structure_labels); trade decisions proven identical by replay; the superseded freeze never ran on the Mac",
+   "sha256": "814d65077b58be2d64c7619ce875d40a39ee6ff21e777c73fc412027a47a1fde"
+  }
  },
  "telemetry": "Fibonacci / VWAP / range / swing / location / flow / microstructure context is read-only; no decision reads any context field; no forward tuning",
  "v11_config_hash": "867a43d6236377a443dea575f109c776fa13f3866ee9d1a9e880e3a877439134",
