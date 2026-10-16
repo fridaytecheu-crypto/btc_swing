@@ -1,0 +1,26 @@
+{
+ "account_mode_default": "isolated",
+ "bookkeeping_version": "v11lw-book-2",
+ "code_version": "936b10fd413b",
+ "demo_config_hash": "e234d06ce4d18c573d2b591d7c7fd916cdbde0103879ad666a2a80fc163305a9",
+ "demo_config_yaml": "account_mode: isolated\ncredentials_env:\n  isolated:\n    api_key: BYBIT_DEMO_V11LW_API_KEY\n    api_secret: BYBIT_DEMO_V11LW_API_SECRET\n  shared:\n    api_key: BYBIT_DEMO_API_KEY\n    api_secret: BYBIT_DEMO_API_SECRET\ndemo_exec_config: config/btc_swing_v5_demo.yaml\nfailsafe:\n  exec_confirm_timeout_s: 20.0\n  fill_timeout_s: 20.0\norder_prefix: V11LWD-\nrisk:\n  leverage: 1\n  reference_equity_usdt: 5000.0\n  risk_per_trade: 0.001\nsafety:\n  daily_stop_usdt: 25.0\n  entry_max_delay_s: 90.0\n  full_loss_r: -0.8\n  max_consecutive_full_losses: 3\n  max_trades_rolling_24h: 10\nv10_credentials_env:\n  api_key: BYBIT_DEMO_API_KEY\n  api_secret: BYBIT_DEMO_API_SECRET\nv10_order_prefix: V10D-\n",
+ "frozen_at": "2026-10-16T12:07:02.594039+00:00",
+ "lite_strategy_hash": "c66ef46a493faa73ca589ad51732cefe11cb4505f50b2c5042e6978a2eff5a0b",
+ "order_prefix": "V11LWD-",
+ "project": "BTC_V11_LITE_WARM_DEMO_EXECUTION",
+ "risk": {
+  "leverage": 1,
+  "reference_equity_usdt": 5000.0,
+  "risk_per_trade": 0.001,
+  "risk_usdt": 5.0
+ },
+ "safety": {
+  "daily_stop_usdt": 25.0,
+  "entry_max_delay_s": 90.0,
+  "full_loss_r": -0.8,
+  "max_consecutive_full_losses": 3,
+  "max_trades_rolling_24h": 10
+ },
+ "statement": "execution layer only: the V11-LITE strategy (decisions, score, thresholds, stops, TPs, exits, shadow sizing) is UNCHANGED; the shadow remains the source of truth and records every eligible trade; Demo consumes the same decisions and may be blocked by its own safety / conflict gates",
+ "v11_strategy_hash": "a324dbcb0394ba301a0db92c8ddda0accd05bbeff8dd86043838e7fb8fe56de0"
+}
