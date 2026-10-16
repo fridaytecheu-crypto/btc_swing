@@ -148,6 +148,10 @@ in-process strict V11 control twin that attributes every LITE signal (incrementa
 would reject, with the failed condition). `v11lw report compare` = V11-WARM (control) vs V11-LITE-WARM (challenger),
 incremental cohort, Fibonacci buckets, pre-registered checkpoints. SHADOW ONLY; separate root, journals, freeze and
 LaunchAgent `com.btcswing.v11-lite-warm-forward`; V10, V11 and V11-WARM untouched (hash-proved).
+Optional **Bybit DEMO execution** of the same frozen decisions (`btc_swing/v11_lite_warm/demo/`,
+`docs/V11_LITE_WARM_DEMO_EXECUTION.md`, `btc-swing v11lw demo status|freeze|activate|deactivate|reconcile-ack|resume|report`):
+paper money only, owner activation only, isolated Demo account by default, 5 USDT risk, caps / daily stop / halt /
+reconciliation; the shadow stays the source of truth and is proven unaffected.
 
 ## Quick start
 ```

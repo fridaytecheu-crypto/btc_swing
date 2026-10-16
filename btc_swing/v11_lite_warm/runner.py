@@ -1,6 +1,8 @@
 """V11-LITE-WARM shadow runner: own feed (V10 collector class as a library, V11-LITE-WARM raw root), one
 engine thread on the LITE scorer, pid / lock under the V11-LITE-WARM root. Nothing here can place an
-order; the V10, V11 and V11-WARM roots are never read or written."""
+order; the V10, V11 and V11-WARM roots are never written. On the observation root only, a separate Demo
+supervisor thread (package `demo`) attaches the optional Bybit DEMO observer when, and only while, the
+owner's host-bound activation event exists; the shadow engine never waits on it."""
 
 from __future__ import annotations
 
@@ -98,6 +100,14 @@ async def _main(
 
     eng = LiteEngineThread(lc, v11, paths, start_ms)
     col = V10Collector(load_v10_config().collector, paths.raw, on_event=eng.on_event)
+    sup: Any = None
+    if not paths.verification:
+        from btc_swing.v11_lite_warm.demo.worker import make_supervisor
+
+        def set_sink(f: Any) -> None:
+            eng.live.demo_sink = f
+
+        sup = make_supervisor(lc, v11, paths.root, set_sink)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -107,10 +117,15 @@ async def _main(
         loop.call_later(duration_s, stop.set)
     paths.run_pid.write_text(str(os.getpid()))
     eng.start()
+    if sup is not None:
+        sup.start()
     task = asyncio.create_task(col.run(duration_seconds=duration_s))
     await stop.wait()
     col.stop()
     stats = await task
+    if sup is not None:
+        sup.stop_ev.set()
+        sup.join(timeout=60)
     eng.stop_ev.set()
     eng.join(timeout=30)
     paths.run_pid.unlink(missing_ok=True)

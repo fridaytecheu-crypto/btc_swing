@@ -1,0 +1,26 @@
+# BTC V11-LITE-WARM — Bybit DEMO execution (paper money only). Execution layer, NOT a strategy change:
+# the frozen V11-LITE shadow decisions (strategy c66ef46a493f..., bookkeeping v11lw-book-2) are the only
+# entry source; the shadow stays the source of truth and records every eligible trade.
+# This file never enables execution: Demo runs only after the owner's host-bound
+# STRATEGY_DEMO_V11LW_ACTIVATED event (`btc-swing v11lw demo activate`).
+demo_exec_config: config/btc_swing_v5_demo.yaml   # demo-only REST host, category, symbol (shared library)
+account_mode: isolated            # isolated (PREFERRED: own Bybit Demo account / API key) | shared (V10's account)
+credentials_env:
+  isolated: {api_key: BYBIT_DEMO_V11LW_API_KEY, api_secret: BYBIT_DEMO_V11LW_API_SECRET}
+  shared: {api_key: BYBIT_DEMO_API_KEY, api_secret: BYBIT_DEMO_API_SECRET}
+v10_credentials_env: {api_key: BYBIT_DEMO_API_KEY, api_secret: BYBIT_DEMO_API_SECRET}  # isolation proof only (read-only)
+order_prefix: V11LWD-             # every V11-LITE Demo orderLinkId; V10 uses V10D-
+v10_order_prefix: V10D-
+risk:
+  reference_equity_usdt: 5000.0
+  risk_per_trade: 0.001           # 0.10 % = 5 USDT (Demo only; the shadow keeps the frozen 0.15 %)
+  leverage: 1                     # margin efficiency only; risk is set by qty x stop distance
+safety:
+  max_trades_rolling_24h: 10
+  daily_stop_usdt: 25.0           # realised net <= -25 USDT in the UTC day -> no new Demo entry that day
+  max_consecutive_full_losses: 3  # then halted until `v11lw demo resume`
+  full_loss_r: -0.8               # a closed trade with net R (vs planned 5 USDT) <= this is a full-risk loss
+  entry_max_delay_s: 90           # a shadow decision older than this is not sent
+failsafe:
+  fill_timeout_s: 20.0
+  exec_confirm_timeout_s: 20.0

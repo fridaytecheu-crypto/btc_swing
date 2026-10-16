@@ -168,3 +168,17 @@ frames (loads capped at 2025-07-01) compared every decision and trade field (res
 The economic strategy hash (`lite_strategy_hash` c66ef46a493f…) is unchanged; the new freeze pins
 `bookkeeping_version: v11lw-book-2` and records the superseded freeze
 (`manifests/v11_lite_warm_forward_freeze_superseded_f885f85.json`, byte-identical, sha256 814d6507…).
+
+## 9. Bybit DEMO execution layer (2026-10-16) — execution only, strategy unchanged
+
+Owner request: an optional Bybit DEMO (paper money) execution of the SAME frozen V11-LITE shadow decisions;
+the shadow keeps recording every eligible trade and remains the source of truth. Full specification:
+`docs/V11_LITE_WARM_DEMO_EXECUTION.md` (package `btc_swing/v11_lite_warm/demo/`, config
+`config/btc_swing_v11_lite_warm_demo.yaml`, manifest `manifests/v11_lite_warm_demo_execution_freeze.json`).
+The only change to the shadow modules is a copy-only, fire-and-forget observer hook after the shadow
+journals each bar (`V11LiteWarmLive.demo_sink`) and a supervisor thread in the runner (observation root
+only); the lite strategy hash, the bookkeeping version and the shadow freeze are unchanged, and tests prove
+the shadow journals are identical with and without the Demo observer. Demo risk 0.10 % of 5000 USDT (the
+shadow keeps its frozen 0.15 % virtual sizing), leverage 1, caps 10 / 24 h, daily stop -25 USDT, halt after 3
+consecutive full losses, reconciliation on any mismatch; isolated Demo account by default; owner activation
+only.

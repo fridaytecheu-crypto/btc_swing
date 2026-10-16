@@ -1,5 +1,6 @@
-"""`btc-swing v11lw ...` — V11-LITE-WARM operational commands (seed, forward shadow, reports). No exchange
-client, no Demo authority; no V10 / V11 / V11-WARM forward path is ever written."""
+"""`btc-swing v11lw ...` — V11-LITE-WARM operational commands (seed, forward shadow, reports). The shadow
+commands have no exchange client; the optional Bybit DEMO execution layer lives in the `demo` sub-package
+(`btc-swing v11lw demo ...`, owner activation only). No V10 / V11 / V11-WARM forward path is ever written."""
 
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import typer
 
 from btc_swing.core.settings import get_settings
 from btc_swing.v11_lite_warm.config import STRATEGY_DELTA
+from btc_swing.v11_lite_warm.demo.cli import demo11lw
 from btc_swing.v11_warm.config import BOOTSTRAP_MANIFEST, BOOTSTRAP_PARQUET
 
 v11lw_app = typer.Typer(
@@ -119,6 +121,7 @@ forward11lw = typer.Typer(help="forward shadow (no orders)")
 v11lw_app.add_typer(forward11lw, name="forward")
 report11lw = typer.Typer(help="read-only reports (journals are the source of truth)")
 v11lw_app.add_typer(report11lw, name="report")
+v11lw_app.add_typer(demo11lw, name="demo")
 
 
 @forward11lw.command("run")

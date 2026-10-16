@@ -2,14 +2,19 @@
 journals, outcomes) driving the V11-LITE engine, plus (a) read-only context telemetry on every journaled
 event and (b) an in-process STRICT V11 CONTROL TWIN: an unchanged `V11Engine` fed the identical frame,
 scores and microstructure, whose decisions say exactly whether / why the frozen V11 rules would have
-rejected each LITE event. The twin never influences a LITE decision. No exchange client exists."""
+rejected each LITE event. The twin never influences a LITE decision. The shadow has no exchange client;
+an optional observer `demo_sink` (set only by the Demo supervisor after the owner's activation) receives
+COPIES of each processed bar and decision AFTER the shadow journaled them; it returns nothing, its errors
+are swallowed, and it can neither change, delay nor block a shadow decision."""
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import math
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -30,6 +35,8 @@ from btc_swing.v11_warm.config import WarmCfg
 from btc_swing.v11_warm.live import V11WarmLive
 
 log = logging.getLogger(__name__)
+OBSERVER_TAIL = 64  # copied rows per bar (>= the frozen runner-trail window and the trigger bar)
+OBSERVER_COLUMNS = ("high", "low", "close", "atr5")
 
 
 def _iso(ms_: int | float | None) -> str | None:
@@ -60,6 +67,7 @@ class V11LiteWarmLive(V11WarmLive):
         self.twin: V11Engine | None = None
         self.last_context: dict[str, Any] = {}
         self.last_labels: dict[str, dict[str, bool]] = {}
+        self.demo_sink: Callable[..., None] | None = None
         super().__init__(cfg, paths, observation_start_ms, warm)
         self.state["strategy"] = STRATEGY
         self.state["strategy_delta"] = STRATEGY_DELTA
@@ -255,7 +263,23 @@ class V11LiteWarmLive(V11WarmLive):
                 self.state["wins" if t.net_usd > 0 else "losses"] += 1
             eng.trades = eng.trades[-50:]
         self._journal_row_lite(eng, tw, i, t_close, rec, pos_before, twin_rec, twin_pos_before)
+        self._emit_observer(fr, i, t_close, rec)
         return rec
+
+    def _emit_observer(
+        self, fr: V11Frame, i: int, t_close: int, rec: dict[str, Any] | None
+    ) -> None:
+        """Hand copies to the optional observer AFTER the shadow journaled this bar (fire and forget)."""
+        sink = self.demo_sink
+        if sink is None:
+            return
+        try:
+            lo = max(0, i - OBSERVER_TAIL + 1)
+            cols = {k: np.array(fr.c[k][lo : i + 1], dtype=float) for k in OBSERVER_COLUMNS}
+            sl, ss = float(self.last_scores["long"]), float(self.last_scores["short"])
+            sink(cols, i, i - lo, t_close, sl, ss, copy.deepcopy(rec))
+        except Exception:
+            log.exception("observer sink failed (shadow unaffected)")
 
     # ------------------------------------------------------------------ control-twin attribution
     def control_assessment(

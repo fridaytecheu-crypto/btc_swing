@@ -176,7 +176,16 @@ under `reports/forward_v11_lite_warm/`) = control vs challenger, INCREMENTAL COH
 incremental 90% upper CI > 0; 3: 60 trades or 45 days -> net R > 0, PF > 1.1, DD <= 15R, not one-sided / one-day). CLI
 `btc-swing v11lw config|seed`, `v11lw forward run|status|diagnostic|verify-warm|shadow-report|freeze|trades`, `v11lw report
 full-history|compare`; macOS agent `com.btcswing.v11-lite-warm-forward` (`deploy/macos/install_v11_lite_warm_macos.sh`).
-Never modify V10 / V11 / V11-WARM for it; never tune it forward; no Demo execution exists (`V11LWD-` is not reserved).
+Never modify V10 / V11 / V11-WARM for it; never tune it forward.
+V11-LITE BYBIT DEMO EXECUTION (`btc_swing/v11_lite_warm/demo/`, `config/btc_swing_v11_lite_warm_demo.yaml`,
+`docs/V11_LITE_WARM_DEMO_EXECUTION.md`, manifest `manifests/v11_lite_warm_demo_execution_freeze.json`, prefix `V11LWD-`,
+state/journal `<BTC_DATA_DIR>/btc/forward_v11_lite_warm/demo/`): execution layer only (strategy hash unchanged); the shadow
+journals first and stays the source of truth; Demo gets copies via `V11LiteWarmLive.demo_sink` on its own threads and
+can never change / delay / block a shadow decision. 5 USDT risk, leverage 1, 10 / 24 h, -25 USDT daily stop, halt after 3
+full losses, reconciliation on mismatch; default ISOLATED account (`BYBIT_DEMO_V11LW_API_KEY/SECRET`, separate Bybit user
+id proven at activation); shared V10 account only with `--shared-account` + the V10 conflict gate. CLI `btc-swing v11lw
+demo status|freeze|activate|deactivate|reconcile-ack|resume|report`. Never activate it from the cloud or for the owner;
+shadow modules (top level of `v11_lite_warm/`) stay exchange-free (tested).
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.

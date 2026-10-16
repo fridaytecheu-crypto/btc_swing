@@ -467,6 +467,17 @@
   `manifests/v11_lite_warm_forward_freeze_superseded_b80f202.json` (entered_mac_forward_observation: false). Seed today:
   the bootstrap ends 2026-10-13 and the ~81 h gap exceeds gapfill_max_hours (48), so ATR5 / HI60 / Bollinger warm live
   (~100 min) and the 1h ATR (sizing liquidation check only) after ~14 h.
+- 2026-10-16 (V11-LITE-WARM Bybit DEMO execution layer, owner request; execution only, NOT activated):
+  `btc_swing/v11_lite_warm/demo/`, `config/btc_swing_v11_lite_warm_demo.yaml`, `docs/V11_LITE_WARM_DEMO_EXECUTION.md`,
+  manifest `manifests/v11_lite_warm_demo_execution_freeze.json`. The shadow stays the source of truth (copy-only observer
+  after journaling; Demo worker / supervisor threads; shadow journals proven identical with and without Demo); Demo
+  consumes the same frozen decisions: 5 USDT risk (0.10 % of 5000) on the shadow stop, leverage 1, exchange stop + TP1 /
+  TP2 reduce-only limits, frozen BE / trail / stall / 60-min exits; caps 10 / 24 h, daily stop -25 USDT, halt after 3
+  full losses (`v11lw demo resume`), reconciliation on any mismatch (`v11lw demo reconcile-ack`). Default account mode
+  ISOLATED (`BYBIT_DEMO_V11LW_API_KEY/SECRET` in `~/.config/btc_swing/v11lw_demo.env`, mode 600; activation proves a
+  different Bybit user id than V10's); shared mode only with `--shared-account` and the V10 conflict gate
+  (`V10_POSITION_OR_ORDERS_ACTIVE`, `V10_RECONCILIATION_PENDING`, `OWNERSHIP_UNPROVEN`) — not recommended (V10's own
+  executor would block / reconcile on LITE positions). Activation only by the owner: `btc-swing v11lw demo activate`.
 - No live trading exists; the forward paper ledger is virtual. 2022-01..2026-09 is development data for every generation.
 - Next step: the owner's decision. No report proposes a tweak. Five generations (structure, learned
   ranking, active structure, 1H positioning events, 5m microstructure events) found no edge that
@@ -514,6 +525,7 @@ uv run btc-swing v10 report full-history | v11 report full-history | v11w report
 uv run btc-swing v112 study && uv run btc-swing v112 combos "A1_NEUTRAL_OK+B1_NEAR_040"   # V11.2 counterfactual study (research only)
 uv run btc-swing v11lw seed && uv run btc-swing v11lw forward status    # V11-LITE-WARM: seed root, status (shadow only)
 uv run btc-swing v11lw report compare                                    # read-only V11-WARM vs V11-LITE-WARM + incremental cohort
+uv run btc-swing v11lw demo status --live && uv run btc-swing v11lw demo report  # V11-LITE Bybit DEMO (owner activation only)
 ```
 
 ## Known data facts
