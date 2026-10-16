@@ -467,6 +467,14 @@
   `manifests/v11_lite_warm_forward_freeze_superseded_b80f202.json` (entered_mac_forward_observation: false). Seed today:
   the bootstrap ends 2026-10-13 and the ~81 h gap exceeds gapfill_max_hours (48), so ATR5 / HI60 / Bollinger warm live
   (~100 min) and the 1h ATR (sizing liquidation check only) after ~14 h.
+- 2026-10-16 (V11-LITE-WARM FINAL pre-launch shadow re-freeze, owner request; freeze only): the 2026-10-16T11:30Z
+  observation_start passed before the Mac runner was installed, so NO previous V11-LITE window (14T14:04Z, 15T12:00Z,
+  16T11:30Z) ever entered Mac forward observation (recorded in the freeze under `previous_observation_windows`). New
+  `manifests/v11_lite_warm_forward_freeze.json`: frozen 2026-10-16T12:18:38Z, code c358109, observation_start
+  2026-10-16T14:30:00Z, lite strategy c66ef46a493f, bookkeeping v11lw-book-2, lite config 914085bfafb0 (all unchanged);
+  the 01e7c03 freeze kept byte-identical as `manifests/v11_lite_warm_forward_freeze_superseded_01e7c03.json`; the Demo
+  execution manifest (sha 6d320ce6…) is unchanged and not activated. Install the runner by ~12:45Z so the ~100 min of
+  live warm-up completes before 14:30Z.
 - 2026-10-16 (V11-LITE-WARM Bybit DEMO execution layer, owner request; execution only, NOT activated):
   `btc_swing/v11_lite_warm/demo/`, `config/btc_swing_v11_lite_warm_demo.yaml`, `docs/V11_LITE_WARM_DEMO_EXECUTION.md`,
   manifest `manifests/v11_lite_warm_demo_execution_freeze.json`. The shadow stays the source of truth (copy-only observer
