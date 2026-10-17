@@ -534,6 +534,7 @@ uv run btc-swing v112 study && uv run btc-swing v112 combos "A1_NEUTRAL_OK+B1_NE
 uv run btc-swing v11lw seed && uv run btc-swing v11lw forward status    # V11-LITE-WARM: seed root, status (shadow only)
 uv run btc-swing v11lw report compare                                    # read-only V11-WARM vs V11-LITE-WARM + incremental cohort
 uv run btc-swing v11lw demo status --live && uv run btc-swing v11lw demo report  # V11-LITE Bybit DEMO (owner activation only)
+uv run python scripts/v11lw_forward_forensic_audit.py             # READ-ONLY per-trade forensic audit of the LITE shadow (Mac; live-safe prefix snapshot)
 ```
 
 ## Known data facts
