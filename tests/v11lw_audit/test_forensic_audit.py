@@ -13,6 +13,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "v11lw_forward_forensic_audit.py"
 T0 = 1_792_200_000_000 - (1_792_200_000_000 % 60_000)
@@ -678,3 +680,138 @@ def test_labels_both_sides_and_score_recompute() -> None:
     }
     assert abs(AUD.score_from_contrib(c) - 81.11111111111111) < 1e-9  # the verification-root trade
     assert AUD.score_from_contrib({g: None for g in AUD.GROUPS}) is None
+
+
+# ----------------------------------------------------------------------------- mutable state.json (live runner)
+def _atomic_rewrite(path: Path, payload: dict[str, Any]) -> None:
+    """Exactly how the V11 live runner saves: write a .tmp, then rename over state.json."""
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(payload, sort_keys=True))
+    tmp.replace(path)
+
+
+def test_audit_survives_atomic_state_replacement_while_running(tmp_path: Path) -> None:
+    """Regression for `state.json: prefix modified during the audit`: a live runner replaces state.json
+    atomically every tick; the audit must capture one consistent version at startup and must not treat
+    the later replacements as a prefix violation, while journals keep the full prefix guarantee."""
+    import threading
+
+    root = build_root(tmp_path)
+    before = _hashes(root)
+    state_path = root / "state.json"
+    base = json.loads(state_path.read_text())
+    stop = threading.Event()
+    writes = [0]
+
+    def writer() -> None:
+        k = 0
+        while not stop.is_set():
+            k += 1
+            _atomic_rewrite(state_path, base | {"last_bar_ms": T0 + k * MS_1M, "tick": k})
+            writes[0] += 1
+
+    th = threading.Thread(target=writer, daemon=True)
+    th.start()
+    try:
+        _md, _js, rep = AUD.run_audit(root, tmp_path / "reports", cutoff_ms=T0 + 330 * MS_1M)
+    finally:
+        stop.set()
+        th.join(timeout=10)
+    assert writes[0] > 0, "the writer must have replaced state.json during the audit"
+    assert rep["n_closed"] == 3 and rep["state_totals"]["trades"] == 3
+    st_entry = next(f for f in rep["snapshot"]["files"] if f["path"].endswith("state.json"))
+    assert (
+        st_entry["kind"] == "mutable"
+        and st_entry["version"]["inode"]
+        and st_entry["capture_attempts"] >= 1
+    )
+    assert rep["snapshot"]["verify"]["mutable_files_captured"] == 1
+    assert rep["snapshot"]["verify"]["bytes_appended_during_audit"] == 0
+    journals_before = {k: v for k, v in before.items() if "/journals/" in k or "bars_1m" in k}
+    journals_after = {k: v for k, v in _hashes(root).items() if "/journals/" in k or "bars_1m" in k}
+    assert journals_before == journals_after
+
+
+def test_mutable_capture_requires_a_stable_version_and_fails_explicitly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = build_root(tmp_path)
+    snap = AUD.PrefixSnapshot(T0 + 330 * MS_1M)
+    p = root / "state.json"
+    # a version that changes between every stat: no consistent capture is possible -> explicit failure
+    counter = [0]
+    real = AUD._stat_sig
+
+    def unstable(st: Any) -> tuple[int, int, int]:
+        counter[0] += 1
+        ino, size, mt = real(st)
+        return (ino, size, mt + counter[0])
+
+    monkeypatch.setattr(AUD, "_stat_sig", unstable)
+    with pytest.raises(AUD.SnapshotIntegrityError, match="no internally consistent snapshot"):
+        snap.read_mutable(p, tries=3, delay_s=0.0)
+    monkeypatch.setattr(AUD, "_stat_sig", real)
+    # a half-written (non-JSON) state is never accepted
+    p.write_text('{"trades": 3, "cum_net_usd": -6.')
+    with pytest.raises(AUD.SnapshotIntegrityError, match="no internally consistent snapshot"):
+        snap.read_mutable(p, tries=2, delay_s=0.0)
+    # a stable version is captured once and reused; it is never re-verified against later versions
+    _atomic_rewrite(p, {"trades": 9})
+    assert json.loads(snap.read_mutable(p)) == {"trades": 9}
+    _atomic_rewrite(p, {"trades": 10})
+    assert json.loads(snap.read_mutable(p)) == {"trades": 9}
+    assert snap.verify()["mutable_files_captured"] == 1
+    # the two capture modes are exclusive per path
+    with pytest.raises(AUD.SnapshotIntegrityError, match="refused"):
+        snap.read(p)
+    j = root / "journals" / "signals.jsonl"
+    snap.read(j)
+    with pytest.raises(AUD.SnapshotIntegrityError, match="refused"):
+        snap.read_mutable(j)
+    # a missing mutable file is recorded as missing, not an error
+    assert snap.read_mutable(root / "absent.json") == b""
+
+
+def test_fixed_cutoff_excludes_records_journaled_after_it(tmp_path: Path) -> None:
+    root = build_root(tmp_path)
+    late = T0 + 400 * MS_1M
+    # a 4th closed trade and a near miss journaled AFTER the cutoff must not enter the audit
+    d4 = _decision(
+        "V11LWS-4-AL",
+        1,
+        "A",
+        80.0,
+        {g: 12.0 for g in AUD.GROUPS},
+        {"A": True, "B": False, "C": False},
+        _detail(True, False, False),
+        late,
+        "A:x",
+        59900.0,
+    )
+    tr4 = _trade(d4, 1, late, late + 5 * MS_1M, "STOP", -1.0, -1.1, 0.0, -1.0, [])
+    with (root / "journals" / "shadow_trades.jsonl").open("a") as fh:
+        fh.write(_rec("SHADOW_CLOSED", tr4, late + 5 * MS_1M, 6))
+    with (root / "journals" / "nearmiss.jsonl").open("a") as fh:
+        fh.write(
+            _rec(
+                "NEAR_MISS",
+                {
+                    "ts": _iso(late),
+                    "ts_ms": late,
+                    "side": "LONG",
+                    "score": 74.0,
+                    "selected_template": "A",
+                    "templates_triggered": ["A"],
+                    "structure_labels": {"A": True, "B": False, "C": False},
+                },
+                late,
+                2,
+            )
+        )
+    _md, _js, rep = AUD.run_audit(root, tmp_path / "reports", cutoff_ms=T0 + 330 * MS_1M)
+    assert rep["n_closed"] == 3 and rep["snapshot"]["cutoff_ms"] == T0 + 330 * MS_1M
+    assert rep["counterfactuals"]["soft_filter"]["+/-5"]["near_miss_additions_n"] == 1
+    _md, _js, rep_all = AUD.run_audit(root, tmp_path / "reports2", cutoff_ms=late + 10 * MS_1M)
+    assert rep_all["n_closed"] == 4
+    assert rep_all["counterfactuals"]["soft_filter"]["+/-5"]["near_miss_additions_n"] == 2
+    assert AUD.at_cutoff([{"ts": "garbage"}, {"no_ts": 1}], 0) == [{"ts": "garbage"}, {"no_ts": 1}]

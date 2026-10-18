@@ -87,8 +87,23 @@ class SnapshotIntegrityError(AssertionError):
     pass
 
 
+def _stat_sig(st: os.stat_result) -> tuple[int, int, int]:
+    """Identity of one file version: inode, size, mtime (ns). A tmp + rename replacement changes it."""
+    return (int(st.st_ino), int(st.st_size), int(st.st_mtime_ns))
+
+
 class PrefixSnapshot:
-    """Immutable byte-prefix view of append-only files (see scripts/v10_demo_post_trade_audit.py)."""
+    """Two kinds of input, two guarantees (see scripts/v10_demo_post_trade_audit.py for the first):
+
+    - APPEND-ONLY files (journals, derived 1m bars, raw store): `read` captures the byte prefix that
+      existed when the file was first touched; later appends are ignored; `verify` re-reads each
+      prefix at the end and fails on truncation, deletion or modification.
+    - MUTABLE files (the runner's `state.json`, rewritten atomically by tmp + rename every tick):
+      `read_mutable` captures ONE internally consistent version at audit start: the inode / size /
+      mtime seen before opening, on the open descriptor and after reading must agree and the bytes
+      must parse as JSON, otherwise the read is retried; after `tries` attempts the audit fails
+      explicitly. Stability is required during the capture only, never for the rest of the audit.
+    A path is either kind, never both."""
 
     def __init__(self, cutoff_ms: int) -> None:
         self.cutoff_ms = cutoff_ms
@@ -97,10 +112,15 @@ class PrefixSnapshot:
     def read(self, path: Path) -> bytes:
         key = str(path)
         if key in self.entries:
+            if self.entries[key]["kind"] != "append_only":
+                raise SnapshotIntegrityError(
+                    f"{path}: captured as a mutable file; prefix read refused"
+                )
             return bytes(self.entries[key]["data"])
         if not path.exists():
             self.entries[key] = {
                 "path": path,
+                "kind": "append_only",
                 "missing": True,
                 "size": 0,
                 "sha256": None,
@@ -114,12 +134,71 @@ class PrefixSnapshot:
             raise SnapshotIntegrityError(f"{path}: shrank while being read")
         self.entries[key] = {
             "path": path,
+            "kind": "append_only",
             "missing": False,
             "size": size,
             "sha256": hashlib.sha256(data).hexdigest(),
             "data": data,
         }
         return data
+
+    def read_mutable(self, path: Path, tries: int = 25, delay_s: float = 0.04) -> bytes:
+        """One internally consistent version of a file that a live writer replaces atomically."""
+        key = str(path)
+        if key in self.entries:
+            if self.entries[key]["kind"] != "mutable":
+                raise SnapshotIntegrityError(
+                    f"{path}: captured as append-only; mutable read refused"
+                )
+            return bytes(self.entries[key]["data"])
+        reasons: list[str] = []
+        for attempt in range(1, tries + 1):
+            try:
+                before = _stat_sig(os.stat(path))
+                with path.open("rb") as fh:
+                    opened = _stat_sig(os.fstat(fh.fileno()))
+                    data = fh.read()
+                after = _stat_sig(os.stat(path))
+            except FileNotFoundError:
+                if not path.exists() and attempt == 1 and not reasons:
+                    self.entries[key] = {
+                        "path": path,
+                        "kind": "mutable",
+                        "missing": True,
+                        "size": 0,
+                        "sha256": None,
+                        "data": b"",
+                        "attempts": attempt,
+                    }
+                    return b""
+                reasons.append("replaced while opening")
+                time.sleep(delay_s)
+                continue
+            if before != opened or opened != after or len(data) != before[1]:
+                reasons.append(f"version changed during read ({before} -> {after})")
+                time.sleep(delay_s)
+                continue
+            try:
+                json.loads(data)
+            except ValueError:
+                reasons.append("not valid JSON (partial write)")
+                time.sleep(delay_s)
+                continue
+            self.entries[key] = {
+                "path": path,
+                "kind": "mutable",
+                "missing": False,
+                "size": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "data": data,
+                "version": {"inode": after[0], "size": after[1], "mtime_ns": after[2]},
+                "attempts": attempt,
+            }
+            return data
+        raise SnapshotIntegrityError(
+            f"{path}: no internally consistent snapshot after {tries} attempts "
+            f"(last: {reasons[-1] if reasons else 'n/a'})"
+        )
 
     def lines(self, path: Path) -> list[str]:
         data = self.read(path)
@@ -136,9 +215,15 @@ class PrefixSnapshot:
         return out
 
     def verify(self) -> dict[str, Any]:
+        """Append-only prefixes unchanged (growth is fine); mutable captures are not re-checked: they
+        were required to be stable during the capture only."""
         growth = 0
+        mutable = 0
         for e in self.entries.values():
             p: Path = e["path"]
+            if e["kind"] == "mutable":
+                mutable += 1
+                continue
             if e["missing"]:
                 continue
             if not p.exists():
@@ -151,18 +236,48 @@ class PrefixSnapshot:
             if hashlib.sha256(again).hexdigest() != e["sha256"]:
                 raise SnapshotIntegrityError(f"{p}: prefix modified during the audit")
             growth += now - e["size"]
-        return {"files": len(self.entries), "bytes_appended_during_audit": growth}
+        return {
+            "files": len(self.entries),
+            "append_only_files": len(self.entries) - mutable,
+            "mutable_files_captured": mutable,
+            "bytes_appended_during_audit": growth,
+        }
 
     def manifest(self) -> list[dict[str, Any]]:
         return [
             {
                 "path": str(e["path"]),
+                "kind": e["kind"],
                 "size": e["size"],
                 "sha256": e["sha256"],
                 "missing": e["missing"],
+                "version": e.get("version"),
+                "capture_attempts": e.get("attempts"),
             }
             for e in self.entries.values()
         ]
+
+
+def _rec_ms(r: dict[str, Any]) -> int | None:
+    """Journal record time (the hash-chained `ts`), in ms."""
+    ts = r.get("ts")
+    if not isinstance(ts, str):
+        return None
+    try:
+        return int(datetime.fromisoformat(ts).timestamp() * 1000)
+    except ValueError:
+        return None
+
+
+def at_cutoff(recs: list[dict[str, Any]], cutoff_ms: int) -> list[dict[str, Any]]:
+    """Only records journaled at or before the fixed audit cutoff (records without a parseable
+    `ts` are kept: they cannot be placed, and dropping them silently would hide data)."""
+    out = []
+    for r in recs:
+        t = _rec_ms(r)
+        if t is None or t <= cutoff_ms:
+            out.append(r)
+    return out
 
 
 def chain_links_ok(recs: list[dict[str, Any]]) -> bool:
@@ -834,13 +949,19 @@ def run_audit(
     cutoff = cutoff_ms if cutoff_ms is not None else int(time.time() * 1000) - MS_1M
     snap = PrefixSnapshot(cutoff)
     J = root / "journals"  # noqa: N806
-    trades_j = snap.jsonl(J / "shadow_trades.jsonl")
-    signals = snap.jsonl(J / "signals.jsonl")
-    twin = snap.jsonl(J / "control_twin.jsonl")
-    nearmiss = [r["data"] for r in snap.jsonl(J / "nearmiss.jsonl") if r.get("kind") == "NEAR_MISS"]
-    outs_raw = snap.jsonl(J / "outcomes.jsonl")
-    state = json.loads(snap.read(root / "state.json") or b"{}")
-    chains = {
+    # the runner's state.json is rewritten atomically every tick: one consistent capture, first
+    state = json.loads(snap.read_mutable(root / "state.json") or b"{}")
+    # append-only journals: byte-prefix snapshot, then only records journaled at or before the cutoff
+    trades_j = at_cutoff(snap.jsonl(J / "shadow_trades.jsonl"), cutoff)
+    signals = at_cutoff(snap.jsonl(J / "signals.jsonl"), cutoff)
+    twin = at_cutoff(snap.jsonl(J / "control_twin.jsonl"), cutoff)
+    nearmiss = [
+        r["data"]
+        for r in at_cutoff(snap.jsonl(J / "nearmiss.jsonl"), cutoff)
+        if r.get("kind") == "NEAR_MISS"
+    ]
+    outs_raw = at_cutoff(snap.jsonl(J / "outcomes.jsonl"), cutoff)
+    chains = {  # link continuity of the whole captured prefix (not of the time-filtered subset)
         n: chain_links_ok(snap.jsonl(J / f"{n}.jsonl"))
         for n in ("shadow_trades", "signals", "control_twin", "nearmiss", "outcomes", "episodes")
     }
@@ -960,7 +1081,7 @@ def run_audit(
         "counterfactuals": counterfactuals(rows, nearmiss, outcomes),
         "control_twin": twin_section(rows, twin, closed),
         "pathologies": pathologies(rows, signals),
-        "snapshot": {"verify": snap.verify(), "files": snap.manifest()},
+        "snapshot": {"cutoff_ms": cutoff, "verify": snap.verify(), "files": snap.manifest()},
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
