@@ -128,3 +128,21 @@ def research_n2_4h_cmd(
     res = run_n2_4h(_data_dir(data_dir), out_root, source or DEFAULT_SOURCE, run_id)
     console.print(f"run {res['run_id']} -> {res['out_dir']}")
     console.print(f"  {res['decision']['verdict']} — {res['decision']['reason']}")
+
+
+@ipr_app.command("research-carry")
+def research_carry_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out_root: Annotated[Path, typer.Option(help="report root")] = DEFAULT_OUT,
+    run_id: Annotated[
+        str | None, typer.Option(help="fixed RUN_ID (default: UTC timestamp)")
+    ] = None,
+) -> None:
+    """Bybit/Binance conditional funding carry: one frozen bar/mark-based economic screen (no orders)."""
+    from btc_swing.research.intraday_portfolio.carry import run_carry
+
+    res = run_carry(_data_dir(data_dir), out_root, run_id)
+    console.print(f"run {res['run_id']} -> {res['out_dir']}")
+    console.print(
+        f"  {res['verdict']['verdict']} (n {res['verdict']['n']}, clusters {res['verdict']['clusters']})"
+    )

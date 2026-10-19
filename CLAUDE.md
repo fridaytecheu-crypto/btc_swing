@@ -237,6 +237,18 @@ labelled proxy; one-position occupancy recount within N2. Result: **REJECT N2 AS
 `data/btc/datasets/bybit_funding|bybit_mark_5m|bybit_index_5m|bybit_instrument_info` + `manifests/bybit_history_export_manifest.jsonl`;
 the carry screen is NOT run until that dataset is validated. No V10.1, no TWAP integration, no collector change.
 
+CONDITIONAL FUNDING CARRY SCREEN (`btc_swing/research/intraday_portfolio/carry.py`, `btc-swing ipr research-carry`, tests
+`tests/intraday_portfolio/test_carry.py`): ONE frozen bar/MARK-based economic feasibility screen of the Bybit/Binance BTCUSDT
+funding carry (00:05 UTC decision on the trailing-24h settled funding differential, projected 72h >= 50 bps; 00:10 mark-bar
+OPEN entry / exit exactly 72h later; q = 1 BTC per leg; funding on (entry, exit] settlements with the settlement mark = mark-bar
+open (flagged; preceding-close sensitivity); B = two-leg price PnL = basis; four executions at 8 bps all-in (12 stress);
+one position, renewals charged; controls B threshold-off 72h schedule, B-roll, C flat; clusters by <= 72h gaps; whole-cluster
+and 30-day moving-block bootstraps, seed 42; verdict set PARK / INFORMATIVE / REJECT / INCONCLUSIVE / ELIGIBLE FOR
+EXECUTION-QUALIFIED REPLAY). The run REFUSES (fail closed, no artefact) unless `data/btc/datasets/bybit_funding/` and
+`bybit_mark_5m/` exist: on the cloud container they do not (the Mac export of `scripts/bybit_history_export.py` was not copied),
+so the screen is NOT yet executed; run it on the Mac (`uv run btc-swing ipr research-carry`) and commit the run directory.
+Mark-based results are never executable profits; a pass would only authorise executable-data investigation.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

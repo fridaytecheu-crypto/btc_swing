@@ -531,6 +531,14 @@
 - Next step: run the Bybit export on the Mac, copy the parquet files + manifest here, validate, then pre-register the
   carry screen. E4 keeps collecting; no V10.1; no TWAP integration without external node / S3 data.
 
+- CONDITIONAL FUNDING CARRY SCREEN (2026-10-19, `btc-swing ipr research-carry`, `carry.py`, 5 accounting / timing
+  tests): implemented and frozen (manifest written before any PnL, seed 42, four equal-calendar blocks from valid entry
+  dates). NOT RUN on the cloud: the Bybit funding / mark / index export exists only on the Mac (`scripts/bybit_history_export.py`,
+  validated there: 3,972 settlements, 381,312 mark + index rows). Next: on the Mac `git pull && uv run btc-swing ipr
+  research-carry` then commit `reports/intraday_portfolio_research/<RUN_ID>/` (carry_manifest.json, carry_positions,
+  carry_blocks, carry_concentration, carry_cost_stress, carry_controls, carry_decisions, SUMMARY.md); or copy the four
+  dataset directories + `manifests/bybit_history_export_manifest.jsonl` into the container and run here.
+
 ## Commands
 ```
 uv sync --all-extras
@@ -576,6 +584,7 @@ uv run btc-swing ipr inventory && uv run btc-swing ipr research          # intra
 uv run btc-swing ipr ingest-spot && uv run btc-swing ipr research-n     # Binance spot 5m klines (checksummed) + N1/N2/N4 screens (~40 min)
 uv run btc-swing ipr e4-audit                                            # read-only E4 collector/data audit
 uv run btc-swing ipr research-n2-4h                                      # N2 4h re-horizon of the frozen N2 events (~3 min)
+uv run btc-swing ipr research-carry                                      # conditional funding carry screen (needs the Bybit export datasets; refuses otherwise)
 uv run python scripts/bybit_history_export.py export && uv run python scripts/bybit_history_export.py validate   # Mac only: Bybit funding / mark / index history for the carry screen
 ```
 

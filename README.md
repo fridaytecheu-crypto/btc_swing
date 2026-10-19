@@ -164,6 +164,8 @@ Session-Transition screens — EDGE REJECT for all three (gross within ±2 bps p
 PLAUSIBLE CORE (5.5 / 4.6 / 1.0 independent eligible per day); E4 collector audit in `e4_collection_audit.json`.
 N2 four-hour persistence test (`btc-swing ipr research-n2-4h`, run `20261019T201728Z`): the frozen N2 events at 4h are REJECTED as
 directional alpha (gross -1.4 bps, net -17.4 @16; 2h / 8h diagnostics no better).
+Conditional funding carry screen (`btc-swing ipr research-carry`): implemented and frozen; runs only where the Bybit
+funding / mark export exists (Mac), refusing otherwise — not yet executed.
 
 ## Quick start
 ```
