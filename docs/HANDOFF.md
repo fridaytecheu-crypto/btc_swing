@@ -494,6 +494,21 @@
   owner pre-registration and, ideally, forward data: the Bybit collector (`btc-swing v5 collect`)
   can accumulate a liquidation/order-book history that does not exist in any archive.
 
+- INTRADAY PORTFOLIO RESEARCH (E1 / E2 / E4, 2026-10-19): new isolated, order-disabled harness
+  `btc_swing/research/intraday_portfolio/` (`btc-swing ipr inventory|research`), 32 tests
+  (`tests/intraday_portfolio/`: PIT safety, future-data invariance, no same-close fills, receipt-time
+  availability, duplicate / reordered input, fail-closed missing data, bounded buffers, episode dedup,
+  long/short symmetry, no spread double-counting, one-position portfolio, deterministic reruns, journal /
+  report reconciliation). Run `reports/intraday_portfolio_research/20261019T114233Z/` (SUMMARY.md, manifest,
+  parents / trade / portfolio replays, cost / frequency / regime tables, data inventory). Verdicts: E1
+  REJECT, E2 REJECT (benchmark ledger on 2021-11-15..2025-06-30; both net negative at 16 bps with the
+  day-cluster lower bound < 0; E1 even gross negative), E4 INCONCLUSIVE (no 30-day receipt-timed
+  liquidation history exists anywhere; the Mac stores have ~7 days). Executable replay for E1/E2 is
+  UNAVAILABLE (no historical BBO). Nothing qualifies for runner engineering.
+- Next step: owner decision. E4 can only become testable by letting the Bybit public collector run
+  >= 31 complete days (the Mac V10 raw store already accumulates trades + allLiquidation + orderbook.50)
+  and then running `btc-swing ipr research` on that machine; E1/E2 need no further historical work.
+
 ## Commands
 ```
 uv sync --all-extras
@@ -535,6 +550,7 @@ uv run btc-swing v11lw seed && uv run btc-swing v11lw forward status    # V11-LI
 uv run btc-swing v11lw report compare                                    # read-only V11-WARM vs V11-LITE-WARM + incremental cohort
 uv run btc-swing v11lw demo status --live && uv run btc-swing v11lw demo report  # V11-LITE Bybit DEMO (owner activation only)
 uv run python scripts/v11lw_forward_forensic_audit.py             # READ-ONLY per-trade forensic audit of the LITE shadow (Mac; live-safe prefix snapshot)
+uv run btc-swing ipr inventory && uv run btc-swing ipr research          # intraday portfolio research E1/E2/E4 (~5 min; files only, order-disabled)
 ```
 
 ## Known data facts

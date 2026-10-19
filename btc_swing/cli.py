@@ -1538,6 +1538,7 @@ def demo_reconcile_ack(
     typer.echo("reconciliation acknowledged")
 
 
+from btc_swing.research.intraday_portfolio.cli import ipr_app  # noqa: E402
 from btc_swing.v6.cli import v6_app  # noqa: E402
 from btc_swing.v7.cli import v7_app  # noqa: E402
 from btc_swing.v9.cli import v9_app  # noqa: E402
@@ -1561,6 +1562,7 @@ app.add_typer(v111_app, name="v111")
 app.add_typer(v11w_app, name="v11w")
 app.add_typer(v112_app, name="v112")
 app.add_typer(v11lw_app, name="v11lw")
+app.add_typer(ipr_app, name="ipr")
 
 
 if __name__ == "__main__":

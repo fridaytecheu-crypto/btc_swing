@@ -1,0 +1,619 @@
+{
+  "data": {
+    "bybit_1m": {
+      "days": 1324,
+      "provenance": {
+        "availability": "AVAILABLE",
+        "freshness_ms": null,
+        "provenance": "2021-11-15..2025-06-30 (1324 days)",
+        "source": "bybit_trades_1m parquet (Bybit public trade archive, trade-built bars)",
+        "synthetic": false
+      }
+    },
+    "bybit_5m": {
+      "days": 1324,
+      "first": "2021-11-15",
+      "last": "2025-06-30",
+      "provenance": {
+        "availability": "AVAILABLE",
+        "freshness_ms": null,
+        "provenance": "2021-11-15..2025-06-30 (1324 days)",
+        "source": "bybit_trades_5m parquet (Bybit public trade archive, trade-built bars)",
+        "synthetic": false
+      }
+    },
+    "funding_proxy": {
+      "availability": "PARTIAL",
+      "freshness_ms": null,
+      "provenance": "venue mismatch: Binance rate applied to a Bybit position; labelled proxy",
+      "source": "binance_vision fundingRate (USDT-perp) \u2014 PROXY for Bybit funding",
+      "synthetic": false
+    },
+    "raw_roots": [
+      "data/btc/forward/bybit/BTCUSDT",
+      "data/btc/forward_v10_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_warm_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_lite_warm_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_lite_warm_verify_f885f85/raw/BTCUSDT"
+    ],
+    "requested_end": null,
+    "requested_start": null
+  },
+  "files": [
+    "cost_analysis.csv",
+    "data_inventory.json",
+    "e1_parents.csv",
+    "e1_parents.parquet",
+    "e2_parents.csv",
+    "e2_parents.parquet",
+    "e4_controls.csv",
+    "e4_flow_parents.csv",
+    "e4_parents.csv",
+    "frequency_analysis.csv",
+    "markouts_e1_e2_benchmark.csv",
+    "markouts_e1_e2_benchmark.parquet",
+    "markouts_e4.csv",
+    "portfolio_replay.csv",
+    "portfolio_replay.parquet",
+    "regime_analysis.csv",
+    "trade_replay.csv",
+    "trade_replay.parquet"
+  ],
+  "frozen_parameters": {
+    "atr_period": 20,
+    "costs": {
+      "base_bps": 16.0,
+      "primary_model": "taker/taker",
+      "scenarios_bps": [
+        14.0,
+        16.0,
+        20.0,
+        24.0
+      ],
+      "stress_bps": 24.0,
+      "taker_fee_bps_per_side": 5.5
+    },
+    "e1": {
+      "cooldown_inside_bars": 2,
+      "cooldown_min": 60,
+      "max_hold_min": 120,
+      "retest_bars": 3,
+      "target_r": 2.0
+    },
+    "e2": {
+      "max_hold_min": 60,
+      "new_excursion_inside_bars": 2,
+      "new_excursion_min": 30,
+      "sweep_atr": 0.25,
+      "vwap_min_bps": 40.0,
+      "vwap_min_stop_mult": 1.5
+    },
+    "e4": {
+      "bbo_max_age_ms": 2000,
+      "dedupe_s": 600,
+      "history_days": 30,
+      "horizons_s": [
+        15,
+        30,
+        60,
+        300,
+        900,
+        1800,
+        3600,
+        7200
+      ],
+      "latencies_s": [
+        0.0,
+        0.25,
+        1.0,
+        3.0,
+        10.0
+      ],
+      "new_shock_gap_s": 1800,
+      "percentile": 0.99,
+      "shock_atr_mult": 0.5,
+      "window_s": 60
+    },
+    "er_bars_4h": 48,
+    "er_range_max": 0.25,
+    "gates": {
+      "blocks": 4.0,
+      "blocks_positive_min": 3.0,
+      "max_block_share_of_positive_pnl": 0.5,
+      "mean_gross_bps_min": 25.0,
+      "mean_net_bps_min_at_16": 9.0,
+      "pf_min": 1.2,
+      "stress_cost_bps": 24.0
+    },
+    "portfolio": {
+      "engine_order": [
+        "E1",
+        "E2"
+      ],
+      "max_positions": 1
+    },
+    "risk_reference_usdt_per_trade": 5.0,
+    "sample_min_months": 6,
+    "sample_min_parents": 300,
+    "stop_atr_buffer": 0.25,
+    "stop_bps_min_max": [
+      20.0,
+      150.0
+    ]
+  },
+  "generated_at_utc": "2026-10-19T11:45:44+00:00",
+  "interpretations": {
+    "benchmark_entry": "open of the first Bybit 1m bar after the decision close (no BBO in the archive)",
+    "episode_release_after_rejection": "E1 cooldown (position closed, >= 60 min, two 5m closes back inside the original box) and the E2 new-excursion rule (VWAP touch, two closes inside, >= 30 min) govern parents that became a position. A setup rejected or cancelled before entry ends its episode at that time: further signals on the SAME frozen hour box are repeats of that parent, a later box can open a new candidate. Without this a single rejected breakout would block its side until price returned inside that box, possibly never.",
+    "er_regime_at": "the ER of the 5m bar completing the pattern (E1: 2nd breakout close; E2: sweep bar)",
+    "exit_priority_same_bar": "stop before target before 5m-close invalidation before time (conservative)"
+  },
+  "order_capable": false,
+  "package_sha256": {
+    "__init__.py": "80db35cbf68607b61f508a3e11b4186ec9426843bdfb5998558f5da736ffc5ca",
+    "cli.py": "fcc1a0f6f317fa7d1bb499b0b8792e425731aea21dcaf8530bbe11289bf42b8a",
+    "contract.py": "0c3fb30486f610e2065fa3d7a022ad423fe41a318b063455a8dfc208ef9ecade",
+    "data.py": "84899cf9f4b00ee1c832eaef4f108bae7eca0a3d7e453ecf02ce60d91937b35c",
+    "e1.py": "992d2f28850a559b8c1de23e9315f7dc96fb2913aef3241d71ce79fc87289c3f",
+    "e2.py": "80999c6ff0d7f22f758d4c26808feb52e709102b494bd0af5186b5def14160dc",
+    "e4.py": "172923e23770df2df5aad788da0cd1e44245e5899f8cb9bfe4a64773c0fa9dc3",
+    "episodes.py": "4ea2d58297437cfc70bf57b93157f7797566bcdee1bde38f6e1ea151a7ff9462",
+    "inventory.py": "751580ec18ca56c9a2e0b60138e87f26e794edaf3766fe07541b7ad478b07b10",
+    "ledger.py": "bf55da986f06f3e0b4d7d99d2cd256450e2b7fec1e4ec7a44d2fa77ca3c7b994",
+    "metrics.py": "98c9d38b6444fda3255b349af4145eda9f37a6a1be3d9ea06a063fae5408ef03",
+    "portfolio.py": "02dd774228af9d36f98648858ab6a0c0ba1b798fbdc975c874c3e1d56b117261",
+    "primitives.py": "bd0effdac8cf7073065c40dc179a7b3588135cc31241402048cffdc3d0c433d4",
+    "replay.py": "954262d200f990902127822ad98bd20a953f0bd73ac640975fd348048c6afcab",
+    "run.py": "25e19939b5dad613ddbebe811725ae00c464dbe7493962a2637be71d92a1d3cb"
+  },
+  "python": "3.12.3",
+  "research_only": true,
+  "results": {
+    "e4": {
+      "arms": {},
+      "atr_seconds": 77400,
+      "bbo_seconds": 32300,
+      "channels": {
+        "allLiquidation": 262,
+        "kline": 3718,
+        "orderbook": 1205791,
+        "publicTrade": 282698,
+        "tickers": 227806
+      },
+      "grid_seconds": 730337,
+      "n_bbo": 1201541,
+      "n_flow_parents": 0,
+      "n_liquidations": 417,
+      "n_shocks": 0,
+      "n_trades": 660600,
+      "seconds_with_trades": 21033,
+      "status": "THRESHOLD_UNAVAILABLE_INSUFFICIENT_HISTORY",
+      "threshold_hours_available": {
+        "aggressive_flow": 0,
+        "liquidation": 0
+      }
+    },
+    "funnels": {
+      "E1": {
+        "calendar_days": 1324,
+        "candidates_per_day": 9.879154078549849,
+        "completed_trades": 166,
+        "daily_frequency_p10_p50_p90": [
+          0,
+          0,
+          1
+        ],
+        "eligible_entries": 166,
+        "eligible_per_day": 0.12537764350453173,
+        "fills_benchmark": 166,
+        "parent_episodes": 13080,
+        "raw_alerts": 99372,
+        "rejection_rate": 0.9873088685015291,
+        "rejection_reasons": {
+          "CANCEL_CLOSE_INSIDE_BEFORE_RETEST": 4002,
+          "CANCEL_NO_RETEST_15M": 6118,
+          "REGIME_NOT_DIRECTIONAL": 10838,
+          "REGIME_UNAVAILABLE": 3,
+          "STOP_TOO_TIGHT_LT_20BPS": 2139,
+          "STOP_TOO_WIDE_GT_150BPS": 2
+        },
+        "repeated_triggers_absorbed": 86292,
+        "trades_per_day": 0.12537764350453173,
+        "unique_setups": 13080,
+        "zero_trade_days": 1175
+      },
+      "E2": {
+        "calendar_days": 1324,
+        "candidates_per_day": 3.5755287009063443,
+        "completed_trades": 134,
+        "daily_frequency_p10_p50_p90": [
+          0,
+          0,
+          0
+        ],
+        "eligible_entries": 134,
+        "eligible_per_day": 0.10120845921450151,
+        "fills_benchmark": 134,
+        "parent_episodes": 4734,
+        "raw_alerts": 24888,
+        "rejection_rate": 0.9716941275876637,
+        "rejection_reasons": {
+          "CONFIRMATION_FAILED": 1523,
+          "REGIME_NOT_RANGE": 509,
+          "STOP_TOO_TIGHT_LT_20BPS": 930,
+          "STOP_TOO_WIDE_GT_150BPS": 44,
+          "TARGET_ALREADY_REACHED_NO_RETROACTIVE_FILL": 388,
+          "VWAP_DISTANCE_LT_1_5_STOP": 279,
+          "VWAP_DISTANCE_LT_40BPS": 2343
+        },
+        "repeated_triggers_absorbed": 20154,
+        "trades_per_day": 0.10120845921450151,
+        "unique_setups": 4734,
+        "zero_trade_days": 1200
+      }
+    },
+    "gates": {
+      "E1": {
+        "checks": {
+          "blocks_positive_ge_3_of_4": false,
+          "day_cluster_lower_bound_gt_0": false,
+          "mean_gross_ge_25bps": false,
+          "mean_net_ge_9bps_at_16": false,
+          "net_r_gt_0": false,
+          "no_block_gt_50pct_of_positive_pnl": false,
+          "pf_ge_1_20": false,
+          "sample_ge_300_parents": true,
+          "span_ge_6_months": true,
+          "stress_24_mean_net_gt_0": false,
+          "stress_24_pf_gt_1": false
+        },
+        "fragility_mean_net_without_top5_bps": -27.21542789839771,
+        "max_block_share_of_positive_pnl": null,
+        "months": 43.495400788436264,
+        "n_completed_trades": 166,
+        "n_parents": 13080,
+        "positive_blocks": 0,
+        "reason": "13080 parents, 166 completed trades over 43.5 months; failed gates: mean_gross_ge_25bps, mean_net_ge_9bps_at_16, net_r_gt_0, pf_ge_1_20, day_cluster_lower_bound_gt_0, stress_24_mean_net_gt_0, stress_24_pf_gt_1, blocks_positive_ge_3_of_4, no_block_gt_50pct_of_positive_pnl (mean net <= 0 and the day-cluster lower bound <= 0 at 16 bps)",
+        "scenarios": {
+          "14.0": {
+            "capital_employed_usdt_per_trade": 1390.1976327875009,
+            "cost_bps": 14.0,
+            "cost_bps_mean": 14.010773493975902,
+            "gross_bps_mean": -6.900527518194238,
+            "hold_min_mean": 23.180722891566266,
+            "mae_bps_mean": -27.228140031881917,
+            "max_dd_usdt": 551.8295110393964,
+            "mfe_bps_mean": 32.25740106586793,
+            "n": 166,
+            "net_bps_lower_bound_95_day_cluster": -26.381293873613483,
+            "net_bps_mean": -20.911301012170142,
+            "net_bps_median": -36.00969081045556,
+            "net_r_mean": -0.660116047834248,
+            "net_r_sum": -109.57926394048518,
+            "net_usdt": -547.8963197024259,
+            "profit_factor": 0.3661825833591902,
+            "stop_bps_mean": 35.9661092932121,
+            "turnover_trades_per_day_active": 1.1140939597315436,
+            "win_rate": 0.22289156626506024
+          },
+          "16.0": {
+            "capital_employed_usdt_per_trade": 1390.1976327875009,
+            "cost_bps": 16.0,
+            "cost_bps_mean": 16.010773493975904,
+            "gross_bps_mean": -6.900527518194238,
+            "hold_min_mean": 23.180722891566266,
+            "mae_bps_mean": -27.228140031881917,
+            "max_dd_usdt": 604.0794162069124,
+            "mfe_bps_mean": 32.25740106586793,
+            "n": 166,
+            "net_bps_lower_bound_95_day_cluster": -28.381293873613483,
+            "net_bps_mean": -22.911301012170142,
+            "net_bps_median": -38.00969081045556,
+            "net_r_mean": -0.7238854377859882,
+            "net_r_sum": -120.16498267247404,
+            "net_usdt": -600.8249133623702,
+            "profit_factor": 0.3368047822518475,
+            "stop_bps_mean": 35.9661092932121,
+            "turnover_trades_per_day_active": 1.1140939597315436,
+            "win_rate": 0.22289156626506024
+          },
+          "20.0": {
+            "capital_employed_usdt_per_trade": 1390.1976327875009,
+            "cost_bps": 20.0,
+            "cost_bps_mean": 20.010773493975904,
+            "gross_bps_mean": -6.900527518194238,
+            "hold_min_mean": 23.180722891566266,
+            "mae_bps_mean": -27.228140031881917,
+            "max_dd_usdt": 708.5792265419442,
+            "mfe_bps_mean": 32.25740106586793,
+            "n": 166,
+            "net_bps_lower_bound_95_day_cluster": -32.38129387361349,
+            "net_bps_mean": -26.911301012170142,
+            "net_bps_median": -42.00969081045556,
+            "net_r_mean": -0.8514242176894685,
+            "net_r_sum": -141.33642013645178,
+            "net_usdt": -706.6821006822589,
+            "profit_factor": 0.2853245705907636,
+            "stop_bps_mean": 35.9661092932121,
+            "turnover_trades_per_day_active": 1.1140939597315436,
+            "win_rate": 0.22289156626506024
+          },
+          "24.0": {
+            "capital_employed_usdt_per_trade": 1390.1976327875009,
+            "cost_bps": 24.0,
+            "cost_bps_mean": 24.010773493975904,
+            "gross_bps_mean": -6.900527518194238,
+            "hold_min_mean": 23.180722891566266,
+            "mae_bps_mean": -27.228140031881917,
+            "max_dd_usdt": 813.0790368769765,
+            "mfe_bps_mean": 32.25740106586793,
+            "n": 166,
+            "net_bps_lower_bound_95_day_cluster": -36.38129387361349,
+            "net_bps_mean": -30.911301012170142,
+            "net_bps_median": -46.00969081045556,
+            "net_r_mean": -0.9789629975929488,
+            "net_r_sum": -162.5078576004295,
+            "net_usdt": -812.5392880021475,
+            "profit_factor": 0.24207169994457634,
+            "stop_bps_mean": 35.9661092932121,
+            "turnover_trades_per_day_active": 1.1140939597315436,
+            "win_rate": 0.21084337349397592
+          }
+        },
+        "summary_16": {
+          "capital_employed_usdt_per_trade": 1390.1976327875009,
+          "cost_bps": 16.0,
+          "cost_bps_mean": 16.010773493975904,
+          "gross_bps_mean": -6.900527518194238,
+          "hold_min_mean": 23.180722891566266,
+          "mae_bps_mean": -27.228140031881917,
+          "max_dd_usdt": 604.0794162069124,
+          "mfe_bps_mean": 32.25740106586793,
+          "n": 166,
+          "net_bps_lower_bound_95_day_cluster": -28.381293873613483,
+          "net_bps_mean": -22.911301012170142,
+          "net_bps_median": -38.00969081045556,
+          "net_r_mean": -0.7238854377859882,
+          "net_r_sum": -120.16498267247404,
+          "net_usdt": -600.8249133623702,
+          "profit_factor": 0.3368047822518475,
+          "stop_bps_mean": 35.9661092932121,
+          "turnover_trades_per_day_active": 1.1140939597315436,
+          "win_rate": 0.22289156626506024
+        },
+        "summary_24": {
+          "capital_employed_usdt_per_trade": 1390.1976327875009,
+          "cost_bps": 24.0,
+          "cost_bps_mean": 24.010773493975904,
+          "gross_bps_mean": -6.900527518194238,
+          "hold_min_mean": 23.180722891566266,
+          "mae_bps_mean": -27.228140031881917,
+          "max_dd_usdt": 813.0790368769765,
+          "mfe_bps_mean": 32.25740106586793,
+          "n": 166,
+          "net_bps_lower_bound_95_day_cluster": -36.38129387361349,
+          "net_bps_mean": -30.911301012170142,
+          "net_bps_median": -46.00969081045556,
+          "net_r_mean": -0.9789629975929488,
+          "net_r_sum": -162.5078576004295,
+          "net_usdt": -812.5392880021475,
+          "profit_factor": 0.24207169994457634,
+          "stop_bps_mean": 35.9661092932121,
+          "turnover_trades_per_day_active": 1.1140939597315436,
+          "win_rate": 0.21084337349397592
+        },
+        "verdict": "REJECT"
+      },
+      "E2": {
+        "checks": {
+          "blocks_positive_ge_3_of_4": false,
+          "day_cluster_lower_bound_gt_0": false,
+          "mean_gross_ge_25bps": false,
+          "mean_net_ge_9bps_at_16": false,
+          "net_r_gt_0": false,
+          "no_block_gt_50pct_of_positive_pnl": false,
+          "pf_ge_1_20": false,
+          "sample_ge_300_parents": true,
+          "span_ge_6_months": true,
+          "stress_24_mean_net_gt_0": false,
+          "stress_24_pf_gt_1": false
+        },
+        "fragility_mean_net_without_top5_bps": -12.984408883476727,
+        "max_block_share_of_positive_pnl": null,
+        "months": 43.495400788436264,
+        "n_completed_trades": 134,
+        "n_parents": 4734,
+        "positive_blocks": 1,
+        "reason": "4734 parents, 134 completed trades over 43.5 months; failed gates: mean_gross_ge_25bps, mean_net_ge_9bps_at_16, net_r_gt_0, pf_ge_1_20, day_cluster_lower_bound_gt_0, stress_24_mean_net_gt_0, stress_24_pf_gt_1, blocks_positive_ge_3_of_4, no_block_gt_50pct_of_positive_pnl (mean net <= 0 and the day-cluster lower bound <= 0 at 16 bps)",
+        "scenarios": {
+          "14.0": {
+            "capital_employed_usdt_per_trade": 1379.8464770475719,
+            "cost_bps": 14.0,
+            "cost_bps_mean": 14.031575373134329,
+            "gross_bps_mean": 8.10304006843996,
+            "hold_min_mean": 22.14179104477612,
+            "mae_bps_mean": -20.498593922657673,
+            "max_dd_usdt": 195.24443580031624,
+            "mfe_bps_mean": 37.24652198493061,
+            "n": 134,
+            "net_bps_lower_bound_95_day_cluster": -12.752595880399145,
+            "net_bps_mean": -5.9285353046943685,
+            "net_bps_median": -25.234031905074104,
+            "net_r_mean": -0.2884420522125776,
+            "net_r_sum": -38.6512349964854,
+            "net_usdt": -193.25617498242698,
+            "profit_factor": 0.7424020232079935,
+            "stop_bps_mean": 36.2359152497776,
+            "turnover_trades_per_day_active": 1.0806451612903225,
+            "win_rate": 0.31343283582089554
+          },
+          "16.0": {
+            "capital_employed_usdt_per_trade": 1379.8464770475719,
+            "cost_bps": 16.0,
+            "cost_bps_mean": 16.031575373134327,
+            "gross_bps_mean": 8.10304006843996,
+            "hold_min_mean": 22.14179104477612,
+            "mae_bps_mean": -20.498593922657673,
+            "max_dd_usdt": 236.88209625143762,
+            "mfe_bps_mean": 37.24652198493061,
+            "n": 134,
+            "net_bps_lower_bound_95_day_cluster": -14.752595880399145,
+            "net_bps_mean": -7.9285353046943685,
+            "net_bps_median": -27.234031905074104,
+            "net_r_mean": -0.3512092302907022,
+            "net_r_sum": -47.062036858954094,
+            "net_usdt": -235.31018429477047,
+            "profit_factor": 0.6748976837734355,
+            "stop_bps_mean": 36.2359152497776,
+            "turnover_trades_per_day_active": 1.0806451612903225,
+            "win_rate": 0.31343283582089554
+          },
+          "20.0": {
+            "capital_employed_usdt_per_trade": 1379.8464770475719,
+            "cost_bps": 20.0,
+            "cost_bps_mean": 20.031575373134327,
+            "gross_bps_mean": 8.10304006843996,
+            "hold_min_mean": 22.14179104477612,
+            "mae_bps_mean": -20.498593922657673,
+            "max_dd_usdt": 320.1574171536802,
+            "mfe_bps_mean": 37.24652198493061,
+            "n": 134,
+            "net_bps_lower_bound_95_day_cluster": -18.75259588039914,
+            "net_bps_mean": -11.928535304694368,
+            "net_bps_median": -31.234031905074104,
+            "net_r_mean": -0.4767435864469514,
+            "net_r_sum": -63.88364058389149,
+            "net_usdt": -319.4182029194574,
+            "profit_factor": 0.5604718553495966,
+            "stop_bps_mean": 36.2359152497776,
+            "turnover_trades_per_day_active": 1.0806451612903225,
+            "win_rate": 0.30597014925373134
+          },
+          "24.0": {
+            "capital_employed_usdt_per_trade": 1379.8464770475719,
+            "cost_bps": 24.0,
+            "cost_bps_mean": 24.031575373134327,
+            "gross_bps_mean": 8.10304006843996,
+            "hold_min_mean": 22.14179104477612,
+            "mae_bps_mean": -20.498593922657673,
+            "max_dd_usdt": 403.5262215441444,
+            "mfe_bps_mean": 37.24652198493061,
+            "n": 134,
+            "net_bps_lower_bound_95_day_cluster": -22.75259588039914,
+            "net_bps_mean": -15.928535304694368,
+            "net_bps_median": -35.234031905074104,
+            "net_r_mean": -0.6022779426032006,
+            "net_r_sum": -80.70524430882888,
+            "net_usdt": -403.52622154414445,
+            "profit_factor": 0.46777883818177135,
+            "stop_bps_mean": 36.2359152497776,
+            "turnover_trades_per_day_active": 1.0806451612903225,
+            "win_rate": 0.291044776119403
+          }
+        },
+        "summary_16": {
+          "capital_employed_usdt_per_trade": 1379.8464770475719,
+          "cost_bps": 16.0,
+          "cost_bps_mean": 16.031575373134327,
+          "gross_bps_mean": 8.10304006843996,
+          "hold_min_mean": 22.14179104477612,
+          "mae_bps_mean": -20.498593922657673,
+          "max_dd_usdt": 236.88209625143762,
+          "mfe_bps_mean": 37.24652198493061,
+          "n": 134,
+          "net_bps_lower_bound_95_day_cluster": -14.752595880399145,
+          "net_bps_mean": -7.9285353046943685,
+          "net_bps_median": -27.234031905074104,
+          "net_r_mean": -0.3512092302907022,
+          "net_r_sum": -47.062036858954094,
+          "net_usdt": -235.31018429477047,
+          "profit_factor": 0.6748976837734355,
+          "stop_bps_mean": 36.2359152497776,
+          "turnover_trades_per_day_active": 1.0806451612903225,
+          "win_rate": 0.31343283582089554
+        },
+        "summary_24": {
+          "capital_employed_usdt_per_trade": 1379.8464770475719,
+          "cost_bps": 24.0,
+          "cost_bps_mean": 24.031575373134327,
+          "gross_bps_mean": 8.10304006843996,
+          "hold_min_mean": 22.14179104477612,
+          "mae_bps_mean": -20.498593922657673,
+          "max_dd_usdt": 403.5262215441444,
+          "mfe_bps_mean": 37.24652198493061,
+          "n": 134,
+          "net_bps_lower_bound_95_day_cluster": -22.75259588039914,
+          "net_bps_mean": -15.928535304694368,
+          "net_bps_median": -35.234031905074104,
+          "net_r_mean": -0.6022779426032006,
+          "net_r_sum": -80.70524430882888,
+          "net_usdt": -403.52622154414445,
+          "profit_factor": 0.46777883818177135,
+          "stop_bps_mean": 36.2359152497776,
+          "turnover_trades_per_day_active": 1.0806451612903225,
+          "win_rate": 0.291044776119403
+        },
+        "verdict": "REJECT"
+      }
+    },
+    "portfolios": {
+      "E1": {
+        "abstain_opposite": 0,
+        "by_engine": {
+          "E1": 166
+        },
+        "executed": 166,
+        "name": "E1",
+        "net_bps_mean": -22.911301012170142,
+        "net_r_sum": -120.16498267247404,
+        "occupancy_loss": 0,
+        "profit_factor": 0.2992393505641936,
+        "rows": 13080
+      },
+      "E1+E2": {
+        "abstain_opposite": 0,
+        "by_engine": {
+          "E1": 166,
+          "E2": 134
+        },
+        "executed": 300,
+        "name": "E1+E2",
+        "net_bps_mean": -16.218998996164295,
+        "net_r_sum": -167.22701953142814,
+        "occupancy_loss": 0,
+        "profit_factor": 0.3916470704052811,
+        "rows": 17814
+      },
+      "E2": {
+        "abstain_opposite": 0,
+        "by_engine": {
+          "E2": 134
+        },
+        "executed": 134,
+        "name": "E2",
+        "net_bps_mean": -7.9285353046943685,
+        "net_r_sum": -47.062036858954094,
+        "occupancy_loss": 0,
+        "profit_factor": 0.5448851663517555,
+        "rows": 4734
+      }
+    },
+    "verdicts": {
+      "E1": {
+        "reason": "13080 parents, 166 completed trades over 43.5 months; failed gates: mean_gross_ge_25bps, mean_net_ge_9bps_at_16, net_r_gt_0, pf_ge_1_20, day_cluster_lower_bound_gt_0, stress_24_mean_net_gt_0, stress_24_pf_gt_1, blocks_positive_ge_3_of_4, no_block_gt_50pct_of_positive_pnl (mean net <= 0 and the day-cluster lower bound <= 0 at 16 bps)",
+        "verdict": "REJECT"
+      },
+      "E2": {
+        "reason": "4734 parents, 134 completed trades over 43.5 months; failed gates: mean_gross_ge_25bps, mean_net_ge_9bps_at_16, net_r_gt_0, pf_ge_1_20, day_cluster_lower_bound_gt_0, stress_24_mean_net_gt_0, stress_24_pf_gt_1, blocks_positive_ge_3_of_4, no_block_gt_50pct_of_positive_pnl (mean net <= 0 and the day-cluster lower bound <= 0 at 16 bps)",
+        "verdict": "REJECT"
+      },
+      "E4": {
+        "reason": "E4 lagged 99th-percentile thresholds need 30 complete UTC days of receipt-timed trades + allLiquidation; local raw stores hold 0 complete days (6 days touched, 551 trade-minutes). Status THRESHOLD_UNAVAILABLE_INSUFFICIENT_HISTORY; 0 qualifying shocks. INSUFFICIENT EVIDENCE \u2014 requirement not lowered.",
+        "verdict": "INCONCLUSIVE"
+      }
+    }
+  },
+  "run_id": "20261019T114233Z",
+  "schema": "intraday_portfolio_experiment_manifest-1"
+}

@@ -1,0 +1,226 @@
+{
+  "consequences": {
+    "E1": {
+      "analysis_label": "feasibility / cost-envelope analysis on completed Bybit bars",
+      "executable_replay": "UNAVAILABLE (no historical BBO / receipt time)",
+      "historical_replay": "BENCHMARK LEDGER ONLY"
+    },
+    "E2": {
+      "analysis_label": "feasibility / cost-envelope analysis on completed Bybit bars",
+      "executable_replay": "UNAVAILABLE (no historical BBO / receipt time)",
+      "historical_replay": "BENCHMARK LEDGER ONLY"
+    },
+    "E4": {
+      "event_study": "THRESHOLD UNAVAILABLE \u2014 insufficient raw history",
+      "exact_gap": "30 complete UTC days of trades + allLiquidation missing",
+      "raw_complete_days": 0,
+      "raw_days_touched": 6
+    }
+  },
+  "data_dir": "data",
+  "generated_at_utc": "2026-10-19T11:43:48+00:00",
+  "holdout_locked_never_read_from": "2025-07-01",
+  "inputs": {
+    "aggressor_flow_1m": {
+      "limit": "bar-level only; no per-second receipt-time flow before the live raw stores",
+      "role": "taker buy/sell quantity per completed bar (historical, bar granularity only)",
+      "source": "bybit_trades_1m.buy_qty / sell_qty (aggressor side from the trade archive)",
+      "status": "AVAILABLE"
+    },
+    "binance_auxiliary_not_used_by_engines": {
+      "detail": {
+        "aggtrades_flow": {
+          "files": 1765,
+          "first": "2021-12-01",
+          "last": "2026-09-30",
+          "path": "data/btc/datasets/aggtrades_flow",
+          "status": "AVAILABLE"
+        },
+        "book_depth": {
+          "files": 1366,
+          "first": "2023-01-01",
+          "last": "2026-09-30",
+          "path": "data/btc/datasets/book_depth",
+          "status": "AVAILABLE"
+        },
+        "index_klines": {
+          "files": 73,
+          "first": "2021-10",
+          "last": "2026-09",
+          "path": "data/btc/datasets/index_klines",
+          "status": "AVAILABLE"
+        },
+        "mark_price": {
+          "files": 60,
+          "first": "2021-10",
+          "last": "2026-09",
+          "path": "data/btc/datasets/mark_price",
+          "status": "AVAILABLE"
+        },
+        "metrics": {
+          "files": 1826,
+          "first": "2021-10-01",
+          "last": "2026-09-30",
+          "path": "data/btc/datasets/metrics",
+          "status": "AVAILABLE"
+        },
+        "perp_klines": {
+          "files": 240,
+          "first": "2021-10",
+          "last": "2026-09",
+          "path": "data/btc/datasets/perp_klines",
+          "status": "AVAILABLE"
+        },
+        "premium_index": {
+          "files": 60,
+          "first": "2021-10",
+          "last": "2026-09",
+          "path": "data/btc/datasets/premium_index",
+          "status": "AVAILABLE"
+        }
+      },
+      "note": "book_depth is +-1..5% depth, not the BBO; aggtrades_flow is Binance, not Bybit",
+      "role": "context only (never substitutes a MISSING Bybit field)",
+      "status": "AVAILABLE"
+    },
+    "bybit_1m_completed_bars": {
+      "detail": {
+        "development_days": 1324,
+        "development_first": "2021-11-15",
+        "development_last": "2025-06-30",
+        "holdout_day_files_present_not_read": 0,
+        "holdout_start_never_read": "2025-07-01",
+        "missing_days_inside_span": [],
+        "path": "data/btc/datasets/bybit_trades_1m/BTCUSDT/1m",
+        "status": "AVAILABLE"
+      },
+      "role": "E1/E2 benchmark entry (open of the first minute after the decision close) and exit path",
+      "source": "Bybit public trade archive -> trade-built 1m bars (bybit_trades_1m)",
+      "status": "AVAILABLE"
+    },
+    "bybit_5m_completed_bars": {
+      "detail": {
+        "development_days": 1324,
+        "development_first": "2021-11-15",
+        "development_last": "2025-06-30",
+        "holdout_day_files_present_not_read": 0,
+        "holdout_start_never_read": "2025-07-01",
+        "missing_days_inside_span": [],
+        "path": "data/btc/datasets/bybit_trades_5m/BTCUSDT/5m",
+        "status": "AVAILABLE"
+      },
+      "role": "E1/E2 structure: boxes, ATR20, ER, confirmation closes",
+      "source": "Bybit public trade archive -> trade-built 5m bars (bybit_trades_5m)",
+      "status": "AVAILABLE"
+    },
+    "e4_lagged_threshold_history_30_complete_days": {
+      "detail": {
+        "complete_days": 0,
+        "gap_days": 30,
+        "required": 30
+      },
+      "role": "same-UTC-hour lagged 99th percentile over the previous 30 complete days",
+      "source": "raw stores receipt-time coverage",
+      "status": "MISSING"
+    },
+    "funding": {
+      "detail": {
+        "files": 60,
+        "first": "2021-10",
+        "last": "2026-09",
+        "path": "data/btc/datasets/funding",
+        "status": "AVAILABLE"
+      },
+      "role": "funding cost in the benchmark ledger",
+      "source": "Binance Vision fundingRate \u2014 PROXY for Bybit funding (venue mismatch, labelled)",
+      "status": "PARTIAL"
+    },
+    "historical_bbo_bid_ask": {
+      "detail": {
+        "raw_bbo_minutes_total": 552
+      },
+      "note": "candles cannot reconstruct the BBO; a missing BBO is never a perfect-mid fill",
+      "role": "E1/E2 executable entry (ask / bid), passive-entry study, spread quintiles",
+      "source": "none historical; live raw stores carry orderbook.1 / orderbook.50 for ~hours only",
+      "status": "PARTIAL"
+    },
+    "liquidations": {
+      "detail": {
+        "raw_days_with_liquidation_channel": 5
+      },
+      "note": "candles cannot reconstruct liquidations; Binance liquidationSnapshot not on disk",
+      "role": "E4 forced-flow shock detection (allLiquidation; S=Buy means a LONG was liquidated)",
+      "source": "live raw stores only; Bybit publishes no historical liquidation archive",
+      "status": "PARTIAL"
+    },
+    "receipt_time_local": {
+      "role": "receipt-time discipline (local_receive_time) for every observation",
+      "source": "only the live raw stores (rx_ms); the historical archive has exchange time only",
+      "status": "PARTIAL"
+    },
+    "trade_weighted_vwap": {
+      "role": "frozen 1h box VWAP = sum(p*size)/sum(size), exact from per-bar notional/size",
+      "source": "bybit_trades_5m.vwap (notional / size) and volume",
+      "status": "AVAILABLE"
+    }
+  },
+  "raw_store_coverage": {
+    "bbo_minutes_total": 552,
+    "complete_days": [],
+    "days": {
+      "2026-10-06": {
+        "orderbook.50": 18,
+        "publicTrade": 18,
+        "tickers": 18
+      },
+      "2026-10-07": {
+        "allLiquidation": 10,
+        "kline": 47,
+        "orderbook.1": 47,
+        "orderbook.50": 47,
+        "publicTrade": 47,
+        "tickers": 47
+      },
+      "2026-10-08": {
+        "allLiquidation": 4,
+        "kline": 24,
+        "orderbook.1": 24,
+        "orderbook.50": 24,
+        "publicTrade": 24,
+        "tickers": 24
+      },
+      "2026-10-12": {
+        "allLiquidation": 4,
+        "orderbook.50": 51,
+        "publicTrade": 51,
+        "tickers": 51
+      },
+      "2026-10-13": {
+        "allLiquidation": 11,
+        "orderbook.50": 204,
+        "publicTrade": 204,
+        "tickers": 204
+      },
+      "2026-10-14": {
+        "allLiquidation": 46,
+        "orderbook.50": 208,
+        "publicTrade": 207,
+        "tickers": 208
+      }
+    },
+    "liquidation_channel_days": 5,
+    "n_complete_days": 0,
+    "n_days_touched": 6,
+    "required_complete_days_for_e4_threshold": 30,
+    "roots": [
+      "data/btc/forward/bybit/BTCUSDT",
+      "data/btc/forward_v10_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_warm_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_lite_warm_verify/raw/BTCUSDT",
+      "data/btc/forward_v11_lite_warm_verify_f885f85/raw/BTCUSDT"
+    ],
+    "trade_minutes_total": 551
+  },
+  "schema": "intraday_portfolio_inventory-1"
+}

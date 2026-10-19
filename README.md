@@ -153,6 +153,13 @@ Optional **Bybit DEMO execution** of the same frozen decisions (`btc_swing/v11_l
 paper money only, owner activation only, isolated Demo account by default, 5 USDT risk, caps / daily stop / halt /
 reconciliation; the shadow stays the source of truth and is proven unaffected.
 
+**Intraday portfolio research (E1 / E2 / E4)** — `btc_swing/research/intraday_portfolio/`, `btc-swing ipr
+inventory|research`, outputs `reports/intraday_portfolio_research/<RUN_ID>/`: an isolated, order-disabled harness
+(Phase 0 data inventory, receipt-time data contract, parent episodes, benchmark vs executable ledgers, one-position
+portfolio, predeclared gates). Run `20261019T114233Z`: E1 Accepted Range Expansion REJECT, E2 Failed Auction REJECT
+(benchmark ledger, 2021-11-15..2025-06-30), E4 Forced Flow INCONCLUSIVE (no 30-day receipt-timed liquidation history).
+Nothing is eligible for runner engineering.
+
 ## Quick start
 ```
 uv sync --all-extras
@@ -175,7 +182,8 @@ and partition used by the published reports, so a re-ingest can be verified byte
 `setups` (eight families) · `episodes` (state machine) · `risk` (sizing, liquidation) · `execution`
 (fees, slippage, funding) · `backtest` (engine, ledger) · `research` (metrics, labels, null
 benchmark, Phase 2 runner and report) · `v2`, `v3`, `v4`, `v5` (closed generations; `v5` also holds
-the Bybit public collector and the non-activated execution abstraction) · `cli.py` (`btc-swing`).
+the Bybit public collector and the non-activated execution abstraction) · `research/intraday_portfolio`
+(E1 / E2 / E4 order-disabled research harness) · `cli.py` (`btc-swing`).
 
 ## Non-negotiables
 - A decision at T sees only bars with `close_time <= T`; raw archive files are immutable.

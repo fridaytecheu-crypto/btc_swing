@@ -187,6 +187,25 @@ id proven at activation); shared V10 account only with `--shared-account` + the 
 demo status|freeze|activate|deactivate|reconcile-ack|resume|report`. Never activate it from the cloud or for the owner;
 shadow modules (top level of `v11_lite_warm/`) stay exchange-free (tested).
 
+INTRADAY PORTFOLIO RESEARCH E1 / E2 / E4 (`btc_swing/research/intraday_portfolio/`, CLI `btc-swing ipr inventory|research`,
+outputs `reports/intraday_portfolio_research/<RUN_ID>/`, run `20261019T114233Z`): ISOLATED, ORDER-DISABLED research harness
+(no exchange client, no order type, imports none of V5/V5.1/V10/V11/V11-WARM/V11-LITE; tested). Phase 0 data inventory
+(AVAILABLE / PARTIAL / MISSING, never fabricated), common data contract (exchange / receipt / processing / decision /
+benchmark-entry / executable-entry times; every input carries provenance; missing flow is never zero; a missing BBO is never a
+mid fill), parent-episode model (one move = one parent, repeated triggers recorded, rejected candidates kept), frozen
+primitives (completed UTC 5m bars, Wilder ATR20, trade-weighted VWAP, frozen 1h box, 4h efficiency ratio ER <= 0.25 range /
+> 0.25 directional). E1 Accepted Range Expansion and E2 Failed Auction run on the Bybit trade-built 1m/5m bars
+2021-11-15..2025-06-30 in the BENCHMARK ledger only (entry = open of the first 1m bar after the decision close; cost
+scenarios 14/16/20/24 bps taker/taker; Binance funding as labelled proxy); EXECUTABLE replay is UNAVAILABLE (no historical
+BBO / receipt time). E4 Forced Flow is an event study on the local receipt-timed raw stores (~17 h, 0 complete days; the
+lagged same-hour 99th-percentile threshold needs 30 complete days -> THRESHOLD UNAVAILABLE, nothing detected).
+Result of run `20261019T114233Z`: E1 REJECT (13080 parents, 166 trades, 0.125/day, gross -6.9 bps, net -22.9 bps @16,
+PF 0.34), E2 REJECT (4734 parents, 134 trades, 0.101/day, gross +8.1 bps, net -7.9 bps @16, PF 0.68), E4 INCONCLUSIVE
+(insufficient raw history). One-position portfolio E1+E2: 300 trades, net -16.2 bps, PF 0.39. Nothing is eligible for
+runner engineering; no parameter was tuned; the one recorded INTERPRETATION (a setup rejected before entry ends its
+episode; the same frozen box never spawns a second parent) is in the manifest. Locked holdout never read. The V11
+seven-group score is RETIRED for new research; V10 stays untouched (no V10.1).
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

@@ -1,0 +1,63 @@
+"""`btc-swing ipr` — intraday portfolio research (E1 / E2 / E4). Files only; nothing order-capable."""
+
+from __future__ import annotations
+
+import json
+from datetime import date
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich.console import Console
+
+from btc_swing.core.settings import get_settings
+from btc_swing.research.intraday_portfolio.inventory import build_inventory, write_inventory
+from btc_swing.research.intraday_portfolio.run import run
+
+ipr_app = typer.Typer(
+    help="Intraday portfolio research harness (E1 / E2 / E4). RESEARCH ONLY, order-disabled.",
+    no_args_is_help=True,
+)
+console = Console()
+DEFAULT_OUT = Path("reports/intraday_portfolio_research")
+
+
+def _data_dir(data_dir: Path | None) -> Path:
+    return data_dir if data_dir is not None else Path(get_settings().data_dir)
+
+
+@ipr_app.command("inventory")
+def inventory_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out: Annotated[Path | None, typer.Option(help="write data_inventory.json here")] = None,
+) -> None:
+    """Phase 0 data inventory (AVAILABLE / PARTIAL / MISSING per required input)."""
+    inv = build_inventory(_data_dir(data_dir))
+    if out is not None:
+        write_inventory(inv, out)
+    console.print(json.dumps(inv["consequences"], indent=2))
+
+
+@ipr_app.command("research")
+def research_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out_root: Annotated[Path, typer.Option(help="report root")] = DEFAULT_OUT,
+    start: Annotated[str | None, typer.Option(help="first UTC day (YYYY-MM-DD)")] = None,
+    end: Annotated[str | None, typer.Option(help="last UTC day (YYYY-MM-DD), < holdout")] = None,
+    run_id: Annotated[
+        str | None, typer.Option(help="fixed RUN_ID (default: UTC timestamp)")
+    ] = None,
+    skip_e4: Annotated[bool, typer.Option(help="skip the E4 raw-store event study")] = False,
+) -> None:
+    """Run E1 / E2 benchmark replay, the one-position portfolio and the E4 event study."""
+    res = run(
+        _data_dir(data_dir),
+        out_root,
+        date.fromisoformat(start) if start else None,
+        date.fromisoformat(end) if end else None,
+        run_id,
+        skip_e4,
+    )
+    console.print(f"run {res.run_id} -> {res.out_dir}")
+    for k, v in res.verdicts.items():
+        console.print(f"  {k}: {v['verdict']} — {v['reason']}")
