@@ -162,6 +162,8 @@ Nothing is eligible for runner engineering. Second generation on the same harnes
 `20261019T180134Z`): N1 Participation Impulse, N2 Persistent Spot-Flow (Binance spot klines, checksummed ingest) and N4
 Session-Transition screens — EDGE REJECT for all three (gross within ±2 bps per trade before 16 bps costs), CADENCE
 PLAUSIBLE CORE (5.5 / 4.6 / 1.0 independent eligible per day); E4 collector audit in `e4_collection_audit.json`.
+N2 four-hour persistence test (`btc-swing ipr research-n2-4h`, run `20261019T201728Z`): the frozen N2 events at 4h are REJECTED as
+directional alpha (gross -1.4 bps, net -17.4 @16; 2h / 8h diagnostics no better).
 
 ## Quick start
 ```

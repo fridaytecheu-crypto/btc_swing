@@ -522,6 +522,15 @@
 - Next step: owner decision. The three cheapest continuation hypotheses are all REJECTED at the gross-return
   screen; any new engine needs a new preregistration. E4 still waits for 30 complete receipt-timed days.
 
+- N2 FOUR-HOUR PERSISTENCE TEST (2026-10-19, `btc-swing ipr research-n2-4h`, run
+  `reports/intraday_portfolio_research/20261019T201728Z/`): the frozen N2 events re-horizoned to 4h (2h / 8h diagnostics),
+  Binance funding proxy, N2-only occupancy recount. REJECT N2 as directional alpha: 4h gross -1.35 bps, net -17.4 @16,
+  LB95 -4.2, 0/4 blocks; 2h +0.7 / 8h -1.8; available cadence 2.47/day after 4h occupancy. Carry preparation:
+  `scripts/bybit_history_export.py` (Mac-side public export of Bybit funding / mark / index 5m / current instrument
+  info with sha256 manifest and a `validate` mode); the carry screen waits for the validated dataset.
+- Next step: run the Bybit export on the Mac, copy the parquet files + manifest here, validate, then pre-register the
+  carry screen. E4 keeps collecting; no V10.1; no TWAP integration without external node / S3 data.
+
 ## Commands
 ```
 uv sync --all-extras
@@ -566,6 +575,8 @@ uv run python scripts/v11lw_forward_forensic_audit.py             # READ-ONLY pe
 uv run btc-swing ipr inventory && uv run btc-swing ipr research          # intraday portfolio research E1/E2/E4 (~5 min; files only, order-disabled)
 uv run btc-swing ipr ingest-spot && uv run btc-swing ipr research-n     # Binance spot 5m klines (checksummed) + N1/N2/N4 screens (~40 min)
 uv run btc-swing ipr e4-audit                                            # read-only E4 collector/data audit
+uv run btc-swing ipr research-n2-4h                                      # N2 4h re-horizon of the frozen N2 events (~3 min)
+uv run python scripts/bybit_history_export.py export && uv run python scripts/bybit_history_export.py validate   # Mac only: Bybit funding / mark / index history for the carry screen
 ```
 
 ## Known data facts

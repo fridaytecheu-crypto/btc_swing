@@ -111,3 +111,20 @@ def e4_audit_cmd(
     if out is not None:
         out.write_text(json.dumps(a, indent=2, sort_keys=True, default=str) + "\n")
     console.print(json.dumps({k: v["status"] for k, v in a["fields"].items()}, indent=2))
+
+
+@ipr_app.command("research-n2-4h")
+def research_n2_4h_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out_root: Annotated[Path, typer.Option(help="report root")] = DEFAULT_OUT,
+    source: Annotated[Path | None, typer.Option(help="frozen n2_parents.parquet")] = None,
+    run_id: Annotated[
+        str | None, typer.Option(help="fixed RUN_ID (default: UTC timestamp)")
+    ] = None,
+) -> None:
+    """N2 four-hour persistence test on the FROZEN N2 events (no re-detection, no new filter)."""
+    from btc_swing.research.intraday_portfolio.n2_4h import DEFAULT_SOURCE, run_n2_4h
+
+    res = run_n2_4h(_data_dir(data_dir), out_root, source or DEFAULT_SOURCE, run_id)
+    console.print(f"run {res['run_id']} -> {res['out_dir']}")
+    console.print(f"  {res['decision']['verdict']} — {res['decision']['reason']}")

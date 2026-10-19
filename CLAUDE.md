@@ -226,6 +226,17 @@ per-row connection id, Binance perp feed, any spot venue, funding settlements, c
 clock telemetry, mark / index / OI / funding estimate (tickers deltas only). Nothing implemented for the collector;
 no V10.1; E1/E2 untouched; nothing runner-ready.
 
+N2 FOUR-HOUR PERSISTENCE TEST (`btc_swing/research/intraday_portfolio/n2_4h.py`, `btc-swing ipr research-n2-4h`, run
+`reports/intraday_portfolio_research/20261019T201728Z/`): the FROZEN N2 spot-flow events (`20261019T180134Z/n2_parents.parquet`,
+sha256 asserted, 6140 events, same ids / sides / decision times / entry = open of the 1m bar at decision + 1 min; never
+re-detected, no new filter) re-horizoned to 240 min primary with 120 / 480 min diagnostics; Binance 8h funding applied as a
+labelled proxy; one-position occupancy recount within N2. Result: **REJECT N2 AS DIRECTIONAL ALPHA** — 4h gross -1.35 bps
+(LB95 -4.24), net -17.4 @16 bps, PF 0.69, 0/4 blocks positive; 2h +0.66, 8h -1.78 (diagnostics only, never selected); LONG
++2.7 / SHORT -4.7 at 4h; cadence 4.64 eligible/day -> 2.47 available/day after 4h occupancy. Carry data preparation:
+`scripts/bybit_history_export.py export|validate` (Mac only: api.bybit.com is 403 from the cloud) writes
+`data/btc/datasets/bybit_funding|bybit_mark_5m|bybit_index_5m|bybit_instrument_info` + `manifests/bybit_history_export_manifest.jsonl`;
+the carry screen is NOT run until that dataset is validated. No V10.1, no TWAP integration, no collector change.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
