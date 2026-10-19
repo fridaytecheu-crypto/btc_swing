@@ -1,0 +1,220 @@
+{
+  "e4_blocking_gaps": [
+    "30 complete receipt-timed UTC days of publicTrade + allLiquidation (threshold history) do not exist yet",
+    "no monotonic clock / connection id on raw rows (reconnect boundaries cannot be reconstructed per row)",
+    "no second venue (Binance perp or any spot feed) for cross-market attribution",
+    "no funding settlement / instrument metadata journal"
+  ],
+  "fields": {
+    "aggressor_semantics": {
+      "evidence": "publicTrade `S` = taker side; allLiquidation `S=Buy` = a LONG was liquidated (V10 design section 1, verified empirically)",
+      "status": "PRESERVED"
+    },
+    "binance_perp_trades_bbo": {
+      "evidence": "no Binance feed in any collector",
+      "status": "MISSING"
+    },
+    "bybit_allLiquidation_raw": {
+      "evidence": "V10 topics ['publicTrade.BTCUSDT', 'orderbook.50.BTCUSDT', 'allLiquidation.BTCUSDT', 'tickers.BTCUSDT']",
+      "status": "PRESERVED"
+    },
+    "bybit_bbo": {
+      "evidence": "V10 subscribes orderbook.50 only (BBO = top of the maintained book; V5 collector had orderbook.1: False)",
+      "status": "DERIVABLE"
+    },
+    "bybit_depth_snapshots_deltas": {
+      "evidence": "orderbook.50 snapshot + delta",
+      "status": "PRESERVED"
+    },
+    "bybit_public_trades": {
+      "evidence": "V10 topics ['publicTrade.BTCUSDT', 'orderbook.50.BTCUSDT', 'allLiquidation.BTCUSDT', 'tickers.BTCUSDT']",
+      "status": "PRESERVED"
+    },
+    "bybit_sequence_update_fields": {
+      "evidence": "`u`, `seq`, `cts` stay inside the verbatim `raw` string",
+      "status": "PRESERVED"
+    },
+    "connection_reconnect_ids": {
+      "evidence": "reconnects are only counted in state.json stats; no per-row connection id",
+      "status": "MISSING"
+    },
+    "contract_metadata": {
+      "evidence": "instrument-info (tick / lot size, status) is never journaled",
+      "status": "MISSING"
+    },
+    "exchange_event_time": {
+      "evidence": "row.ts_exchange_ms = message `ts`; per-event `T` kept inside `raw`",
+      "status": "PRESERVED"
+    },
+    "funding_actual_settlement": {
+      "evidence": "no funding-settlement / execution feed; no REST funding history journal",
+      "status": "MISSING"
+    },
+    "funding_estimate": {
+      "evidence": "tickers delta carries fundingRate when it changes (seen: True)",
+      "status": "PARTIAL"
+    },
+    "gap_clock_health_telemetry": {
+      "evidence": "sequence gaps counted + latency stats in state.json (every 2000 messages); the per-event seq_gap flag is in-memory only, never written to the raw row; no clock-sync telemetry",
+      "status": "PARTIAL"
+    },
+    "local_utc_receipt_time": {
+      "evidence": "row.ts_received_ms = int(time.time()*1000) at receipt (wall clock, UTC epoch ms)",
+      "status": "PRESERVED"
+    },
+    "mark_index_price": {
+      "evidence": "tickers delta carries markPrice / indexPrice only when they change; no dedicated stream",
+      "status": "PARTIAL"
+    },
+    "monotonic_receipt_time": {
+      "evidence": "no time.monotonic()/perf_counter field on the row; wall clock only",
+      "status": "MISSING"
+    },
+    "next_funding_time": {
+      "evidence": "tickers delta carries nextFundingTime when it changes (seen: True)",
+      "status": "PARTIAL"
+    },
+    "open_interest": {
+      "evidence": "tickers delta carries openInterest when it changes (seen: True)",
+      "status": "PARTIAL"
+    },
+    "raw_units": {
+      "evidence": "the full message string is stored verbatim with its sha256",
+      "status": "PRESERVED"
+    },
+    "schema_version": {
+      "evidence": "bybit-public-raw-1 on every row",
+      "status": "PRESERVED"
+    },
+    "spot_venue_feeds_two_independent": {
+      "evidence": "no spot venue feed configured (0 of 2)",
+      "status": "MISSING"
+    },
+    "timestamp_units": {
+      "evidence": "field names carry the unit (ts_received_ms / ts_exchange_ms); Bybit `ts`/`T` are ms",
+      "status": "PRESERVED"
+    }
+  },
+  "generated_at_utc": "2026-10-19T18:02:04+00:00",
+  "local_stores": {
+    "forward/bybit/BTCUSDT": {
+      "files": 5,
+      "receipt_time_non_decreasing_in_sample": true,
+      "row_keys": [
+        "channel",
+        "raw",
+        "schema_version",
+        "sha256",
+        "symbol",
+        "ts_exchange_ms",
+        "ts_received_ms",
+        "type"
+      ],
+      "rows_scanned": 20000,
+      "sample_file": "data/btc/forward/bybit/BTCUSDT/2026-10-06/11.jsonl",
+      "ticker_fields_seen": [
+        "ask1Price",
+        "bid1Price",
+        "fundingRate",
+        "indexPrice",
+        "markPrice",
+        "nextFundingTime",
+        "openInterest"
+      ],
+      "topics": [
+        "orderbook.50",
+        "publicTrade",
+        "tickers"
+      ]
+    },
+    "forward_v10_verify/raw/BTCUSDT": {
+      "files": 2,
+      "receipt_time_non_decreasing_in_sample": true,
+      "row_keys": [
+        "channel",
+        "raw",
+        "schema_version",
+        "sha256",
+        "symbol",
+        "ts_exchange_ms",
+        "ts_received_ms",
+        "type"
+      ],
+      "rows_scanned": 20000,
+      "sample_file": "data/btc/forward_v10_verify/raw/BTCUSDT/2026-10-12/20.jsonl",
+      "ticker_fields_seen": [
+        "ask1Price",
+        "bid1Price",
+        "fundingRate",
+        "indexPrice",
+        "markPrice",
+        "nextFundingTime",
+        "openInterest"
+      ],
+      "topics": [
+        "allLiquidation",
+        "orderbook.50",
+        "publicTrade",
+        "tickers"
+      ]
+    }
+  },
+  "proposed_minimal_collector_only_change_NOT_IMPLEMENTED": {
+    "daily_rest_journal": [
+      "Bybit instruments-info (contract metadata)",
+      "Bybit funding-rate history (actual settlements)",
+      "Bybit open-interest history"
+    ],
+    "invariants": [
+      "schema bybit-public-raw-2 with raw kept verbatim",
+      "never run on the cloud container",
+      "never imported by V10 / V11 runners"
+    ],
+    "periodic_rows": [
+      "clock_health every 60 s: wall vs monotonic drift, last message age, reconnect count"
+    ],
+    "repo_rule": "requires an explicit owner decision; this audit implements nothing",
+    "row_additions": [
+      "rx_monotonic_ns",
+      "conn_id (uuid4 per WebSocket connection)",
+      "conn_seq (per-connection counter)",
+      "seq_gap (bool)"
+    ],
+    "subscriptions": [
+      "orderbook.1.BTCUSDT (explicit BBO) next to orderbook.50",
+      "optional: Binance USDT-perp aggTrade + bookTicker, one or two spot venue trade feeds, each in its own raw root"
+    ],
+    "where": "a NEW module (e.g. btc_swing/research/collector_v2/) with its own raw root; the frozen V10 feed, its store and every strategy decision stay byte-identical"
+  },
+  "required_fields_with_gaps": [
+    "monotonic_receipt_time",
+    "connection_reconnect_ids",
+    "gap_clock_health_telemetry",
+    "binance_perp_trades_bbo",
+    "spot_venue_feeds_two_independent",
+    "mark_index_price",
+    "open_interest",
+    "funding_estimate",
+    "funding_actual_settlement",
+    "next_funding_time",
+    "contract_metadata"
+  ],
+  "schema": "e4_collection_audit-1",
+  "scope": "read-only audit of collector source text, config and local raw stores; nothing modified",
+  "v10_feed_topics": [
+    "publicTrade.BTCUSDT",
+    "orderbook.50.BTCUSDT",
+    "allLiquidation.BTCUSDT",
+    "tickers.BTCUSDT"
+  ],
+  "v10_row_keys_in_source": [
+    "channel",
+    "raw",
+    "schema_version",
+    "sha256",
+    "symbol",
+    "ts_exchange_ms",
+    "ts_received_ms",
+    "type"
+  ]
+}

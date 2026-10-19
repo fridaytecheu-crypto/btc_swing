@@ -61,3 +61,53 @@ def research_cmd(
     console.print(f"run {res.run_id} -> {res.out_dir}")
     for k, v in res.verdicts.items():
         console.print(f"  {k}: {v['verdict']} — {v['reason']}")
+
+
+@ipr_app.command("ingest-spot")
+def ingest_spot_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+) -> None:
+    """Binance SPOT 5m klines (checksummed monthly archive) up to the month before the holdout."""
+    from btc_swing.research.intraday_portfolio.spot import ingest
+
+    rows = ingest(_data_dir(data_dir), Path("manifests/binance_spot_klines_5m_manifest.jsonl"))
+    console.print(f"{len(rows)} new months written")
+
+
+@ipr_app.command("research-n")
+def research_n_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out_root: Annotated[Path, typer.Option(help="report root")] = DEFAULT_OUT,
+    start: Annotated[str | None, typer.Option(help="first UTC day (YYYY-MM-DD)")] = None,
+    end: Annotated[str | None, typer.Option(help="last UTC day (YYYY-MM-DD), < holdout")] = None,
+    run_id: Annotated[
+        str | None, typer.Option(help="fixed RUN_ID (default: UTC timestamp)")
+    ] = None,
+) -> None:
+    """N1 / N2 / N4 preregistered screens: census, gross markouts, cost screen, overlap, E4 audit."""
+    from btc_swing.research.intraday_portfolio.run_n import run_n
+
+    res = run_n(
+        _data_dir(data_dir),
+        out_root,
+        date.fromisoformat(start) if start else None,
+        date.fromisoformat(end) if end else None,
+        run_id,
+    )
+    console.print(f"run {res.run_id} -> {res.out_dir}")
+    for k, v in res.verdicts.items():
+        console.print(f"  {k}: EDGE {v['edge']['verdict']} | CADENCE {v['cadence']['verdict']}")
+
+
+@ipr_app.command("e4-audit")
+def e4_audit_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out: Annotated[Path | None, typer.Option(help="write e4_collection_audit.json here")] = None,
+) -> None:
+    """Read-only audit of what the current collectors preserve for E4 (nothing modified)."""
+    from btc_swing.research.intraday_portfolio.audit import e4_collection_audit
+
+    a = e4_collection_audit(_data_dir(data_dir))
+    if out is not None:
+        out.write_text(json.dumps(a, indent=2, sort_keys=True, default=str) + "\n")
+    console.print(json.dumps({k: v["status"] for k, v in a["fields"].items()}, indent=2))

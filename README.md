@@ -158,7 +158,10 @@ inventory|research`, outputs `reports/intraday_portfolio_research/<RUN_ID>/`: an
 (Phase 0 data inventory, receipt-time data contract, parent episodes, benchmark vs executable ledgers, one-position
 portfolio, predeclared gates). Run `20261019T114233Z`: E1 Accepted Range Expansion REJECT, E2 Failed Auction REJECT
 (benchmark ledger, 2021-11-15..2025-06-30), E4 Forced Flow INCONCLUSIVE (no 30-day receipt-timed liquidation history).
-Nothing is eligible for runner engineering.
+Nothing is eligible for runner engineering. Second generation on the same harness (`btc-swing ipr research-n`, run
+`20261019T180134Z`): N1 Participation Impulse, N2 Persistent Spot-Flow (Binance spot klines, checksummed ingest) and N4
+Session-Transition screens — EDGE REJECT for all three (gross within ±2 bps per trade before 16 bps costs), CADENCE
+PLAUSIBLE CORE (5.5 / 4.6 / 1.0 independent eligible per day); E4 collector audit in `e4_collection_audit.json`.
 
 ## Quick start
 ```

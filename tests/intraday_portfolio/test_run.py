@@ -135,7 +135,18 @@ def test_package_is_order_disabled_and_isolated() -> None:
     assert pkg.RESEARCH_ONLY is True and pkg.ORDER_CAPABLE is False
     here = Path(pkg.__file__).parent
     for f in sorted(here.glob("*.py")):
-        for line in f.read_text().splitlines():
+        text = f.read_text()
+        for line in text.splitlines():
+            if f.name == "spot.py" and line.strip() == "import httpx":
+                continue  # the ONLY network use: the public, checksummed Binance Vision archive
             assert not FORBIDDEN.match(line), f"{f.name}: {line}"
             assert "place_order" not in line and "api_key" not in line.lower(), f"{f.name}: {line}"
+        urls = set(re.findall(r"https?://[A-Za-z0-9./_-]+", text))
+        assert urls <= {"https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/5m/"}, (
+            f.name,
+            urls,
+        )
+        assert "wss://" not in text and "stream.bybit" not in text and "api.bybit" not in text, (
+            f.name
+        )
     assert not np.any([("demo" in f.name) for f in here.glob("*.py")])

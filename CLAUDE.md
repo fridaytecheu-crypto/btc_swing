@@ -206,6 +206,26 @@ runner engineering; no parameter was tuned; the one recorded INTERPRETATION (a s
 episode; the same frozen box never spawns a second parent) is in the manifest. Locked holdout never read. The V11
 seven-group score is RETIRED for new research; V10 stays untouched (no V10.1).
 
+N1 / N2 / N4 PREREGISTERED SCREENS (same package; `btc-swing ipr ingest-spot|research-n|e4-audit`; run
+`reports/intraday_portfolio_research/20261019T180134Z/`, SUMMARY.md + `experiment_manifest_n1_n2_n4.json` whose
+preregistration block (rules, embargo, episode rule, costs, gates, kill criteria) is hashed BEFORE any outcome):
+N1 Participation Impulse Continuation (5m |ret| >= lagged 30-day p95, close beyond the preceding completed 30m
+range, 1-min embargo, 30m primary / 60m diagnostic), N2 Persistent Spot-Flow Continuation (15m signed quote flow
+2*taker_buy_quote - total_quote from three agreeing 5m bars, lagged top decile; SPOT = Binance spot 5m klines
+ingested with published sha256 into `data/btc/datasets/binance_spot_klines/` + `manifests/binance_spot_klines_5m_manifest.jsonl`,
+PERP comparison = Binance perp klines; matched price/volume controls; single spot venue -> exploratory), N4
+Session-Transition Continuation (Tokyo 09:00 / London 08:00 / New York 09:30 local via zoneinfo, weekdays, first
+completed 15m return with opening volume > median of the previous 30 sessions, 45 min, POOLED primary). Two
+verdicts per engine on 2021-11-15..2025-06-30 (benchmark ledger, taker/taker): N1 EDGE REJECT / CADENCE PLAUSIBLE CORE
+(7310 parents, 5.52/day, gross -0.3 bps, net -16.3 @16); N2S EDGE REJECT / CADENCE PLAUSIBLE CORE (6140 parents,
+4.64/day, gross +1.6 bps, net -14.4; +5.1 bps over matched controls = 1-5 bps kill); N4 EDGE REJECT / CADENCE
+PLAUSIBLE CORE (1387 parents, 1.05/day, gross -0.4 bps, net -16.4; only New York positive). Union of signals:
+8.2 available/day but 3197 of 10899 profitable at 16 bps. E4 collection audit (`e4_collection_audit.json`, read-only):
+Bybit trades / liquidations / depth / sequence fields / raw / schema preserved; MISSING monotonic receipt clock,
+per-row connection id, Binance perp feed, any spot venue, funding settlements, contract metadata; PARTIAL gap /
+clock telemetry, mark / index / OI / funding estimate (tickers deltas only). Nothing implemented for the collector;
+no V10.1; E1/E2 untouched; nothing runner-ready.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,

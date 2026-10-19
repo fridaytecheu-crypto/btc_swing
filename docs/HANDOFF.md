@@ -509,6 +509,19 @@
   >= 31 complete days (the Mac V10 raw store already accumulates trades + allLiquidation + orderbook.50)
   and then running `btc-swing ipr research` on that machine; E1/E2 need no further historical work.
 
+- N1 / N2 / N4 PREREGISTERED SCREENS (2026-10-19, same harness, `btc-swing ipr research-n`): run
+  `reports/intraday_portfolio_research/20261019T180134Z/`. Preregistration hashed before any outcome. EDGE: all three
+  REJECT on the benchmark ledger (gross -0.3 / +1.6 / -0.4 bps per trade at 30 / 30 / 45 min; net -16 / -14 / -16 at
+  16 bps; 0 of 4 blocks positive; N2 spot flow beats matched price/volume controls by +5.1 bps = the 1-5 bps kill).
+  CADENCE: all three PLAUSIBLE CORE (5.5 / 4.6 / 1.0 independent eligible per day; union 8.2 available/day).
+  Binance SPOT 5m klines ingested (44 checksummed months, `manifests/binance_spot_klines_5m_manifest.jsonl`); only one
+  spot venue exists -> exploratory, replication MISSING. E4 collection audit: see `e4_collection_audit.json` (gaps:
+  monotonic clock, connection ids, second venue, funding settlements, contract metadata; proposal only, nothing
+  implemented). 42 harness tests. Nothing qualifies for the next research phase on economics; cadence is not the
+  constraint, gross edge is.
+- Next step: owner decision. The three cheapest continuation hypotheses are all REJECTED at the gross-return
+  screen; any new engine needs a new preregistration. E4 still waits for 30 complete receipt-timed days.
+
 ## Commands
 ```
 uv sync --all-extras
@@ -551,6 +564,8 @@ uv run btc-swing v11lw report compare                                    # read-
 uv run btc-swing v11lw demo status --live && uv run btc-swing v11lw demo report  # V11-LITE Bybit DEMO (owner activation only)
 uv run python scripts/v11lw_forward_forensic_audit.py             # READ-ONLY per-trade forensic audit of the LITE shadow (Mac; live-safe prefix snapshot)
 uv run btc-swing ipr inventory && uv run btc-swing ipr research          # intraday portfolio research E1/E2/E4 (~5 min; files only, order-disabled)
+uv run btc-swing ipr ingest-spot && uv run btc-swing ipr research-n     # Binance spot 5m klines (checksummed) + N1/N2/N4 screens (~40 min)
+uv run btc-swing ipr e4-audit                                            # read-only E4 collector/data audit
 ```
 
 ## Known data facts
