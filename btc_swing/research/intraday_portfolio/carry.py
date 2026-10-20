@@ -73,11 +73,14 @@ class VenueData:
         self._mark_idx = {int(t): i for i, t in enumerate(self.mark_t.tolist())}
 
     def mark_at(self, t_ms: int) -> float | None:
-        i = self._mark_idx.get(int(t_ms))
+        """OPEN of the 5m bar containing t. Settlement timestamps carry millisecond jitter on Binance
+        (e.g. 00:00:00.012), so the lookup floors t to the 5m grid; entry / exit times are on the grid."""
+        i = self._mark_idx.get(int(t_ms) // MS_5M * MS_5M)
         return float(self.mark_open[i]) if i is not None else None
 
     def prev_close_at(self, t_ms: int) -> float | None:
-        i = self._mark_idx.get(int(t_ms) - MS_5M)
+        """CLOSE of the bar preceding the one containing t (settlement-mark sensitivity)."""
+        i = self._mark_idx.get(int(t_ms) // MS_5M * MS_5M - MS_5M)
         return float(self.mark_close[i]) if i is not None else None
 
     def traded_at(self, t_ms: int) -> float | None:
@@ -841,7 +844,7 @@ def run_carry(data_dir: Path, out_root: Path, run_id: str | None = None) -> dict
         "rules": {
             "decision": "00:05 UTC daily; A_v = sum of settled rates with settlement strictly inside (t-24h, t); D = A_Bybit - A_Binance; projected_72h_bps = 1e4*3*|D|; entry iff >= 50 bps; D>0 SHORT Bybit / LONG Binance, D<0 mirror, D=0 none; trailing window must hold the full expected settlement count per venue (24h / observed interval) else the decision is excluded",
             "entry_exit": "00:10 UTC mark-bar OPEN both venues; exit mark-bar OPEN exactly 72h later; complete synchronized 5m grid required on both venues else excluded; q = 1 BTC per leg; one position; renewal closes first then opens (both charged, flagged)",
-            "funding": "F = sum -s_v q M_v,t r_v,t over settlements in (entry, exit]; pre-entry midnight excluded, final midnight included; settlement mark = mark-bar OPEN at the settlement timestamp (approximation; sensitivity = preceding bar close)",
+            "funding": "F = sum -s_v q M_v,t r_v,t over settlements in (entry, exit]; pre-entry midnight excluded, final midnight included; settlement mark = OPEN of the 5m mark bar containing the settlement timestamp (Binance settlement stamps carry ms jitter; approximation; sensitivity = preceding bar close)",
             "price": "B = sum s_v q (P_T - P_0) = the combined basis PnL (not added twice); N0 = q (P_Bybit,0 + P_Binance,0)/2 fixed",
             "costs": "four executions x q x proxy price x 8 bps (primary) / 12 bps (stress); modeled all-in, no breakdown, no extra fees",
             "valuation": "synchronized marks both venues (primary); traded 5m opens both venues (secondary, same signals / holds); index diagnostic only; path metrics on 5m bar opens, never intrabar extremes; illustrative collateral = leg entry notional per venue, no netting; liquidation / margin compliance UNQUALIFIED",

@@ -38,6 +38,7 @@ def make_data(
     bybit_drift_per_bar: float = 0.0,
     drop_bybit_mark_minute: int | None = None,
     drop_binance_settlement: int | None = None,
+    binance_jitter_ms: int = 0,
 ) -> None:
     """Flat marks (optional Bybit drift), zero funding except the given settlement overrides
     (keyed by settlement index k -> rate), 8h schedule on both venues from T0."""
@@ -61,6 +62,7 @@ def make_data(
         _write(root, name, df, "2024-01")
     n_set = n_days * 3
     ts = (T0 + np.arange(n_set, dtype=np.int64) * MS_8H).astype(np.int64)
+    ts_by = {"bybit_funding/BTCUSDT/na": ts, "funding/BTCUSDT/na": ts + binance_jitter_ms}
     for name, rates, drop in (
         ("bybit_funding/BTCUSDT/na", bybit_rates or {}, None),
         ("funding/BTCUSDT/na", binance_rates or {}, drop_binance_settlement),
@@ -76,7 +78,11 @@ def make_data(
             root,
             name,
             pl.DataFrame(
-                {"time_ms": ts[keep], "funding_rate": r[keep], "funding_interval_hours": 8}
+                {
+                    "time_ms": ts_by[name][keep],
+                    "funding_rate": r[keep],
+                    "funding_interval_hours": 8,
+                }
             ),
             "2024-01",
         )
@@ -274,3 +280,20 @@ def test_run_carry_writes_frozen_manifest_and_refuses_missing_inputs(tmp_path: P
         res2["results"]["A"] == res["results"]["A"]
         and res2["results"]["cluster_bootstrap"] == res["results"]["cluster_bootstrap"]
     )
+
+
+def test_binance_settlement_millisecond_jitter_is_handled(tmp_path: Path) -> None:
+    """Real Binance settlement stamps are e.g. 00:00:00.012: the window logic uses the exact stamp and
+    the settlement mark comes from the 5m bar containing it; nothing is excluded or shifted."""
+    k_all = {k: 0.001 for k in range(120)}
+    make_data(tmp_path, bybit_rates=k_all, binance_rates=k_all, binance_jitter_ms=12)
+    venues, inv = carry.load_venues(tmp_path)
+    assert inv["BINANCE"]["funding_interval_hours_observed"] == 8
+    dec = carry.signal(date(2024, 1, 10), venues)
+    assert dec.valid and math.isclose(dec.a_binance or 0, 0.003) and dec.d == 0
+    entry = T0 + 9 * MS_D + 10 * 60_000
+    p = carry.build_position("J", "A", entry, 1, False, dec, venues)
+    assert isinstance(p, carry.Position)
+    assert p.funding_count == {"BYBIT": 9, "BINANCE": 9}
+    assert math.isclose(p.funding["BINANCE"], -9 * 50_000.0 * 0.001)  # LONG Binance pays +0.001
+    assert math.isclose(p.funding["BYBIT"], 9 * 50_000.0 * 0.001)  # SHORT Bybit receives

@@ -538,6 +538,10 @@
   research-carry` then commit `reports/intraday_portfolio_research/<RUN_ID>/` (carry_manifest.json, carry_positions,
   carry_blocks, carry_concentration, carry_cost_stress, carry_controls, carry_decisions, SUMMARY.md); or copy the four
   dataset directories + `manifests/bybit_history_export_manifest.jsonl` into the container and run here.
+- Mac-side Binance inputs for the carry screen (2026-10-20): `scripts/binance_carry_inputs.py ingest` (existing Binance
+  Vision ingestor, funding + mark 5m + perp 5m only, 2021-11..2025-06) then `validate`; the carry loader now resolves
+  Binance's millisecond-jittered settlement stamps to the containing 5m mark bar (test added). Remaining blocker before
+  `uv run btc-swing ipr research-carry` on the Mac: none once `validate` prints VALID.
 
 ## Commands
 ```
@@ -585,6 +589,7 @@ uv run btc-swing ipr ingest-spot && uv run btc-swing ipr research-n     # Binanc
 uv run btc-swing ipr e4-audit                                            # read-only E4 collector/data audit
 uv run btc-swing ipr research-n2-4h                                      # N2 4h re-horizon of the frozen N2 events (~3 min)
 uv run btc-swing ipr research-carry                                      # conditional funding carry screen (needs the Bybit export datasets; refuses otherwise)
+uv run python scripts/binance_carry_inputs.py ingest && uv run python scripts/binance_carry_inputs.py validate   # Mac: Binance funding / mark 5m / perp 5m for the carry screen
 uv run python scripts/bybit_history_export.py export && uv run python scripts/bybit_history_export.py validate   # Mac only: Bybit funding / mark / index history for the carry screen
 ```
 

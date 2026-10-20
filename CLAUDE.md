@@ -247,7 +247,14 @@ and 30-day moving-block bootstraps, seed 42; verdict set PARK / INFORMATIVE / RE
 EXECUTION-QUALIFIED REPLAY). The run REFUSES (fail closed, no artefact) unless `data/btc/datasets/bybit_funding/` and
 `bybit_mark_5m/` exist: on the cloud container they do not (the Mac export of `scripts/bybit_history_export.py` was not copied),
 so the screen is NOT yet executed; run it on the Mac (`uv run btc-swing ipr research-carry`) and commit the run directory.
-Mark-based results are never executable profits; a pass would only authorise executable-data investigation.
+Binance inputs for the Mac: `scripts/binance_carry_inputs.py ingest|validate` reuses the repository's Binance Vision ingestor
+(frozen V1 config untouched, in-memory overrides: funding + mark_price 5m + base perp 5m only, holdout months refused) and
+writes exactly `data/btc/datasets/funding/BTCUSDT/na/`, `mark_price/BTCUSDT/5m/`, `perp_klines/BTCUSDT/5m/`; `validate`
+reports counts / span / duplicates / nulls / interval distribution / ms jitter / 5m-grid gaps and the carry loader's own
+inventory. Loader fact: Binance settlement stamps carry up to ~31 ms jitter, so the settlement mark is the OPEN of the 5m
+bar CONTAINING the stamp (window membership uses the exact stamp); the Binance mark archive has 4 gaps (869 bars) ->
+positions spanning them are excluded, never filled. Mark-based results are never executable profits; a pass would only
+authorise executable-data investigation.
 
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
