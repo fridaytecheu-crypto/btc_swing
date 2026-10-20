@@ -543,6 +543,13 @@
   Binance's millisecond-jittered settlement stamps to the containing 5m mark bar (test added). Remaining blocker before
   `uv run btc-swing ipr research-carry` on the Mac: none once `validate` prints VALID.
 
+- CASH-FUNDED SPOT / SHORT-PERP FUNDING CARRY (2026-10-20, `btc-swing ipr research-cashcarry`, run
+  `reports/intraday_portfolio_research/20261020T105340Z/`): 14 quarterly 90-day allocations 2022-01..2025-04 on Binance,
+  PARK — positive after costs (+0.61 % per window on committed capital, funding-driven) but below SOFR cash (+1.00 %):
+  mean excess -0.38 % per window, negative under stress, in the latest four and excluding the best window; 4
+  capital-protection exits; one window unresolved (mark gap near the threshold). Specification closed; no confirmation
+  sample is to be fetched. References: NY Fed SOFR + Coinbase USDT-USD (`ipr fetch-cash-inputs`).
+
 ## Commands
 ```
 uv sync --all-extras
@@ -590,6 +597,7 @@ uv run btc-swing ipr e4-audit                                            # read-
 uv run btc-swing ipr research-n2-4h                                      # N2 4h re-horizon of the frozen N2 events (~3 min)
 uv run btc-swing ipr research-carry                                      # conditional funding carry screen (needs the Bybit export datasets; refuses otherwise)
 uv run python scripts/binance_carry_inputs.py ingest && uv run python scripts/binance_carry_inputs.py validate   # Mac: Binance funding / mark 5m / perp 5m for the carry screen
+uv run btc-swing ipr fetch-cash-inputs && uv run btc-swing ipr research-cashcarry   # cash-funded spot/short-perp carry screen (~8 min)
 uv run python scripts/bybit_history_export.py export && uv run python scripts/bybit_history_export.py validate   # Mac only: Bybit funding / mark / index history for the carry screen
 ```
 

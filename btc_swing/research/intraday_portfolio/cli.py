@@ -146,3 +146,34 @@ def research_carry_cmd(
     console.print(
         f"  {res['verdict']['verdict']} (n {res['verdict']['n']}, clusters {res['verdict']['clusters']})"
     )
+
+
+@ipr_app.command("fetch-cash-inputs")
+def fetch_cash_inputs_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    start: Annotated[str, typer.Option(help="first day (YYYY-MM-DD)")] = "2021-11-01",
+    end: Annotated[str, typer.Option(help="last day (YYYY-MM-DD), < holdout")] = "2025-06-30",
+) -> None:
+    """Public references for the cash-carry screen: NY Fed SOFR daily, Coinbase USDT-USD daily."""
+    from btc_swing.research.intraday_portfolio.extdata import fetch_sofr, fetch_usdtusd
+
+    d = _data_dir(data_dir)
+    s = fetch_sofr(d, date.fromisoformat(start), date.fromisoformat(end))
+    u = fetch_usdtusd(d, date.fromisoformat(start), date.fromisoformat(end))
+    console.print(f"sofr rows {s.height}; usdtusd rows {u.height}")
+
+
+@ipr_app.command("research-cashcarry")
+def research_cashcarry_cmd(
+    data_dir: Annotated[Path | None, typer.Option(help="BTC_DATA_DIR override")] = None,
+    out_root: Annotated[Path, typer.Option(help="report root")] = DEFAULT_OUT,
+    run_id: Annotated[
+        str | None, typer.Option(help="fixed RUN_ID (default: UTC timestamp)")
+    ] = None,
+) -> None:
+    """Cash-funded spot / short-perp funding carry: one frozen economic feasibility screen (Binance)."""
+    from btc_swing.research.intraday_portfolio.cashcarry import run_cashcarry
+
+    res = run_cashcarry(_data_dir(data_dir), out_root, run_id)
+    console.print(f"run {res['run_id']} -> {res['out_dir']}")
+    console.print(f"  {res['verdict']['verdict']} (valid windows {res['verdict']['n_valid']})")

@@ -166,6 +166,8 @@ N2 four-hour persistence test (`btc-swing ipr research-n2-4h`, run `20261019T201
 directional alpha (gross -1.4 bps, net -17.4 @16; 2h / 8h diagnostics no better).
 Conditional funding carry screen (`btc-swing ipr research-carry`): implemented and frozen; runs only where the Bybit
 funding / mark export exists (Mac), refusing otherwise — not yet executed.
+Cash-funded spot / short-perp funding carry screen (`btc-swing ipr research-cashcarry`, run `20261020T105340Z`): PARK —
+funding income is real (+0.61 % per 90-day window after 12/8 bps costs) but below SOFR cash (+1.00 %); 4 capital-protection exits.
 
 ## Quick start
 ```

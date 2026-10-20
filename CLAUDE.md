@@ -256,6 +256,25 @@ bar CONTAINING the stamp (window membership uses the exact stamp); the Binance m
 positions spanning them are excluded, never filled. Mark-based results are never executable profits; a pass would only
 authorise executable-data investigation.
 
+CASH-FUNDED SPOT / SHORT-PERP FUNDING CARRY SCREEN (`btc_swing/research/intraday_portfolio/cashcarry.py` + `extdata.py`,
+`btc-swing ipr fetch-cash-inputs|research-cashcarry`, run `reports/intraday_portfolio_research/20261020T105340Z/`, tests
+`tests/intraday_portfolio/test_cashcarry.py`): ONE frozen economic feasibility screen on Binance (chosen before results):
+quarterly 00:05 UTC decisions (no signal, no filter, negative funding retained), 00:10 traded-bar OPEN entry LONG q=1 BTC
+spot / SHORT q BTC perp, C0 = spot cost + collateral = short entry notional + entry costs, exit exactly 90 days later, 25 %
+short-equity capital-protection exit (close both legs at the first traded bar >= breach + 5 min, no injection, no re-entry,
+full-window benchmarking), funding on (entry, exit] settlements with the containing 5m mark-bar open as the flagged
+settlement-mark proxy, costs 12 / 8 bps per execution (20 / 12 stress), USD translation with Coinbase USDT-USD daily opens,
+SOFR (NY Fed) compounded act/360 as the cash benchmark (both references stored under `data/btc/datasets/sofr/` and
+`usdtusd_coinbase/` with `manifests/cash_carry_reference_manifest.jsonl`), funding-removed attribution, continuous-holding
+diagnostic (single ledger, actual turnover only, no collateral resets), block-2 moving-block bootstrap (seed 42, indicative).
+Result: **PARK — unattractive capital allocation**: 14 of 14 windows valid (2022-01..2025-04, 3.5 years), mean net return on
+committed capital +0.61 % per 90 days (+0.49 % stress) = +123 bps of one-leg notional, funding +10,866 USDT vs basis
+-245 USDT (funding supplies the return), but SOFR cash returned +1.00 % per window -> mean excess -0.38 % (-1.5 pp
+annualised; stress -0.51 %; latest four -0.62 %; excluding the best window -0.46 %; 2 of 14 windows beat cash); 4
+capital-protection exits (2023-01, 2023-10, 2024-01, 2024-10 bull legs); W05 2023-01 flagged UNRESOLVED (mark-archive gap
+while the equity ratio was below 0.35); continuous diagnostic +10.3 % on capital over 3.5 years vs +15.2 % cash. The
+specification is closed by its own rules: no confirmation sample, no cost / venue / holding changes. Never deployment.
+
 ## Non-negotiables (owner's specification)
 - No live trading, no exchange API keys, no order placement, no real money.
   Owner-approved exception (2026-10-08): Bybit DEMO execution validation (`btc_swing/v5/demo/`,
